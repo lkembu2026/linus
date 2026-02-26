@@ -24,7 +24,7 @@ CREATE TABLE users (
   id         UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email      TEXT NOT NULL UNIQUE,
   full_name  TEXT NOT NULL,
-  role       TEXT NOT NULL DEFAULT 'cashier' CHECK (role IN ('admin','pharmacist','cashier')),
+  role       TEXT NOT NULL DEFAULT 'cashier' CHECK (role IN ('admin','supervisor','pharmacist','cashier')),
   branch_id  UUID REFERENCES branches(id),
   is_active  BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT now()

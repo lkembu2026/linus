@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -12,7 +13,6 @@ import {
   ArrowLeftRight,
   FileText,
   Settings,
-  Shield,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -57,9 +57,13 @@ export function Sidebar({ userRole, userName, branchName }: SidebarProps) {
       {/* Logo */}
       <div className="flex h-16 items-center border-b border-border px-4">
         <Link href="/dashboard" className="flex items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 border border-primary/20">
-            <Shield className="h-5 w-5 text-primary" />
-          </div>
+          <Image
+            src="/lk1.webp"
+            alt="LK PharmaCare"
+            width={36}
+            height={36}
+            className="shrink-0 rounded-lg"
+          />
           {!collapsed && (
             <div>
               <span className="text-sm font-bold font-[family-name:var(--font-sans)] text-white">

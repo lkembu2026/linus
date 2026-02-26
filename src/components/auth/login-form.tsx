@@ -6,7 +6,8 @@ import { login } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, Loader2, Shield } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
+import Image from "next/image";
 
 export function LoginForm() {
   const [error, setError] = useState<string | null>(null);
@@ -31,9 +32,13 @@ export function LoginForm() {
     <div className="w-full max-w-md mx-auto">
       {/* Logo & Header */}
       <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-xl bg-primary/10 border border-primary/20 mb-4">
-          <Shield className="w-8 h-8 text-primary" />
-        </div>
+        <Image
+          src="/lk1.webp"
+          alt="LK PharmaCare"
+          width={64}
+          height={64}
+          className="rounded-xl mb-4 mx-auto"
+        />
         <h1 className="text-2xl font-bold font-[family-name:var(--font-sans)] text-white">
           LK <span className="text-primary">PharmaCare</span>
         </h1>
