@@ -1,0 +1,123 @@
+import {
+  getUnsyncedSales,
+  markSaleSynced,
+  getSyncQueue,
+  removeFromSyncQueue,
+} from "./db";
+import { createClient } from "@/lib/supabase/client";
+
+export async function syncOfflineData() {
+  if (!navigator.onLine) return { synced: 0, failed: 0 };
+
+  let synced = 0;
+  let failed = 0;
+
+  try {
+    // Sync offline sales
+    const unsyncedSales = await getUnsyncedSales();
+    const supabase = createClient();
+
+    for (const sale of unsyncedSales) {
+      try {
+        // Insert sale
+        const { data: saleRecord, error: saleError } = await supabase
+          .from("sales")
+          .insert({
+            receipt_number: sale.id,
+            total_amount: sale.total_amount,
+            payment_method: sale.payment_method,
+            branch_id: sale.branch_id,
+            created_at: sale.created_at,
+          })
+          .select()
+          .single();
+
+        if (saleError) throw saleError;
+
+        const record = saleRecord as unknown as { id: string };
+
+        // Insert sale items
+        const saleItems = sale.items.map(
+          (item: {
+            medicine_id: string;
+            quantity: number;
+            unit_price: number;
+          }) => ({
+            sale_id: record.id,
+            medicine_id: item.medicine_id,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+          }),
+        );
+
+        const { error: itemsError } = await supabase
+          .from("sale_items")
+          .insert(saleItems);
+
+        if (itemsError) throw itemsError;
+
+        await markSaleSynced(sale.id);
+        synced++;
+      } catch (err) {
+        console.error("Failed to sync sale:", sale.id, err);
+        failed++;
+      }
+    }
+
+    // Process sync queue
+    const queue = await getSyncQueue();
+    for (const item of queue) {
+      try {
+        // Execute queued action
+        switch (item.action) {
+          case "stock_adjustment": {
+            const { medicineId, adjustment } = item.payload;
+            const { data: med } = await supabase
+              .from("medicines")
+              .select("quantity_in_stock")
+              .eq("id", medicineId)
+              .single();
+
+            if (med) {
+              await supabase
+                .from("medicines")
+                .update({
+                  quantity_in_stock: med.quantity_in_stock + adjustment,
+                })
+                .eq("id", medicineId);
+            }
+            break;
+          }
+          default:
+            console.warn("Unknown sync action:", item.action);
+        }
+
+        await removeFromSyncQueue(item.id!);
+        synced++;
+      } catch (err) {
+        console.error("Failed to process queue item:", item.id, err);
+        failed++;
+      }
+    }
+  } catch (err) {
+    console.error("Sync failed:", err);
+  }
+
+  return { synced, failed };
+}
+
+// Auto-sync when coming back online
+export function startAutoSync(
+  onSync?: (result: { synced: number; failed: number }) => void,
+) {
+  const handleOnline = async () => {
+    const result = await syncOfflineData();
+    if (onSync) onSync(result);
+  };
+
+  window.addEventListener("online", handleOnline);
+
+  return () => {
+    window.removeEventListener("online", handleOnline);
+  };
+}

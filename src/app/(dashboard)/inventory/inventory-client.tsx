@@ -1,0 +1,374 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { MedicineFormDialog } from "@/components/inventory/medicine-form-dialog";
+import { StockAdjustDialog } from "@/components/inventory/stock-adjust-dialog";
+import { getMedicines, deleteMedicine } from "@/actions/inventory";
+import { usePermissions } from "@/hooks/use-permissions";
+import { formatCurrency, formatDate } from "@/lib/utils";
+import { MEDICINE_CATEGORIES } from "@/lib/constants";
+import {
+  Plus,
+  Search,
+  MoreVertical,
+  Edit,
+  Trash2,
+  Package,
+  AlertTriangle,
+  Pill,
+} from "lucide-react";
+import { toast } from "sonner";
+import type { User, Medicine } from "@/types/database";
+
+interface InventoryClientProps {
+  user: User & { branch?: { name: string } | null };
+  initialMedicines: (Medicine & { branch?: { name: string } | null })[];
+}
+
+export function InventoryClient({
+  user,
+  initialMedicines,
+}: InventoryClientProps) {
+  const { can } = usePermissions(user.role);
+  const [medicines, setMedicines] = useState(initialMedicines);
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("");
+  const [formOpen, setFormOpen] = useState(false);
+  const [editMedicine, setEditMedicine] = useState<Medicine | null>(null);
+  const [adjustMedicine, setAdjustMedicine] = useState<Medicine | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  function handleSearch(searchTerm: string, cat: string) {
+    startTransition(async () => {
+      const data = await getMedicines(
+        searchTerm || undefined,
+        cat || undefined,
+      );
+      setMedicines(data);
+    });
+  }
+
+  function handleSearchChange(value: string) {
+    setSearch(value);
+    handleSearch(value, category);
+  }
+
+  function handleCategoryChange(value: string) {
+    const cat = value === "all" ? "" : value;
+    setCategory(cat);
+    handleSearch(search, cat);
+  }
+
+  async function handleDelete(id: string, name: string) {
+    if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+    const result = await deleteMedicine(id);
+    if (result.error) {
+      toast.error(result.error);
+      return;
+    }
+    toast.success("Medicine deleted");
+    setMedicines((prev) => prev.filter((m) => m.id !== id));
+  }
+
+  function handleFormClose() {
+    setFormOpen(false);
+    setEditMedicine(null);
+    // Refresh
+    handleSearch(search, category);
+  }
+
+  function handleAdjustClose() {
+    setAdjustMedicine(null);
+    handleSearch(search, category);
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white font-[family-name:var(--font-sans)]">
+            Inventory
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            {medicines.length} medicines • {user.branch?.name ?? "All Branches"}
+          </p>
+        </div>
+        {can("add_medicine") && (
+          <Button
+            onClick={() => setFormOpen(true)}
+            className="bg-primary text-primary-foreground hover:bg-[#00B8A9]"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Medicine
+          </Button>
+        )}
+      </div>
+
+      {/* Filters */}
+      <Card className="glass-card">
+        <CardContent className="pt-6">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name, generic name, or barcode..."
+                value={search}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                className="pl-10 bg-background border-border text-white"
+              />
+            </div>
+            <Select
+              value={category || "all"}
+              onValueChange={handleCategoryChange}
+            >
+              <SelectTrigger className="w-48 bg-background border-border text-white">
+                <SelectValue placeholder="All categories" />
+              </SelectTrigger>
+              <SelectContent className="bg-card border-border">
+                <SelectItem
+                  value="all"
+                  className="text-white focus:bg-primary/10"
+                >
+                  All Categories
+                </SelectItem>
+                {MEDICINE_CATEGORIES.map((cat) => (
+                  <SelectItem
+                    key={cat}
+                    value={cat}
+                    className="text-white focus:bg-primary/10"
+                  >
+                    {cat}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Table */}
+      <Card className="glass-card">
+        <CardHeader>
+          <CardTitle className="text-base text-white flex items-center gap-2">
+            <Pill className="h-4 w-4 text-primary" />
+            Medicine Catalog
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {medicines.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Package className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p>No medicines found</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border">
+                    <TableHead className="text-muted-foreground">
+                      Name
+                    </TableHead>
+                    <TableHead className="text-muted-foreground">
+                      Category
+                    </TableHead>
+                    <TableHead className="text-muted-foreground text-right">
+                      Price
+                    </TableHead>
+                    <TableHead className="text-muted-foreground text-right">
+                      Cost
+                    </TableHead>
+                    <TableHead className="text-muted-foreground text-right">
+                      Stock
+                    </TableHead>
+                    <TableHead className="text-muted-foreground">
+                      Expiry
+                    </TableHead>
+                    {user.role === "admin" && (
+                      <TableHead className="text-muted-foreground">
+                        Branch
+                      </TableHead>
+                    )}
+                    <TableHead className="text-muted-foreground text-right">
+                      Actions
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {medicines.map((med) => {
+                    const isLow = med.quantity_in_stock <= med.reorder_level;
+                    const isExpired =
+                      med.expiry_date && new Date(med.expiry_date) < new Date();
+                    const isExpiringSoon =
+                      med.expiry_date &&
+                      !isExpired &&
+                      new Date(med.expiry_date) <
+                        new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
+
+                    return (
+                      <TableRow key={med.id} className="border-border">
+                        <TableCell>
+                          <div>
+                            <p className="text-white font-medium">{med.name}</p>
+                            {med.generic_name && (
+                              <p className="text-xs text-muted-foreground">
+                                {med.generic_name}
+                              </p>
+                            )}
+                            {med.requires_prescription && (
+                              <Badge
+                                variant="outline"
+                                className="border-amber-500 text-amber-500 text-xs mt-1"
+                              >
+                                Rx
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className="border-border text-muted-foreground"
+                          >
+                            {med.category}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right text-primary font-medium">
+                          {formatCurrency(med.unit_price)}
+                        </TableCell>
+                        <TableCell className="text-right text-muted-foreground">
+                          {formatCurrency(med.cost_price)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span
+                            className={
+                              isLow
+                                ? "text-destructive font-medium"
+                                : "text-white"
+                            }
+                          >
+                            {med.quantity_in_stock}
+                          </span>
+                          {isLow && (
+                            <AlertTriangle className="inline h-3 w-3 ml-1 text-amber-500" />
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {med.expiry_date ? (
+                            <span
+                              className={
+                                isExpired
+                                  ? "text-destructive"
+                                  : isExpiringSoon
+                                    ? "text-amber-500"
+                                    : "text-muted-foreground"
+                              }
+                            >
+                              {formatDate(med.expiry_date)}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        {user.role === "admin" && (
+                          <TableCell className="text-muted-foreground text-xs">
+                            {(med as any).branch?.name ?? "—"}
+                          </TableCell>
+                        )}
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-muted-foreground"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                              align="end"
+                              className="bg-card border-border"
+                            >
+                              {can("adjust_stock") && (
+                                <>
+                                  <DropdownMenuItem
+                                    className="text-white focus:bg-primary/10 cursor-pointer"
+                                    onClick={() => {
+                                      setEditMedicine(med);
+                                      setFormOpen(true);
+                                    }}
+                                  >
+                                    <Edit className="h-4 w-4 mr-2" />
+                                    Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className="text-white focus:bg-primary/10 cursor-pointer"
+                                    onClick={() => setAdjustMedicine(med)}
+                                  >
+                                    <Package className="h-4 w-4 mr-2" />
+                                    Adjust Stock
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              {user.role === "admin" && (
+                                <DropdownMenuItem
+                                  className="text-destructive focus:bg-destructive/10 cursor-pointer"
+                                  onClick={() => handleDelete(med.id, med.name)}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Dialogs */}
+      <MedicineFormDialog
+        open={formOpen}
+        onClose={handleFormClose}
+        medicine={editMedicine}
+      />
+      <StockAdjustDialog
+        open={!!adjustMedicine}
+        onClose={handleAdjustClose}
+        medicine={adjustMedicine}
+      />
+    </div>
+  );
+}

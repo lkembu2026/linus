@@ -1,0 +1,240 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ========================================
+   HYKROX DESIGN SYSTEM — LK PharmaCare
+   Premium Dark Medical Interface
+======================================== */
+
+@theme inline {
+  /* Core semantic colors */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Chart colors */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* Sidebar */
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* HYKROX brand colors */
+  --color-cyan: #00ffe0;
+  --color-cyan-dark: #00b8a9;
+  --color-teal: #008b8b;
+  --color-hk-black: #0d0d0d;
+  --color-hk-gray-dark: #1a1a1a;
+  --color-hk-gray-light: #b4b4b4;
+  --color-hk-white: #ffffff;
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-info: #3b82f6;
+
+  /* Fonts */
+  --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Roboto", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* Radius */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+}
+
+/* ========================================
+   HYKROX DARK THEME (default and only)
+   Deep black + Cyan accent
+======================================== */
+:root {
+  --radius: 0.5rem;
+
+  /* Backgrounds */
+  --background: #0d0d0d;
+  --foreground: #ffffff;
+
+  /* Cards & Surfaces */
+  --card: #1a1a1a;
+  --card-foreground: #ffffff;
+  --popover: #1a1a1a;
+  --popover-foreground: #ffffff;
+
+  /* Primary = Cyan */
+  --primary: #00ffe0;
+  --primary-foreground: #0d0d0d;
+
+  /* Secondary = Dark surface */
+  --secondary: #1a1a1a;
+  --secondary-foreground: #b4b4b4;
+
+  /* Muted */
+  --muted: #1a1a1a;
+  --muted-foreground: #b4b4b4;
+
+  /* Accent = Cyan */
+  --accent: #00ffe0;
+  --accent-foreground: #0d0d0d;
+
+  /* Destructive */
+  --destructive: #ff4444;
+
+  /* Borders & Inputs */
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.1);
+  --ring: #00ffe0;
+
+  /* Charts - HYKROX palette */
+  --chart-1: #00ffe0;
+  --chart-2: #00b8a9;
+  --chart-3: #008b8b;
+  --chart-4: #22c55e;
+  --chart-5: #3b82f6;
+
+  /* Sidebar */
+  --sidebar: #0d0d0d;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #00ffe0;
+  --sidebar-primary-foreground: #0d0d0d;
+  --sidebar-accent: #1a1a1a;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-ring: #00ffe0;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-sans);
+  }
+}
+
+@layer components {
+  /* Glassmorphic Card */
+  .glass-card {
+    background: linear-gradient(
+      145deg,
+      rgba(26, 26, 26, 0.8),
+      rgba(13, 13, 13, 0.9)
+    );
+    border: 1px solid rgba(0, 255, 224, 0.15);
+    border-radius: var(--radius-lg);
+    backdrop-filter: blur(10px);
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  .glass-card:hover {
+    border-color: rgba(0, 255, 224, 0.5);
+    transform: translateY(-4px);
+    box-shadow:
+      0 12px 48px rgba(0, 255, 224, 0.15),
+      0 0 30px rgba(0, 255, 224, 0.08);
+  }
+
+  /* Glow Effects */
+  .glow-subtle {
+    box-shadow: 0 0 10px rgba(0, 255, 224, 0.2);
+  }
+  .glow-primary {
+    box-shadow: 0 0 20px rgba(0, 255, 224, 0.5);
+  }
+  .glow-strong {
+    box-shadow:
+      0 0 40px rgba(0, 255, 224, 0.6),
+      0 0 60px rgba(0, 255, 224, 0.3);
+  }
+
+  /* Glow Text */
+  .glow-text {
+    text-shadow: 0 0 20px rgba(0, 255, 224, 0.5);
+  }
+
+  /* Cyan accent text */
+  .cyan-accent {
+    color: #00ffe0;
+  }
+
+  /* Status indicators */
+  .status-online {
+    @apply inline-flex items-center gap-1.5 text-xs font-medium;
+    color: #22c55e;
+  }
+  .status-online::before {
+    content: "";
+    @apply w-2 h-2 rounded-full;
+    background: #22c55e;
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+  }
+
+  .status-offline {
+    @apply inline-flex items-center gap-1.5 text-xs font-medium;
+    color: #ff4444;
+  }
+  .status-offline::before {
+    content: "";
+    @apply w-2 h-2 rounded-full;
+    background: #ff4444;
+    box-shadow: 0 0 8px rgba(255, 68, 68, 0.5);
+  }
+
+  /* Scrollbar Styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0d0d0d;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(0, 255, 224, 0.2);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 255, 224, 0.4);
+  }
+}
