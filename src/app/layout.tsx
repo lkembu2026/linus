@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Poppins, Roboto, JetBrains_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -23,12 +23,15 @@ const jetBrainsMono = JetBrains_Mono({
   weight: ["400"],
 });
 
+export const viewport: Viewport = {
+  themeColor: "#0D0D0D",
+};
+
 export const metadata: Metadata = {
   title: "LK PharmaCare — Pharmacy Operating System",
   description:
     "Multi-Branch, Offline-First Pharmacy Operating System. Real-time POS, inventory management, and analytics.",
   manifest: "/manifest.json",
-  themeColor: "#0D0D0D",
 };
 
 export default function RootLayout({
