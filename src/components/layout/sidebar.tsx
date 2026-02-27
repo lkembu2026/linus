@@ -81,7 +81,13 @@ export function Sidebar({
     >
       {/* Logo + Collapse */}
       <div className="flex h-16 items-center border-b border-border px-3 gap-2">
-        <Link href="/dashboard" className={cn("flex items-center gap-3 flex-1 min-w-0", collapsed && "justify-center")}>
+        <Link
+          href="/dashboard"
+          className={cn(
+            "flex items-center gap-3 flex-1 min-w-0",
+            collapsed && "justify-center",
+          )}
+        >
           <div className="shrink-0 rounded-full ring-2 ring-primary/50 ring-offset-2 ring-offset-[#0A0A0A] shadow-[0_0_12px_rgba(0,255,224,0.25)]">
             <Image
               src="/LKL.webp"
@@ -158,7 +164,6 @@ export function Sidebar({
             )}
           </div>
         )}
-
       </div>
     </aside>
   );
