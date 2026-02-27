@@ -37,9 +37,15 @@ interface SidebarProps {
   userRole: UserRole;
   userName: string;
   branchName?: string;
+  onNavigate?: () => void;
 }
 
-export function Sidebar({ userRole, userName, branchName }: SidebarProps) {
+export function Sidebar({
+  userRole,
+  userName,
+  branchName,
+  onNavigate,
+}: SidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
 
@@ -50,8 +56,10 @@ export function Sidebar({ userRole, userName, branchName }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 z-40 h-screen border-r border-border bg-[#0A0A0A] transition-all duration-300 flex flex-col",
-        collapsed ? "w-[72px]" : "w-64",
+        "h-screen border-r border-border bg-[#0A0A0A] transition-all duration-300 flex flex-col",
+        // Inside Sheet (mobile), use relative positioning and full width
+        onNavigate ? "relative w-full" : "fixed left-0 top-0 z-40",
+        !onNavigate && (collapsed ? "w-[72px]" : "w-64"),
       )}
     >
       {/* Logo */}
@@ -86,6 +94,7 @@ export function Sidebar({ userRole, userName, branchName }: SidebarProps) {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onNavigate}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                 isActive
@@ -106,7 +115,7 @@ export function Sidebar({ userRole, userName, branchName }: SidebarProps) {
 
       {/* User info */}
       <div className="border-t border-border p-4">
-        {!collapsed && (
+        {(!collapsed || onNavigate) && (
           <div className="mb-3">
             <p className="text-sm font-medium text-white truncate">
               {userName}
@@ -119,16 +128,19 @@ export function Sidebar({ userRole, userName, branchName }: SidebarProps) {
             )}
           </div>
         )}
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="flex w-full items-center justify-center rounded-lg p-2 text-muted-foreground hover:bg-card hover:text-white transition-colors"
-        >
-          {collapsed ? (
-            <ChevronRight className="h-4 w-4" />
-          ) : (
-            <ChevronLeft className="h-4 w-4" />
-          )}
-        </button>
+        {/* Hide collapse toggle on mobile */}
+        {!onNavigate && (
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="flex w-full items-center justify-center rounded-lg p-2 text-muted-foreground hover:bg-card hover:text-white transition-colors"
+          >
+            {collapsed ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" />
+            )}
+          </button>
+        )}
       </div>
     </aside>
   );

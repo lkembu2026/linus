@@ -21,7 +21,7 @@ export default async function DashboardPage() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold font-[family-name:var(--font-sans)] text-white">
+        <h1 className="text-xl md:text-2xl font-bold font-[family-name:var(--font-sans)] text-white">
           Dashboard
         </h1>
         <p className="text-sm text-muted-foreground mt-1">

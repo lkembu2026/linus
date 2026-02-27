@@ -101,7 +101,7 @@ export function ReportsClient({ user }: ReportsClientProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white font-[family-name:var(--font-sans)]">
+        <h1 className="text-xl md:text-2xl font-bold text-white font-[family-name:var(--font-sans)]">
           Reports
         </h1>
         <p className="text-muted-foreground text-sm">
@@ -110,7 +110,7 @@ export function ReportsClient({ user }: ReportsClientProps) {
       </div>
 
       <Tabs defaultValue="daily" className="space-y-4">
-        <TabsList className="bg-background border border-border">
+        <TabsList className="bg-background border border-border w-full flex-wrap h-auto gap-1 p-1">
           <TabsTrigger
             value="daily"
             className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
@@ -147,14 +147,14 @@ export function ReportsClient({ user }: ReportsClientProps) {
         <TabsContent value="daily" className="space-y-4">
           <Card className="glass-card">
             <CardContent className="pt-6">
-              <div className="flex gap-4 items-end">
-                <div>
+              <div className="flex gap-4 items-end flex-wrap">
+                <div className="flex-1 min-w-[140px]">
                   <label className="text-xs text-muted-foreground">Date</label>
                   <Input
                     type="date"
                     value={dailyDate}
                     onChange={(e) => setDailyDate(e.target.value)}
-                    className="bg-background border-border text-white w-48"
+                    className="bg-background border-border text-white w-full"
                   />
                 </div>
                 <Button
@@ -233,57 +233,59 @@ export function ReportsClient({ user }: ReportsClientProps) {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="border-border">
-                        <TableHead className="text-muted-foreground">
-                          Receipt
-                        </TableHead>
-                        <TableHead className="text-muted-foreground">
-                          Cashier
-                        </TableHead>
-                        <TableHead className="text-muted-foreground text-right">
-                          Amount
-                        </TableHead>
-                        <TableHead className="text-muted-foreground">
-                          Time
-                        </TableHead>
-                        <TableHead className="text-muted-foreground">
-                          Status
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {dailyReport.sales.map((sale: any) => (
-                        <TableRow key={sale.id} className="border-border">
-                          <TableCell className="text-white font-mono text-xs">
-                            {sale.receipt_number}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {sale.cashier?.full_name ?? "—"}
-                          </TableCell>
-                          <TableCell className="text-right text-primary font-medium">
-                            {formatCurrency(sale.total_amount)}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground text-xs">
-                            {formatDateTime(sale.created_at)}
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant="outline"
-                              className={
-                                sale.is_voided
-                                  ? "border-destructive text-destructive"
-                                  : "border-green-500 text-green-500"
-                              }
-                            >
-                              {sale.is_voided ? "Voided" : "Completed"}
-                            </Badge>
-                          </TableCell>
+                  <div className="overflow-x-auto -mx-6 px-6">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-border">
+                          <TableHead className="text-muted-foreground">
+                            Receipt
+                          </TableHead>
+                          <TableHead className="text-muted-foreground">
+                            Cashier
+                          </TableHead>
+                          <TableHead className="text-muted-foreground text-right">
+                            Amount
+                          </TableHead>
+                          <TableHead className="text-muted-foreground">
+                            Time
+                          </TableHead>
+                          <TableHead className="text-muted-foreground">
+                            Status
+                          </TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {dailyReport.sales.map((sale: any) => (
+                          <TableRow key={sale.id} className="border-border">
+                            <TableCell className="text-white font-mono text-xs">
+                              {sale.receipt_number}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {sale.cashier?.full_name ?? "—"}
+                            </TableCell>
+                            <TableCell className="text-right text-primary font-medium">
+                              {formatCurrency(sale.total_amount)}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground text-xs">
+                              {formatDateTime(sale.created_at)}
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant="outline"
+                                className={
+                                  sale.is_voided
+                                    ? "border-destructive text-destructive"
+                                    : "border-green-500 text-green-500"
+                                }
+                              >
+                                {sale.is_voided ? "Voided" : "Completed"}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </CardContent>
               </Card>
             </>
@@ -294,14 +296,14 @@ export function ReportsClient({ user }: ReportsClientProps) {
         <TabsContent value="monthly" className="space-y-4">
           <Card className="glass-card">
             <CardContent className="pt-6">
-              <div className="flex gap-4 items-end">
-                <div>
+              <div className="flex gap-4 items-end flex-wrap">
+                <div className="flex-1 min-w-[140px]">
                   <label className="text-xs text-muted-foreground">Month</label>
                   <Input
                     type="month"
                     value={monthYear}
                     onChange={(e) => setMonthYear(e.target.value)}
-                    className="bg-background border-border text-white w-48"
+                    className="bg-background border-border text-white w-full"
                   />
                 </div>
                 <Button
@@ -427,22 +429,22 @@ export function ReportsClient({ user }: ReportsClientProps) {
           <Card className="glass-card">
             <CardContent className="pt-6">
               <div className="flex gap-4 items-end flex-wrap">
-                <div>
+                <div className="flex-1 min-w-[140px]">
                   <label className="text-xs text-muted-foreground">From</label>
                   <Input
                     type="date"
                     value={topStart}
                     onChange={(e) => setTopStart(e.target.value)}
-                    className="bg-background border-border text-white w-48"
+                    className="bg-background border-border text-white w-full"
                   />
                 </div>
-                <div>
+                <div className="flex-1 min-w-[140px]">
                   <label className="text-xs text-muted-foreground">To</label>
                   <Input
                     type="date"
                     value={topEnd}
                     onChange={(e) => setTopEnd(e.target.value)}
-                    className="bg-background border-border text-white w-48"
+                    className="bg-background border-border text-white w-full"
                   />
                 </div>
                 <Button
@@ -507,56 +509,58 @@ export function ReportsClient({ user }: ReportsClientProps) {
               {/* Table */}
               <Card className="glass-card">
                 <CardContent className="pt-6">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="border-border">
-                        <TableHead className="text-muted-foreground">
-                          #
-                        </TableHead>
-                        <TableHead className="text-muted-foreground">
-                          Medicine
-                        </TableHead>
-                        <TableHead className="text-muted-foreground">
-                          Category
-                        </TableHead>
-                        <TableHead className="text-muted-foreground text-right">
-                          Qty Sold
-                        </TableHead>
-                        <TableHead className="text-muted-foreground text-right">
-                          Revenue
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {topSelling.map((item, i) => (
-                        <TableRow
-                          key={item.medicine_id}
-                          className="border-border"
-                        >
-                          <TableCell className="text-muted-foreground">
-                            {i + 1}
-                          </TableCell>
-                          <TableCell className="text-white font-medium">
-                            {item.name}
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant="outline"
-                              className="border-border text-muted-foreground"
-                            >
-                              {item.category}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right text-white">
-                            {item.totalQty}
-                          </TableCell>
-                          <TableCell className="text-right text-primary font-medium">
-                            {formatCurrency(item.totalRevenue)}
-                          </TableCell>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-border">
+                          <TableHead className="text-muted-foreground">
+                            #
+                          </TableHead>
+                          <TableHead className="text-muted-foreground">
+                            Medicine
+                          </TableHead>
+                          <TableHead className="text-muted-foreground">
+                            Category
+                          </TableHead>
+                          <TableHead className="text-muted-foreground text-right">
+                            Qty Sold
+                          </TableHead>
+                          <TableHead className="text-muted-foreground text-right">
+                            Revenue
+                          </TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {topSelling.map((item, i) => (
+                          <TableRow
+                            key={item.medicine_id}
+                            className="border-border"
+                          >
+                            <TableCell className="text-muted-foreground">
+                              {i + 1}
+                            </TableCell>
+                            <TableCell className="text-white font-medium">
+                              {item.name}
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant="outline"
+                                className="border-border text-muted-foreground"
+                              >
+                                {item.category}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right text-white">
+                              {item.totalQty}
+                            </TableCell>
+                            <TableCell className="text-right text-primary font-medium">
+                              {formatCurrency(item.totalRevenue)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </CardContent>
               </Card>
             </>
@@ -568,8 +572,8 @@ export function ReportsClient({ user }: ReportsClientProps) {
           <TabsContent value="branches" className="space-y-4">
             <Card className="glass-card">
               <CardContent className="pt-6">
-                <div className="flex gap-4 items-end">
-                  <div>
+                <div className="flex gap-4 items-end flex-wrap">
+                  <div className="flex-1 min-w-[140px]">
                     <label className="text-xs text-muted-foreground">
                       Month
                     </label>
@@ -577,7 +581,7 @@ export function ReportsClient({ user }: ReportsClientProps) {
                       type="month"
                       value={branchMonth}
                       onChange={(e) => setBranchMonth(e.target.value)}
-                      className="bg-background border-border text-white w-48"
+                      className="bg-background border-border text-white w-full"
                     />
                   </div>
                   <Button

@@ -54,9 +54,9 @@ export function POSClient({ user, initialRecentSales }: POSClientProps) {
   return (
     <div className="space-y-6">
       {/* Page header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h1 className="text-2xl font-bold text-white font-[family-name:var(--font-sans)]">
+          <h1 className="text-xl md:text-2xl font-bold text-white font-[family-name:var(--font-sans)]">
             Point of Sale
           </h1>
           <p className="text-muted-foreground text-sm">
@@ -108,73 +108,75 @@ export function POSClient({ user, initialRecentSales }: POSClientProps) {
                   No sales yet today
                 </p>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-border">
-                      <TableHead className="text-muted-foreground">
-                        Receipt #
-                      </TableHead>
-                      <TableHead className="text-muted-foreground">
-                        Total
-                      </TableHead>
-                      <TableHead className="text-muted-foreground">
-                        Payment
-                      </TableHead>
-                      <TableHead className="text-muted-foreground">
-                        Time
-                      </TableHead>
-                      <TableHead className="text-muted-foreground">
-                        Status
-                      </TableHead>
-                      <TableHead className="text-muted-foreground text-right">
-                        Action
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {recentSales.map((sale) => (
-                      <TableRow key={sale.id} className="border-border">
-                        <TableCell className="text-white font-mono text-xs">
-                          {sale.receipt_number}
-                        </TableCell>
-                        <TableCell className="text-primary font-medium">
-                          {formatCurrency(sale.total_amount)}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground capitalize">
-                          {sale.payment_method}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-xs">
-                          {formatDateTime(sale.created_at)}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={
-                              sale.is_voided
-                                ? "border-destructive text-destructive"
-                                : "border-green-500 text-green-500"
-                            }
-                          >
-                            {sale.is_voided ? "Voided" : "Completed"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {!sale.is_voided && user.role === "admin" && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-destructive hover:text-destructive"
-                              onClick={() => handleVoid(sale.id)}
-                            >
-                              <XCircle className="h-3 w-3 mr-1" />
-                              Void
-                            </Button>
-                          )}
-                        </TableCell>
+                <div className="overflow-x-auto -mx-6 px-6">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-border">
+                        <TableHead className="text-muted-foreground">
+                          Receipt #
+                        </TableHead>
+                        <TableHead className="text-muted-foreground">
+                          Total
+                        </TableHead>
+                        <TableHead className="text-muted-foreground">
+                          Payment
+                        </TableHead>
+                        <TableHead className="text-muted-foreground">
+                          Time
+                        </TableHead>
+                        <TableHead className="text-muted-foreground">
+                          Status
+                        </TableHead>
+                        <TableHead className="text-muted-foreground text-right">
+                          Action
+                        </TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {recentSales.map((sale) => (
+                        <TableRow key={sale.id} className="border-border">
+                          <TableCell className="text-white font-mono text-xs">
+                            {sale.receipt_number}
+                          </TableCell>
+                          <TableCell className="text-primary font-medium">
+                            {formatCurrency(sale.total_amount)}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground capitalize">
+                            {sale.payment_method}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-xs">
+                            {formatDateTime(sale.created_at)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="outline"
+                              className={
+                                sale.is_voided
+                                  ? "border-destructive text-destructive"
+                                  : "border-green-500 text-green-500"
+                              }
+                            >
+                              {sale.is_voided ? "Voided" : "Completed"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {!sale.is_voided && user.role === "admin" && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive hover:text-destructive"
+                                onClick={() => handleVoid(sale.id)}
+                              >
+                                <XCircle className="h-3 w-3 mr-1" />
+                                Void
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               )}
             </CardContent>
           </Card>

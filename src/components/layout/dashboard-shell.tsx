@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import type { UserRole } from "@/types";
 
 interface DashboardShellProps {
@@ -17,20 +19,43 @@ export function DashboardShell({
   userRole,
   branchName,
 }: DashboardShellProps) {
+  const [mobileOpen, setMobileOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-background">
-      <Sidebar
-        userRole={userRole}
-        userName={userName}
-        branchName={branchName}
-      />
-      <div className="pl-64 transition-all duration-300">
+      {/* Desktop sidebar — hidden on mobile */}
+      <div className="hidden md:block">
+        <Sidebar
+          userRole={userRole}
+          userName={userName}
+          branchName={branchName}
+        />
+      </div>
+
+      {/* Mobile sidebar — sheet overlay */}
+      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+        <SheetContent
+          side="left"
+          className="w-64 p-0 bg-[#0A0A0A] border-r border-border"
+        >
+          <Sidebar
+            userRole={userRole}
+            userName={userName}
+            branchName={branchName}
+            onNavigate={() => setMobileOpen(false)}
+          />
+        </SheetContent>
+      </Sheet>
+
+      {/* Main content area — responsive padding */}
+      <div className="md:pl-64 transition-all duration-300">
         <Header
           userName={userName}
           userRole={userRole}
           branchName={branchName}
+          onMenuClick={() => setMobileOpen(true)}
         />
-        <main className="p-6">{children}</main>
+        <main className="p-4 md:p-6">{children}</main>
       </div>
     </div>
   );

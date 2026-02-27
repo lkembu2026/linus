@@ -70,7 +70,7 @@ export function SettingsClient({ user }: SettingsClientProps) {
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
-        <h1 className="text-2xl font-bold text-white font-[family-name:var(--font-sans)]">
+        <h1 className="text-xl md:text-2xl font-bold text-white font-[family-name:var(--font-sans)]">
           Settings
         </h1>
         <p className="text-muted-foreground text-sm">
@@ -87,7 +87,7 @@ export function SettingsClient({ user }: SettingsClientProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label className="text-xs text-muted-foreground">Full Name</Label>
               <p className="text-white mt-1">{user.full_name}</p>

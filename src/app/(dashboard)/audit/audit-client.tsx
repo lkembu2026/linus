@@ -97,7 +97,7 @@ export function AuditClient({ initialLogs, initialTotal }: AuditClientProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white font-[family-name:var(--font-sans)]">
+        <h1 className="text-xl md:text-2xl font-bold text-white font-[family-name:var(--font-sans)]">
           Audit Log
         </h1>
         <p className="text-muted-foreground text-sm">{total} total entries</p>

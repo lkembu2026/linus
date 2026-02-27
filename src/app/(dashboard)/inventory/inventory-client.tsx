@@ -110,9 +110,9 @@ export function InventoryClient({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-white font-[family-name:var(--font-sans)]">
+          <h1 className="text-xl md:text-2xl font-bold text-white font-[family-name:var(--font-sans)]">
             Inventory
           </h1>
           <p className="text-muted-foreground text-sm">
@@ -147,7 +147,7 @@ export function InventoryClient({
               value={category || "all"}
               onValueChange={handleCategoryChange}
             >
-              <SelectTrigger className="w-48 bg-background border-border text-white">
+              <SelectTrigger className="w-full sm:w-48 bg-background border-border text-white">
                 <SelectValue placeholder="All categories" />
               </SelectTrigger>
               <SelectContent className="bg-card border-border">

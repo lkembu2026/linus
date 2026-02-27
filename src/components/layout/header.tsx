@@ -11,16 +11,22 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Bell, LogOut, User, Wifi, WifiOff } from "lucide-react";
+import { Bell, LogOut, Menu, User, Wifi, WifiOff } from "lucide-react";
 import type { UserRole } from "@/types";
 
 interface HeaderProps {
   userName: string;
   userRole: UserRole;
   branchName?: string;
+  onMenuClick?: () => void;
 }
 
-export function Header({ userName, userRole, branchName }: HeaderProps) {
+export function Header({
+  userName,
+  userRole,
+  branchName,
+  onMenuClick,
+}: HeaderProps) {
   const isOnline = useOnlineStatus();
 
   const initials = userName
@@ -31,9 +37,19 @@ export function Header({ userName, userRole, branchName }: HeaderProps) {
     .slice(0, 2);
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-[#0A0A0A]/95 backdrop-blur-sm px-6">
-      {/* Left: Page context */}
-      <div className="flex items-center gap-4">
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-[#0A0A0A]/95 backdrop-blur-sm px-4 md:px-6">
+      {/* Left: Hamburger + Page context */}
+      <div className="flex items-center gap-3">
+        {/* Mobile hamburger */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="md:hidden text-muted-foreground hover:text-white"
+          onClick={onMenuClick}
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
+
         {branchName && (
           <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-card border border-border">
             <span className="text-xs text-muted-foreground">Branch:</span>
