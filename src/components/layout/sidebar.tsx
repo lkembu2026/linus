@@ -16,6 +16,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Receipt,
+  Clock,
+  CreditCard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NAV_ITEMS } from "@/lib/constants";
@@ -33,6 +35,8 @@ const iconMap: Record<string, React.ElementType> = {
   FileText,
   Settings,
   Receipt,
+  Clock,
+  CreditCard,
 };
 
 interface SidebarProps {

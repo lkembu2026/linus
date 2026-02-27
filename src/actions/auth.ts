@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { sendPasswordResetNotifyEmail, sendAuditEmail } from "@/lib/email";
+import { cache } from "react";
 
 export async function login(formData: FormData) {
   const supabase = await createClient();
@@ -34,7 +35,8 @@ type CurrentUser = User & {
   branch?: { name: string; location: string | null } | null;
 };
 
-export async function getCurrentUser(): Promise<CurrentUser | null> {
+// React cache() deduplicates calls within a single server request
+export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const supabase = await createClient();
 
   const {
@@ -50,7 +52,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     .single();
 
   return user as CurrentUser | null;
-}
+});
 
 export async function registerUser(data: {
   email: string;

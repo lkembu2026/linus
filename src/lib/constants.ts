@@ -30,6 +30,18 @@ export const NAV_ITEMS = [
     roles: ["admin", "supervisor", "pharmacist", "cashier"],
   },
   {
+    title: "Sales History",
+    href: "/sales-history",
+    icon: "Clock",
+    roles: ["admin", "supervisor", "pharmacist", "cashier"],
+  },
+  {
+    title: "Credits",
+    href: "/credits",
+    icon: "CreditCard",
+    roles: ["admin", "supervisor", "pharmacist", "cashier"],
+  },
+  {
     title: "Inventory",
     href: "/inventory",
     icon: "Package",
@@ -100,6 +112,7 @@ export const MEDICINE_CATEGORIES = [
 export const PAYMENT_METHODS = [
   { value: "cash", label: "Cash" },
   { value: "mpesa", label: "M-Pesa" },
+  { value: "credit", label: "Credit" },
 ] as const;
 
 // Default low stock threshold

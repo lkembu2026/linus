@@ -1,56 +1,77 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { MedicineSearch } from "@/components/pos/medicine-search";
 import { Cart } from "@/components/pos/cart";
 import { CheckoutDialog } from "@/components/pos/checkout-dialog";
 import { useCart } from "@/hooks/use-cart";
-import { formatCurrency, formatDateTime } from "@/lib/utils";
-import { ShoppingCart, Clock, XCircle } from "lucide-react";
-import { voidSale, getRecentSales } from "@/actions/sales";
-import type { RecentSale } from "@/actions/sales";
+import { useHardwareScanner } from "@/hooks/use-hardware-scanner";
+import { searchMedicines } from "@/actions/sales";
+import {
+  ShoppingCart,
+  ScanBarcode,
+  CheckCircle,
+  AlertCircle,
+} from "lucide-react";
 import { toast } from "sonner";
 import type { User } from "@/types/database";
 
 interface POSClientProps {
   user: User & { branch?: { name: string } | null };
-  initialRecentSales: RecentSale[];
 }
 
-export function POSClient({ user, initialRecentSales }: POSClientProps) {
+export function POSClient({ user }: POSClientProps) {
   const cart = useCart();
   const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [recentSales, setRecentSales] =
-    useState<RecentSale[]>(initialRecentSales);
+  const [scanFeedback, setScanFeedback] = useState<{
+    type: "success" | "error" | "multi";
+    message: string;
+  } | null>(null);
+  const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  async function handleSaleSuccess() {
-    cart.clearCart();
-    setCheckoutOpen(false);
-    // Refresh recent sales
-    const updated = await getRecentSales();
-    setRecentSales(updated);
+  function showFeedback(type: "success" | "error" | "multi", message: string) {
+    if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
+    setScanFeedback({ type, message });
+    feedbackTimerRef.current = setTimeout(() => setScanFeedback(null), 3000);
   }
 
-  async function handleVoid(saleId: string) {
-    const result = await voidSale(saleId);
-    if (result.error) {
-      toast.error(result.error);
-      return;
-    }
-    toast.success("Sale voided successfully");
-    const updated = await getRecentSales();
-    setRecentSales(updated);
+  const handleHardwareScan = useCallback(
+    async (barcode: string) => {
+      const results = await searchMedicines(barcode);
+      if (results.length === 0) {
+        showFeedback("error", `No medicine found for: ${barcode}`);
+        toast.error(`Barcode not found: ${barcode}`);
+        return;
+      }
+      if (results.length === 1) {
+        cart.addItem({
+          medicine_id: results[0].medicine_id,
+          name: results[0].name,
+          unit_price: results[0].unit_price,
+          quantity: 1,
+          max_quantity: results[0].max_quantity,
+        });
+        showFeedback("success", `Added: ${results[0].name}`);
+        toast.success(`Added ${results[0].name} to cart`);
+        return;
+      }
+      // Multiple results — let the search field handle it
+      showFeedback(
+        "multi",
+        `${results.length} matches for "${barcode}" — select below`,
+      );
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [cart],
+  );
+
+  useHardwareScanner(handleHardwareScan, !checkoutOpen);
+
+  function handleSaleSuccess() {
+    cart.clearCart();
+    setCheckoutOpen(false);
   }
 
   return (
@@ -65,20 +86,54 @@ export function POSClient({ user, initialRecentSales }: POSClientProps) {
             {user.branch?.name ?? "All Branches"}
           </p>
         </div>
-        <Badge variant="outline" className="border-primary text-primary">
-          <ShoppingCart className="h-3 w-3 mr-1" />
-          {cart.itemCount} items
-        </Badge>
+        <div className="flex items-center gap-2">
+          {/* Scanner feedback badge */}
+          {scanFeedback ? (
+            <Badge
+              variant="outline"
+              className={
+                scanFeedback.type === "success"
+                  ? "border-green-500 text-green-400 animate-pulse"
+                  : scanFeedback.type === "error"
+                    ? "border-destructive text-destructive"
+                    : "border-amber-500 text-amber-400"
+              }
+            >
+              {scanFeedback.type === "success" ? (
+                <CheckCircle className="h-3 w-3 mr-1" />
+              ) : (
+                <AlertCircle className="h-3 w-3 mr-1" />
+              )}
+              {scanFeedback.message}
+            </Badge>
+          ) : (
+            <Badge
+              variant="outline"
+              className="border-primary/40 text-primary/70"
+            >
+              <ScanBarcode className="h-3 w-3 mr-1" />
+              Scanner ready
+            </Badge>
+          )}
+          <Badge variant="outline" className="border-primary text-primary">
+            <ShoppingCart className="h-3 w-3 mr-1" />
+            {cart.itemCount} items
+          </Badge>
+        </div>
       </div>
 
       {/* POS grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Search + Recent Sales */}
-        <div className="lg:col-span-2 space-y-6">
+        {/* Left: Search + scanner tip */}
+        <div className="lg:col-span-2 space-y-4">
           <Card className="glass-card">
             <CardHeader>
-              <CardTitle className="text-base text-white">
-                Search Medicine
+              <CardTitle className="text-base text-white flex items-center justify-between">
+                <span>Search Medicine</span>
+                <span className="text-xs text-primary/70 font-normal flex items-center gap-1">
+                  <ScanBarcode className="h-3.5 w-3.5" />
+                  Hardware scanner supported
+                </span>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -96,101 +151,18 @@ export function POSClient({ user, initialRecentSales }: POSClientProps) {
             </CardContent>
           </Card>
 
-          {/* Recent sales */}
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="text-base text-white flex items-center gap-2">
-                <Clock className="h-4 w-4 text-primary" />
-                Recent Sales
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {recentSales.length === 0 ? (
-                <p className="text-muted-foreground text-sm text-center py-4">
-                  No sales yet today
-                </p>
-              ) : (
-                <div className="overflow-x-auto -mx-6 px-6">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="border-border">
-                        <TableHead className="text-muted-foreground">
-                          Receipt #
-                        </TableHead>
-                        <TableHead className="text-muted-foreground">
-                          Items Sold
-                        </TableHead>
-                        <TableHead className="text-muted-foreground">
-                          Total
-                        </TableHead>
-                        <TableHead className="text-muted-foreground">
-                          Payment
-                        </TableHead>
-                        <TableHead className="text-muted-foreground">
-                          Time
-                        </TableHead>
-                        <TableHead className="text-muted-foreground">
-                          Status
-                        </TableHead>
-                        <TableHead className="text-muted-foreground text-right">
-                          Action
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {recentSales.map((sale) => (
-                        <TableRow key={sale.id} className="border-border">
-                          <TableCell className="text-white font-mono text-xs">
-                            {sale.receipt_number}
-                          </TableCell>
-                          <TableCell
-                            className="text-muted-foreground text-xs max-w-[200px] truncate"
-                            title={sale.items_summary ?? "-"}
-                          >
-                            {sale.items_summary || "-"}
-                          </TableCell>
-                          <TableCell className="text-primary font-medium">
-                            {formatCurrency(sale.total_amount)}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground capitalize">
-                            {sale.payment_method}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground text-xs">
-                            {formatDateTime(sale.created_at)}
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant="outline"
-                              className={
-                                sale.is_voided
-                                  ? "border-destructive text-destructive"
-                                  : "border-green-500 text-green-500"
-                              }
-                            >
-                              {sale.is_voided ? "Voided" : "Completed"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {!sale.is_voided && user.role === "admin" && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-destructive hover:text-destructive"
-                                onClick={() => handleVoid(sale.id)}
-                              >
-                                <XCircle className="h-3 w-3 mr-1" />
-                                Void
-                              </Button>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {/* Scanner usage tip */}
+          <div className="flex items-start gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
+            <ScanBarcode className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              <span className="text-primary font-medium">
+                Hardware scanner ready.
+              </span>{" "}
+              Plug in your USB or Bluetooth barcode scanner and scan any product
+              barcode — it will be added to the cart instantly without clicking
+              anything. Works best when the search box or page is in focus.
+            </p>
+          </div>
         </div>
 
         {/* Right: Cart */}

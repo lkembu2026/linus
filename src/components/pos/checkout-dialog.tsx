@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createSale } from "@/actions/sales";
+import { createCredit } from "@/actions/credits";
 import { formatCurrency, generateReceiptNumber } from "@/lib/utils";
 import { saveOfflineSale } from "@/lib/offline/db";
 import {
@@ -22,6 +23,7 @@ import {
   Banknote,
   Smartphone,
   WifiOff,
+  CreditCard,
 } from "lucide-react";
 import type { CartItem } from "@/types";
 import { toast } from "sonner";
@@ -55,6 +57,10 @@ export function CheckoutDialog({
   const [isOfflineSale, setIsOfflineSale] = useState(false);
   const [cashTendered, setCashTendered] = useState("");
   const [mpesaCode, setMpesaCode] = useState("");
+  // Credit fields
+  const [creditName, setCreditName] = useState("");
+  const [creditPhone, setCreditPhone] = useState("");
+  const [creditNotes, setCreditNotes] = useState("");
 
   const cashAmount = parseFloat(cashTendered) || 0;
   const change = cashAmount - total;
@@ -66,6 +72,10 @@ export function CheckoutDialog({
     }
     if (paymentMethod === "mpesa" && !mpesaCode.trim()) {
       toast.error("Please enter M-Pesa confirmation code");
+      return;
+    }
+    if (paymentMethod === "credit" && !creditName.trim()) {
+      toast.error("Customer name is required for credit sales");
       return;
     }
 
@@ -83,6 +93,21 @@ export function CheckoutDialog({
         }
         if (result.receiptHtml) {
           setReceiptHtml(result.receiptHtml);
+        }
+        // If credit sale, create credit record
+        if (paymentMethod === "credit" && result.saleId) {
+          const medicineDetails = items
+            .map((i) => `${i.name} ×${i.quantity}`)
+            .join(", ");
+          await createCredit({
+            saleId: result.saleId,
+            receiptNo: result.receiptNumber ?? "",
+            customerName: creditName.trim(),
+            customerPhone: creditPhone.trim() || undefined,
+            amount: total,
+            medicineDetails,
+            notes: creditNotes.trim() || undefined,
+          });
         }
       } else {
         // Save offline
@@ -111,9 +136,11 @@ export function CheckoutDialog({
       }
       setCompleted(true);
       toast.success(
-        isOnline
-          ? "Sale completed successfully!"
-          : "Sale saved offline — will sync when back online",
+        paymentMethod === "credit"
+          ? `Credit recorded for ${creditName}`
+          : isOnline
+            ? "Sale completed successfully!"
+            : "Sale saved offline — will sync when back online",
       );
     });
   }
@@ -231,6 +258,9 @@ export function CheckoutDialog({
     setIsOfflineSale(false);
     setCashTendered("");
     setMpesaCode("");
+    setCreditName("");
+    setCreditPhone("");
+    setCreditNotes("");
     setPaymentMethod("cash");
     onClose();
   }
@@ -278,7 +308,7 @@ export function CheckoutDialog({
                 <p className="text-sm text-muted-foreground mb-2">
                   Payment Method
                 </p>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   <Button
                     variant={paymentMethod === "cash" ? "default" : "outline"}
                     onClick={() => setPaymentMethod("cash")}
@@ -302,6 +332,18 @@ export function CheckoutDialog({
                   >
                     <Smartphone className="h-4 w-4 mr-2" />
                     M-Pesa
+                  </Button>
+                  <Button
+                    variant={paymentMethod === "credit" ? "default" : "outline"}
+                    onClick={() => setPaymentMethod("credit")}
+                    className={
+                      paymentMethod === "credit"
+                        ? "bg-amber-600 text-white hover:bg-amber-700"
+                        : "border-border text-muted-foreground"
+                    }
+                  >
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    Credit
                   </Button>
                 </div>
               </div>
@@ -355,6 +397,49 @@ export function CheckoutDialog({
                   </p>
                 </div>
               )}
+
+              {/* Credit customer details */}
+              {paymentMethod === "credit" && (
+                <div className="space-y-3 p-3 rounded-lg border border-amber-500/30 bg-amber-500/5">
+                  <p className="text-xs text-amber-400 font-medium">
+                    Customer will pay later — record their details below
+                  </p>
+                  <div>
+                    <Label className="text-muted-foreground text-sm">
+                      Customer Name <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      value={creditName}
+                      onChange={(e) => setCreditName(e.target.value)}
+                      className="bg-background border-border text-white mt-1"
+                      placeholder="Full name"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground text-sm">
+                      Phone Number
+                    </Label>
+                    <Input
+                      value={creditPhone}
+                      onChange={(e) => setCreditPhone(e.target.value)}
+                      className="bg-background border-border text-white mt-1"
+                      placeholder="e.g. 0712 345 678"
+                      type="tel"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground text-sm">
+                      Notes (optional)
+                    </Label>
+                    <Input
+                      value={creditNotes}
+                      onChange={(e) => setCreditNotes(e.target.value)}
+                      className="bg-background border-border text-white mt-1"
+                      placeholder="e.g. Regular customer, pay Friday"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             <DialogFooter>
@@ -398,8 +483,26 @@ export function CheckoutDialog({
                 {formatCurrency(total)}
               </p>
               <Badge className="mt-2 bg-primary/10 text-primary border-primary/20">
-                {paymentMethod.toUpperCase()}
+                {paymentMethod === "credit"
+                  ? "CREDIT"
+                  : paymentMethod.toUpperCase()}
               </Badge>
+              {paymentMethod === "credit" && (
+                <div className="mt-3 p-3 rounded-lg border border-amber-500/30 bg-amber-500/5 text-left">
+                  <p className="text-xs text-amber-400 font-semibold mb-1">
+                    Credit Recorded
+                  </p>
+                  <p className="text-sm text-white">{creditName}</p>
+                  {creditPhone && (
+                    <p className="text-xs text-muted-foreground">
+                      {creditPhone}
+                    </p>
+                  )}
+                  <p className="text-sm font-bold text-amber-400 mt-1">
+                    Owes: {formatCurrency(total)}
+                  </p>
+                </div>
+              )}
               {isOfflineSale && (
                 <Badge className="mt-2 ml-2 bg-yellow-500/10 text-yellow-400 border-yellow-500/20">
                   <WifiOff className="h-3 w-3 mr-1" /> Offline

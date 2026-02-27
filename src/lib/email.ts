@@ -357,6 +357,91 @@ export async function sendPasswordResetNotifyEmail(email: string) {
 }
 
 /**
+ * Send a credit sale notification to the admin
+ */
+export async function sendCreditEmail(data: {
+  receiptNo: string;
+  customerName: string;
+  customerPhone?: string;
+  amount: number;
+  medicines: string;
+  cashierName: string;
+  branchName: string;
+  notes?: string;
+}) {
+  try {
+    const body = `
+      <div class="card">
+        <h2>💳 Credit Sale Recorded — ${data.receiptNo}</h2>
+        <p style="color:#FBBF24; font-size:13px; margin:0 0 16px;">A sale was made on credit. Payment is pending from the customer.</p>
+        <div class="row"><span class="label">Receipt #</span><span class="value">${data.receiptNo}</span></div>
+        <div class="row"><span class="label">Branch</span><span class="value">${data.branchName}</span></div>
+        <div class="row"><span class="label">Cashier</span><span class="value">${data.cashierName}</span></div>
+        <div class="row"><span class="label">Date</span><span class="value">${new Date().toLocaleString("en-KE")}</span></div>
+      </div>
+      <div class="card">
+        <h2>👤 Customer Details</h2>
+        <div class="row"><span class="label">Name</span><span class="value">${data.customerName}</span></div>
+        <div class="row"><span class="label">Phone</span><span class="value">${data.customerPhone ?? "Not provided"}</span></div>
+        <div class="row"><span class="label">Medicines</span><span class="value">${data.medicines}</span></div>
+        ${data.notes ? `<div class="row"><span class="label">Notes</span><span class="value">${data.notes}</span></div>` : ""}
+        <div style="margin-top:16px; padding:12px 16px; background:#111827; border:1px solid #92400E; border-radius:8px;">
+          <div class="total-row"><span>Amount Owed</span><span>${formatKES(data.amount)}</span></div>
+        </div>
+      </div>`;
+
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: ADMIN_EMAIL,
+      subject: `💳 Credit Sale: ${data.customerName} owes ${formatKES(data.amount)} — ${data.receiptNo}`,
+      html: wrapHtml(`Credit Sale — ${data.receiptNo}`, body),
+    });
+  } catch (err) {
+    console.error("[Email] Failed to send credit email:", err);
+  }
+}
+
+/**
+ * Send a credit settled notification to the admin
+ */
+export async function sendCreditSettledEmail(data: {
+  customerName: string;
+  customerPhone?: string;
+  amountSettled: number;
+  totalAmount: number;
+  settledBy: string;
+  branchName: string;
+}) {
+  try {
+    const isFullySettled = data.amountSettled >= data.totalAmount;
+    const body = `
+      <div class="card">
+        <h2>${isFullySettled ? "✅ Credit Fully Settled" : "⚡ Partial Credit Payment"}</h2>
+        <div class="row"><span class="label">Customer</span><span class="value">${data.customerName}</span></div>
+        <div class="row"><span class="label">Phone</span><span class="value">${data.customerPhone ?? "N/A"}</span></div>
+        <div class="row"><span class="label">Branch</span><span class="value">${data.branchName}</span></div>
+        <div class="row"><span class="label">Settled By</span><span class="value">${data.settledBy}</span></div>
+        <div class="row"><span class="label">Amount Paid</span><span class="value" style="color:#10B981;">${formatKES(data.amountSettled)}</span></div>
+        <div class="row"><span class="label">Total Credit</span><span class="value">${formatKES(data.totalAmount)}</span></div>
+        <div class="row"><span class="label">Outstanding</span><span class="value" style="color:${isFullySettled ? "#10B981" : "#FBBF24"};">${formatKES(Math.max(0, data.totalAmount - data.amountSettled))}</span></div>
+        <div class="row"><span class="label">Date</span><span class="value">${new Date().toLocaleString("en-KE")}</span></div>
+      </div>`;
+
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: ADMIN_EMAIL,
+      subject: `${isFullySettled ? "✅ Credit Cleared" : "⚡ Partial Payment"}: ${data.customerName} paid ${formatKES(data.amountSettled)}`,
+      html: wrapHtml(
+        `Credit ${isFullySettled ? "Settled" : "Partial Payment"} — ${data.customerName}`,
+        body,
+      ),
+    });
+  } catch (err) {
+    console.error("[Email] Failed to send credit settled email:", err);
+  }
+}
+
+/**
  * Send a daily summary email to the admin
  */
 export async function sendDailySummaryEmail(data: {

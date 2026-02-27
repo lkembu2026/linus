@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useState, useTransition, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -21,7 +21,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { createMedicine, updateMedicine } from "@/actions/inventory";
 import { MEDICINE_CATEGORIES } from "@/lib/constants";
-import { Loader2 } from "lucide-react";
+import { Loader2, ScanBarcode, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import type { Medicine } from "@/types/database";
 
@@ -53,16 +53,47 @@ export function MedicineFormDialog({
 }: MedicineFormDialogProps) {
   const isEdit = !!medicine;
   const [isPending, startTransition] = useTransition();
-
   const [form, setForm] = useState(getInitialForm(medicine));
+  const [scanMode, setScanMode] = useState(false);
+  const [justScanned, setJustScanned] = useState(false);
+  const barcodeInputRef = useRef<HTMLInputElement>(null);
+  const scanTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Reset form when medicine prop changes (e.g. editing a different medicine)
   React.useEffect(() => {
     setForm(getInitialForm(medicine));
+    setScanMode(false);
+    setJustScanned(false);
   }, [medicine]);
 
   function update(key: string, value: string | boolean) {
     setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  // Activate scan mode — focus the barcode field so scanner types into it
+  function activateScanMode() {
+    setScanMode(true);
+    setJustScanned(false);
+    setTimeout(() => barcodeInputRef.current?.focus(), 50);
+  }
+
+  // When barcode field changes, detect rapid scanner input (vs manual typing)
+  const lastBarcodeChangeRef = useRef<number>(0);
+  function handleBarcodeChange(value: string) {
+    update("barcode", value);
+    const now = Date.now();
+    const gap = now - lastBarcodeChangeRef.current;
+    lastBarcodeChangeRef.current = now;
+    // Scanner pastes the whole string very fast — if last char arrived quickly, it's a scan
+    if (scanMode && gap < 80 && value.length >= 3) {
+      if (scanTimerRef.current) clearTimeout(scanTimerRef.current);
+      scanTimerRef.current = setTimeout(() => {
+        setScanMode(false);
+        setJustScanned(true);
+        barcodeInputRef.current?.blur();
+        setTimeout(() => setJustScanned(false), 3000);
+      }, 120);
+    }
   }
 
   function handleSubmit() {
@@ -132,7 +163,7 @@ export function MedicineFormDialog({
           </div>
 
           {/* Category */}
-          <div>
+          <div className="col-span-2">
             <Label className="text-muted-foreground">Category *</Label>
             <Select
               value={form.category}
@@ -156,14 +187,72 @@ export function MedicineFormDialog({
           </div>
 
           {/* Barcode */}
-          <div>
+          <div className="col-span-2">
             <Label className="text-muted-foreground">Barcode</Label>
-            <Input
-              value={form.barcode}
-              onChange={(e) => update("barcode", e.target.value)}
-              className="bg-background border-border text-white mt-1"
-              placeholder="Scan or enter"
-            />
+            <div className="flex gap-2 mt-1">
+              <div className="relative flex-1">
+                <Input
+                  ref={barcodeInputRef}
+                  value={form.barcode}
+                  onChange={(e) => handleBarcodeChange(e.target.value)}
+                  onBlur={() => {
+                    if (scanMode) setScanMode(false);
+                  }}
+                  className={`bg-background border-border text-white pr-8 transition-colors ${
+                    justScanned
+                      ? "border-green-500 focus:border-green-500"
+                      : scanMode
+                        ? "border-primary animate-pulse focus:border-primary"
+                        : ""
+                  }`}
+                  placeholder={
+                    scanMode
+                      ? "Waiting for scan…"
+                      : "Enter barcode or click Scan"
+                  }
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      if (scanMode && form.barcode.length >= 3) {
+                        setScanMode(false);
+                        setJustScanned(true);
+                        barcodeInputRef.current?.blur();
+                        setTimeout(() => setJustScanned(false), 3000);
+                      }
+                    }
+                  }}
+                />
+                {justScanned && (
+                  <CheckCircle className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
+                )}
+                {scanMode && (
+                  <ScanBarcode className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-primary animate-pulse" />
+                )}
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={activateScanMode}
+                className={`shrink-0 gap-1.5 ${
+                  scanMode
+                    ? "border-primary text-primary bg-primary/10"
+                    : "border-border text-muted-foreground hover:border-primary hover:text-primary"
+                }`}
+              >
+                <ScanBarcode className="h-4 w-4" />
+                {scanMode ? "Scanning…" : "Scan"}
+              </Button>
+            </div>
+            {justScanned && (
+              <p className="text-xs text-green-500 mt-1">
+                ✓ Barcode captured: {form.barcode}
+              </p>
+            )}
+            {scanMode && (
+              <p className="text-xs text-primary/70 mt-1">
+                Point your scanner at the product barcode now…
+              </p>
+            )}
           </div>
 
           {/* Unit price */}

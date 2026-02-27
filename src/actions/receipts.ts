@@ -26,7 +26,7 @@ export async function saveReceipt(data: {
     cashier_name: data.cashierName,
     branch_name: data.branchName,
     items_summary: data.itemsSummary,
-  });
+  } as any);
 
   if (error) {
     console.error("[Receipts] Failed to save receipt:", error);

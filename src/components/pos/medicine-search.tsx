@@ -116,6 +116,7 @@ export function MedicineSearch({ onSelect }: MedicineSearchProps) {
             onChange={(e) => handleSearch(e.target.value)}
             onKeyDown={handleKeyDown}
             onFocus={() => results.length > 0 && setShowResults(true)}
+            data-scanner-search="true"
             className="pl-10 bg-card border-border focus:border-primary h-12 text-base"
           />
           {isPending && (

@@ -6,7 +6,7 @@
 // =============================================
 
 export type UserRole = "admin" | "supervisor" | "pharmacist" | "cashier";
-export type PaymentMethod = "cash" | "mpesa";
+export type PaymentMethod = "cash" | "mpesa" | "credit";
 export type TransferStatus = "pending" | "approved" | "rejected";
 
 // ---- BRANCHES ----
@@ -100,6 +100,24 @@ export type Notification = {
   title: string;
   message: string;
   is_read: boolean;
+  created_at: string;
+};
+
+// ---- CREDITS ----
+export type Credit = {
+  id: string;
+  branch_id: string;
+  sale_id: string | null;
+  created_by: string | null;
+  customer_name: string;
+  customer_phone: string | null;
+  amount: number;
+  amount_paid: number;
+  medicine_details: string | null;
+  notes: string | null;
+  is_settled: boolean;
+  settled_at: string | null;
+  settled_by: string | null;
   created_at: string;
 };
 
@@ -270,6 +288,27 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<ReceiptRecord>;
+        Relationships: [];
+      };
+      credits: {
+        Row: Credit;
+        Insert: {
+          id?: string;
+          branch_id: string;
+          sale_id?: string | null;
+          created_by?: string | null;
+          customer_name: string;
+          customer_phone?: string | null;
+          amount: number;
+          amount_paid?: number;
+          medicine_details?: string | null;
+          notes?: string | null;
+          is_settled?: boolean;
+          settled_at?: string | null;
+          settled_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Credit>;
         Relationships: [];
       };
     };
