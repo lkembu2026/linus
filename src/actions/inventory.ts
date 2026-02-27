@@ -256,3 +256,44 @@ export async function adjustStock(
   revalidatePath("/inventory");
   return { success: true };
 }
+
+export async function bulkCreateMedicines(
+  rows: {
+    name: string;
+    generic_name?: string;
+    category: string;
+    unit_price: number;
+    cost_price: number;
+    quantity_in_stock: number;
+    reorder_level: number;
+    expiry_date?: string;
+    barcode?: string;
+    dispensing_unit?: string;
+    requires_prescription: boolean;
+  }[],
+) {
+  const supabase = await createClient();
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+  if (user.role !== "admin" && user.role !== "pharmacist") {
+    return { error: "Insufficient permissions" };
+  }
+
+  const records = rows.map((row) => ({
+    ...row,
+    branch_id: user.branch_id!,
+    created_by: user.id,
+  }));
+
+  const { error } = await supabase.from("medicines").insert(records as any);
+  if (error) return { error: error.message };
+
+  await supabase.from("audit_logs").insert({
+    user_id: user.id,
+    action: "bulk_import_medicines",
+    details: { count: rows.length },
+  });
+
+  revalidatePath("/inventory");
+  return { success: true, count: rows.length };
+}

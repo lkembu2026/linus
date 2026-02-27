@@ -29,6 +29,7 @@ import {
 import { MedicineFormDialog } from "@/components/inventory/medicine-form-dialog";
 import { StockAdjustDialog } from "@/components/inventory/stock-adjust-dialog";
 import { BarcodeLabelDialog } from "@/components/inventory/barcode-label-dialog";
+import { ImportMedicinesDialog } from "@/components/inventory/import-medicines-dialog";
 import { getMedicines, deleteMedicine } from "@/actions/inventory";
 import { usePermissions } from "@/hooks/use-permissions";
 import { formatCurrency, formatDate, exportToCSV } from "@/lib/utils";
@@ -44,6 +45,7 @@ import {
   Pill,
   Download,
   ScanBarcode,
+  FileSpreadsheet,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { User, Medicine } from "@/types/database";
@@ -65,6 +67,7 @@ export function InventoryClient({
   const [editMedicine, setEditMedicine] = useState<Medicine | null>(null);
   const [adjustMedicine, setAdjustMedicine] = useState<Medicine | null>(null);
   const [labelMedicine, setLabelMedicine] = useState<Medicine | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 20;
@@ -166,6 +169,14 @@ export function InventoryClient({
             >
               <Download className="h-4 w-4 mr-2" />
               Export CSV
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setImportOpen(true)}
+              className="border-primary/40 text-primary hover:bg-primary/10"
+            >
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              Import
             </Button>
             <Button
               onClick={() => setFormOpen(true)}
@@ -460,6 +471,14 @@ export function InventoryClient({
           setMedicines((prev) =>
             prev.map((m) => (m.id === medicineId ? { ...m, barcode } : m)),
           );
+        }}
+      />
+      <ImportMedicinesDialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onImported={async () => {
+          const data = await getMedicines(search || undefined, category || undefined);
+          setMedicines(data);
         }}
       />
     </div>

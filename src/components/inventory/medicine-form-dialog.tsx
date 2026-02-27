@@ -157,7 +157,9 @@ export function MedicineFormDialog({
           <div className="col-span-2">
             <Label className="text-muted-foreground">
               Generic Name
-              <span className="text-xs text-muted-foreground/60 ml-1">(optional)</span>
+              <span className="text-xs text-muted-foreground/60 ml-1">
+                (optional)
+              </span>
             </Label>
             <Input
               value={form.generic_name}
@@ -253,7 +255,10 @@ export function MedicineFormDialog({
                 onClick={() => {
                   // Generate a unique CODE128-safe barcode using timestamp + random
                   const ts = Date.now().toString(36).toUpperCase();
-                  const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
+                  const rand = Math.random()
+                    .toString(36)
+                    .slice(2, 6)
+                    .toUpperCase();
                   const generated = `MED${ts}${rand}`;
                   update("barcode", generated);
                   setJustScanned(true);
