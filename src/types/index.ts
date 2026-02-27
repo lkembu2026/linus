@@ -82,6 +82,71 @@ export interface InventoryOverview {
   recently_added: MedicineAddedPoint[];
 }
 
+// ---- Analytics ----
+export type AnalyticsPeriod = "today" | "week" | "month" | "quarter" | "year" | "custom";
+
+export interface AnalyticsFilters {
+  period: AnalyticsPeriod;
+  dateFrom: string;
+  dateTo: string;
+  branchId?: string;
+}
+
+export interface AnalyticsOverview {
+  totalRevenue: number;
+  totalSales: number;
+  avgOrderValue: number;
+  totalUnitsSold: number;
+  totalProfit: number;
+  profitMargin: number;
+  revenueByDay: { date: string; revenue: number; profit: number }[];
+}
+
+export interface SalesBreakdown {
+  byPaymentMethod: { method: string; count: number; amount: number }[];
+  byHour: { hour: string; count: number; amount: number }[];
+  byDayOfWeek: { day: string; count: number; amount: number }[];
+  byCashier: { name: string; count: number; amount: number }[];
+}
+
+export interface InventoryHealth {
+  totalStockValue: number;
+  totalCostValue: number;
+  potentialProfit: number;
+  totalUnits: number;
+  categorySummary: {
+    category: string;
+    units: number;
+    value: number;
+    cost: number;
+  }[];
+  nearExpiry: {
+    name: string;
+    expiry_date: string;
+    quantity_in_stock: number;
+    category: string;
+  }[];
+}
+
+export interface MedicinePerformance {
+  topSellers: {
+    name: string;
+    category: string;
+    units_sold: number;
+    revenue: number;
+  }[];
+  slowMovers: {
+    name: string;
+    category: string;
+    quantity_in_stock: number;
+  }[];
+  categoryPerformance: {
+    category: string;
+    units_sold: number;
+    revenue: number;
+  }[];
+}
+
 // ---- Navigation ----
 export interface NavItem {
   title: string;
