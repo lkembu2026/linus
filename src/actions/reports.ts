@@ -234,7 +234,19 @@ export async function saveReport(data: {
     branch_id: user.branch_id,
   });
 
-  if (error) return { error: error.message };\n\n  // fire-and-forget email\n  sendReportEmail({\n    title: data.title,\n    period: data.period,\n    reportType: data.report_type,\n    summary: data.summary,\n    generatedBy: user.full_name ?? user.email ?? "Staff",\n  }).catch(() => {});\n\n  return { success: true };\n}
+  if (error) return { error: error.message };
+
+  // fire-and-forget email
+  sendReportEmail({
+    title: data.title,
+    period: data.period,
+    reportType: data.report_type,
+    summary: data.summary,
+    generatedBy: user.full_name ?? user.email ?? "Staff",
+  }).catch(() => {});
+
+  return { success: true };
+}
 
 export async function getSavedReports() {
   const supabase = await createClient();
