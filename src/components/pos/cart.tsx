@@ -60,9 +60,19 @@ export function Cart({
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {formatCurrency(item.unit_price)} ×{" "}
-                  <span className="text-white font-medium">{item.quantity}</span>
+                  <span className="text-white font-medium">
+                    {item.quantity}
+                  </span>
                   {item.dispensing_unit ? (
-                    <span className="text-primary/70"> {item.dispensing_unit}{item.quantity > 1 && item.dispensing_unit !== "ml" && item.dispensing_unit !== "g" ? "s" : ""}</span>
+                    <span className="text-primary/70">
+                      {" "}
+                      {item.dispensing_unit}
+                      {item.quantity > 1 &&
+                      item.dispensing_unit !== "ml" &&
+                      item.dispensing_unit !== "g"
+                        ? "s"
+                        : ""}
+                    </span>
                   ) : null}
                 </p>
               </div>

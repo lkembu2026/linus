@@ -155,12 +155,15 @@ export function MedicineFormDialog({
 
           {/* Generic name */}
           <div className="col-span-2">
-            <Label className="text-muted-foreground">Generic Name</Label>
+            <Label className="text-muted-foreground">
+              Generic Name
+              <span className="text-xs text-muted-foreground/60 ml-1">(optional)</span>
+            </Label>
             <Input
               value={form.generic_name}
               onChange={(e) => update("generic_name", e.target.value)}
               className="bg-background border-border text-white mt-1"
-              placeholder="Generic / scientific name"
+              placeholder="Generic / scientific name — leave blank if not applicable"
             />
           </div>
 
@@ -244,6 +247,24 @@ export function MedicineFormDialog({
                 <ScanBarcode className="h-4 w-4" />
                 {scanMode ? "Scanning…" : "Scan"}
               </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  // Generate a unique CODE128-safe barcode using timestamp + random
+                  const ts = Date.now().toString(36).toUpperCase();
+                  const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
+                  const generated = `MED${ts}${rand}`;
+                  update("barcode", generated);
+                  setJustScanned(true);
+                  setTimeout(() => setJustScanned(false), 3000);
+                }}
+                className="shrink-0 gap-1.5 border-amber-500/40 text-amber-400 hover:bg-amber-500/10 hover:border-amber-500"
+                title="Auto-generate a unique barcode"
+              >
+                <CheckCircle className="h-4 w-4" />
+                Auto
+              </Button>
             </div>
             {justScanned && (
               <p className="text-xs text-green-500 mt-1">
@@ -322,7 +343,9 @@ export function MedicineFormDialog({
           <div>
             <Label className="text-muted-foreground">
               Dispensing Unit
-              <span className="text-xs text-primary ml-1">(what you sell per qty)</span>
+              <span className="text-xs text-primary ml-1">
+                (what you sell per qty)
+              </span>
             </Label>
             <Select
               value={form.dispensing_unit}
@@ -333,15 +356,20 @@ export function MedicineFormDialog({
               </SelectTrigger>
               <SelectContent className="bg-card border-border">
                 {DISPENSING_UNITS.map((u) => (
-                  <SelectItem key={u} value={u} className="text-white focus:bg-primary/10">
+                  <SelectItem
+                    key={u}
+                    value={u}
+                    className="text-white focus:bg-primary/10"
+                  >
                     {u}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground mt-1">
-              Stock quantity = number of {form.dispensing_unit || "units"} in stock.
-              Selling 3 means 3 {form.dispensing_unit || "units"} are deducted.
+              Stock quantity = number of {form.dispensing_unit || "units"} in
+              stock. Selling 3 means 3 {form.dispensing_unit || "units"} are
+              deducted.
             </p>
           </div>
 
