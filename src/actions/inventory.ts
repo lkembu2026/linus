@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/actions/auth";
 import { revalidatePath } from "next/cache";
+import { sendAuditEmail, sendLowStockEmail } from "@/lib/email";
 import type { Medicine } from "@/types/database";
 
 export async function getMedicines(search?: string, category?: string) {
@@ -88,6 +89,13 @@ export async function createMedicine(formData: {
     details: { medicine_name: formData.name },
   });
 
+  // Send audit email for new medicine
+  sendAuditEmail({
+    action: "create_medicine",
+    userName: user.full_name ?? "Staff",
+    details: { medicine_name: formData.name, category: formData.category, quantity: formData.quantity_in_stock },
+  }).catch(() => {});
+
   revalidatePath("/inventory");
   return { success: true };
 }
@@ -155,6 +163,12 @@ export async function deleteMedicine(id: string) {
     details: { medicine_id: id },
   });
 
+  sendAuditEmail({
+    action: "delete_medicine",
+    userName: user.full_name ?? "Admin",
+    details: { medicine_id: id },
+  }).catch(() => {});
+
   revalidatePath("/inventory");
   return { success: true };
 }
@@ -174,13 +188,15 @@ export async function adjustStock(
   // Get current stock
   const { data: medData, error: fetchError } = await supabase
     .from("medicines")
-    .select("quantity_in_stock, name")
+    .select("quantity_in_stock, name, reorder_level, category")
     .eq("id", medicineId)
     .single();
 
   const medicine = medData as {
     quantity_in_stock: number;
     name: string;
+    reorder_level: number;
+    category: string;
   } | null;
   if (fetchError || !medicine) return { error: "Medicine not found" };
 
@@ -206,6 +222,30 @@ export async function adjustStock(
       reason,
     },
   });
+
+  sendAuditEmail({
+    action: "stock_adjustment",
+    userName: user.full_name ?? "Staff",
+    details: {
+      medicine_name: medicine.name,
+      previous_stock: medicine.quantity_in_stock,
+      adjustment,
+      new_stock: newStock,
+      reason,
+    },
+  }).catch(() => {});
+
+  // Check if the adjusted medicine is now low stock
+  if (newStock <= medicine.reorder_level) {
+    sendLowStockEmail({
+      items: [{
+        name: medicine.name,
+        category: medicine.category,
+        quantity_in_stock: newStock,
+        reorder_level: medicine.reorder_level,
+      }],
+    }).catch(() => {});
+  }
 
   revalidatePath("/inventory");
   return { success: true };

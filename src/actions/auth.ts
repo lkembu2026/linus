@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { sendPasswordResetNotifyEmail, sendAuditEmail } from "@/lib/email";
 
 export async function login(formData: FormData) {
   const supabase = await createClient();
@@ -101,6 +102,12 @@ export async function registerUser(data: {
     details: { email, role, branch_id },
   });
 
+  sendAuditEmail({
+    action: "register_user",
+    userName: currentUser.full_name ?? "Admin",
+    details: { email, role, branch_id },
+  }).catch(() => {});
+
   return { success: true };
 }
 
@@ -114,6 +121,9 @@ export async function resetPassword(email: string) {
   if (error) {
     return { error: error.message };
   }
+
+  // Notify admin about password reset request
+  sendPasswordResetNotifyEmail(email).catch(() => {});
 
   return { success: true };
 }

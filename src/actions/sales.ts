@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/actions/auth";
 import { revalidatePath } from "next/cache";
 import { generateReceiptNumber } from "@/lib/utils";
+import { sendReceiptEmail, sendAuditEmail, sendLowStockEmail } from "@/lib/email";
 import type { CartItem } from "@/types";
 import type { Sale } from "@/types/database";
 
@@ -52,15 +53,16 @@ export async function createSale(
     if (itemsError) throw itemsError;
 
     // 3. Deduct stock for each item
+    const lowStockAfterSale: { name: string; category: string; quantity_in_stock: number; reorder_level: number }[] = [];
     for (const item of items) {
       const { data: medicine } = await supabase
         .from("medicines")
-        .select("quantity_in_stock")
+        .select("quantity_in_stock, reorder_level, category")
         .eq("id", item.medicine_id)
         .eq("branch_id", user.branch_id)
         .single();
 
-      const med = medicine as { quantity_in_stock: number } | null;
+      const med = medicine as { quantity_in_stock: number; reorder_level: number; category: string } | null;
 
       if (!med || med.quantity_in_stock < item.quantity) {
         // Rollback: void the sale
@@ -80,6 +82,17 @@ export async function createSale(
         .eq("branch_id", user.branch_id);
 
       if (stockError) throw stockError;
+
+      // Check if the deduction pushed this item below reorder level
+      const newQty = med.quantity_in_stock - item.quantity;
+      if (med && newQty <= med.reorder_level) {
+        lowStockAfterSale.push({
+          name: item.name,
+          category: med.category ?? "Other",
+          quantity_in_stock: newQty,
+          reorder_level: med.reorder_level,
+        });
+      }
     }
 
     // 4. Audit log
@@ -97,6 +110,38 @@ export async function createSale(
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/sales");
     revalidatePath("/dashboard/inventory");
+
+    // Send receipt email to admin (fire-and-forget)
+    sendReceiptEmail({
+      receiptNo: saleData.receipt_number,
+      items: items.map((i) => ({
+        name: i.name,
+        quantity: i.quantity,
+        unit_price: i.unit_price,
+      })),
+      total: totalAmount,
+      paymentMethod,
+      cashierName: user.full_name ?? "Staff",
+      branchName: user.branch?.name ?? "Branch",
+    }).catch(() => {});
+
+    // Audit email for sale (fire-and-forget)
+    sendAuditEmail({
+      action: "create_sale",
+      userName: user.full_name ?? "Staff",
+      details: {
+        sale_id: saleData.id,
+        receipt_number: saleData.receipt_number,
+        total_amount: totalAmount,
+        payment_method: paymentMethod,
+        items_count: items.length,
+      },
+    }).catch(() => {});
+
+    // Low stock email if any items dropped below reorder level
+    if (lowStockAfterSale.length > 0) {
+      sendLowStockEmail({ items: lowStockAfterSale }).catch(() => {});
+    }
 
     return { success: true, saleId: saleData.id };
   } catch (error: unknown) {
@@ -212,6 +257,13 @@ export async function voidSale(saleId: string) {
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/sales");
   revalidatePath("/dashboard/inventory");
+
+  // Audit email for void (fire-and-forget)
+  sendAuditEmail({
+    action: "void_sale",
+    userName: user.full_name ?? "Admin",
+    details: { sale_id: saleId, reason: "Admin void" },
+  }).catch(() => {});
 
   return { success: true };
 }

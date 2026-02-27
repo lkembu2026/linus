@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/actions/auth";
 import { revalidatePath } from "next/cache";
+import { sendTransferEmail, sendAuditEmail } from "@/lib/email";
 import type { StockTransfer } from "@/types/database";
 
 export async function getTransfers() {
@@ -95,6 +96,19 @@ export async function createTransfer(formData: {
     },
   });
 
+  // Fetch branch names for the email
+  const { data: fromBr } = await supabase.from("branches").select("name").eq("id", formData.from_branch_id).single();
+  const { data: toBr } = await supabase.from("branches").select("name").eq("id", formData.to_branch_id).single();
+
+  sendTransferEmail({
+    medicineName: medicine.name,
+    quantity: formData.quantity,
+    fromBranch: (fromBr as { name: string } | null)?.name ?? "Unknown",
+    toBranch: (toBr as { name: string } | null)?.name ?? "Unknown",
+    requestedBy: user.full_name ?? "Staff",
+    status: "pending",
+  }).catch(() => {});
+
   revalidatePath("/transfers");
   return { success: true };
 }
@@ -172,6 +186,20 @@ export async function approveTransfer(transferId: string) {
     details: { transfer_id: transferId },
   });
 
+  // Fetch details for email
+  const { data: medName } = await supabase.from("medicines").select("name").eq("id", transfer.medicine_id).single();
+  const { data: fromBrA } = await supabase.from("branches").select("name").eq("id", transfer.from_branch_id).single();
+  const { data: toBrA } = await supabase.from("branches").select("name").eq("id", transfer.to_branch_id).single();
+
+  sendTransferEmail({
+    medicineName: (medName as { name: string } | null)?.name ?? "Medicine",
+    quantity: transfer.quantity,
+    fromBranch: (fromBrA as { name: string } | null)?.name ?? "Unknown",
+    toBranch: (toBrA as { name: string } | null)?.name ?? "Unknown",
+    requestedBy: user.full_name ?? "Admin",
+    status: "approved",
+  }).catch(() => {});
+
   revalidatePath("/transfers");
   return { success: true };
 }
@@ -188,11 +216,30 @@ export async function rejectTransfer(transferId: string) {
 
   if (error) return { error: error.message };
 
+  // Fetch details for rejection email
+  const { data: rejTransfer } = await supabase.from("stock_transfers").select("medicine_id, quantity, from_branch_id, to_branch_id").eq("id", transferId).single();
+  const rejT = rejTransfer as { medicine_id: string; quantity: number; from_branch_id: string; to_branch_id: string } | null;
+
   await supabase.from("audit_logs").insert({
     user_id: user.id,
     action: "reject_transfer",
     details: { transfer_id: transferId },
   });
+
+  if (rejT) {
+    const { data: rejMed } = await supabase.from("medicines").select("name").eq("id", rejT.medicine_id).single();
+    const { data: rejFrom } = await supabase.from("branches").select("name").eq("id", rejT.from_branch_id).single();
+    const { data: rejTo } = await supabase.from("branches").select("name").eq("id", rejT.to_branch_id).single();
+
+    sendTransferEmail({
+      medicineName: (rejMed as { name: string } | null)?.name ?? "Medicine",
+      quantity: rejT.quantity,
+      fromBranch: (rejFrom as { name: string } | null)?.name ?? "Unknown",
+      toBranch: (rejTo as { name: string } | null)?.name ?? "Unknown",
+      requestedBy: user.full_name ?? "Admin",
+      status: "rejected",
+    }).catch(() => {});
+  }
 
   revalidatePath("/transfers");
   return { success: true };
