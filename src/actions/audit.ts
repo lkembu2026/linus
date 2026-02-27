@@ -15,7 +15,9 @@ export async function getAuditLogs(page = 1, limit = 50) {
 
   const { data, error, count } = await supabase
     .from("audit_logs")
-    .select("*", { count: "exact" })
+    .select("*, user:users!audit_logs_user_id_fkey(full_name, email, role)", {
+      count: "exact",
+    })
     .order("created_at", { ascending: false })
     .range(from, to);
 
@@ -24,5 +26,10 @@ export async function getAuditLogs(page = 1, limit = 50) {
     return { logs: [] as AuditLog[], total: 0 };
   }
 
-  return { logs: (data ?? []) as unknown as AuditLog[], total: count ?? 0 };
+  return {
+    logs: (data ?? []) as unknown as (AuditLog & {
+      user: { full_name: string; email: string; role: string } | null;
+    })[],
+    total: count ?? 0,
+  };
 }

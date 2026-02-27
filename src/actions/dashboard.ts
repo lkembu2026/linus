@@ -107,13 +107,13 @@ export async function getTopMedicines(
   // Get sale items for those sales
   const { data: itemsData } = await supabase
     .from("sale_items")
-    .select("medicine_id, quantity, total_price")
+    .select("medicine_id, quantity, unit_price")
     .in("sale_id", saleIds);
 
   const items = (itemsData ?? []) as unknown as {
     medicine_id: string;
     quantity: number;
-    total_price: number;
+    unit_price: number;
   }[];
 
   // Aggregate by medicine
@@ -121,7 +121,7 @@ export async function getTopMedicines(
   for (const item of items) {
     const existing = medMap.get(item.medicine_id) ?? { qty: 0, revenue: 0 };
     existing.qty += item.quantity;
-    existing.revenue += item.total_price;
+    existing.revenue += item.unit_price * item.quantity;
     medMap.set(item.medicine_id, existing);
   }
 

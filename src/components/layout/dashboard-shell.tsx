@@ -20,6 +20,7 @@ export function DashboardShell({
   branchName,
 }: DashboardShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
 
   return (
     <div className="min-h-screen bg-background">
@@ -29,6 +30,8 @@ export function DashboardShell({
           userRole={userRole}
           userName={userName}
           branchName={branchName}
+          collapsed={collapsed}
+          onCollapse={setCollapsed}
         />
       </div>
 
@@ -47,8 +50,10 @@ export function DashboardShell({
         </SheetContent>
       </Sheet>
 
-      {/* Main content area — responsive padding */}
-      <div className="md:pl-64 transition-all duration-300">
+      {/* Main content area — responsive padding that tracks collapse */}
+      <div
+        className={`transition-all duration-300 ${collapsed ? "md:pl-[72px]" : "md:pl-64"}`}
+      >
         <Header
           userName={userName}
           userRole={userRole}

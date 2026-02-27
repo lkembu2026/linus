@@ -33,7 +33,7 @@ export function RevenueChart({ data }: RevenueChartProps) {
   return (
     <div className="glass-card p-6">
       <h3 className="text-base font-semibold font-[family-name:var(--font-sans)] text-white mb-4">
-        Revenue Trend <span className="text-primary">(7 Days)</span>
+        Revenue Trend <span className="text-primary">(30 Days)</span>
       </h3>
       <div className="h-[280px]">
         <ResponsiveContainer width="100%" height="100%">

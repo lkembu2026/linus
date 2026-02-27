@@ -1,7 +1,8 @@
 import { AlertTriangle } from "lucide-react";
+import type { Medicine } from "@/types/database";
 
 interface LowStockAlertProps {
-  items: any[];
+  items: Medicine[];
 }
 
 export function LowStockAlert({ items }: LowStockAlertProps) {
@@ -20,31 +21,27 @@ export function LowStockAlert({ items }: LowStockAlertProps) {
         </p>
       ) : (
         <div className="space-y-2">
-          {items.map((item: any, index: number) => (
+          {items.map((item) => (
             <div
-              key={index}
+              key={item.id}
               className="flex items-center justify-between py-2 px-3 rounded-lg bg-background/50 border border-yellow-400/20"
             >
               <div>
-                <p className="text-sm font-medium text-white">
-                  {item.medicine?.name ?? "Unknown"}
-                </p>
-                {item.branch && (
-                  <p className="text-xs text-muted-foreground">
-                    {item.branch.name}
-                  </p>
-                )}
+                <p className="text-sm font-medium text-white">{item.name}</p>
+                <p className="text-xs text-muted-foreground">{item.category}</p>
               </div>
               <div className="text-right">
                 <span
                   className={`text-sm font-bold ${
-                    item.quantity === 0 ? "text-destructive" : "text-yellow-400"
+                    item.quantity_in_stock === 0
+                      ? "text-destructive"
+                      : "text-yellow-400"
                   }`}
                 >
-                  {item.quantity} left
+                  {item.quantity_in_stock} left
                 </span>
                 <p className="text-xs text-muted-foreground">
-                  min: {item.medicine?.low_stock_threshold ?? 10}
+                  min: {item.reorder_level}
                 </p>
               </div>
             </div>

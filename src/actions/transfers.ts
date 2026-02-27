@@ -12,7 +12,15 @@ export async function getTransfers() {
 
   let query = supabase
     .from("stock_transfers")
-    .select("*")
+    .select(
+      `
+      *,
+      medicine:medicines!stock_transfers_medicine_id_fkey(id, name),
+      from_branch:branches!stock_transfers_from_branch_id_fkey(id, name),
+      to_branch:branches!stock_transfers_to_branch_id_fkey(id, name),
+      requested_by_user:users!stock_transfers_requested_by_fkey(id, full_name)
+    `,
+    )
     .order("created_at", { ascending: false });
 
   if (user.role !== "admin") {
@@ -25,10 +33,15 @@ export async function getTransfers() {
 
   if (error) {
     console.error("getTransfers error:", error);
-    return [] as StockTransfer[];
+    return [];
   }
 
-  return (data ?? []) as unknown as StockTransfer[];
+  return (data ?? []) as unknown as (StockTransfer & {
+    medicine: { id: string; name: string } | null;
+    from_branch: { id: string; name: string } | null;
+    to_branch: { id: string; name: string } | null;
+    requested_by_user: { id: string; full_name: string } | null;
+  })[];
 }
 
 export async function createTransfer(formData: {

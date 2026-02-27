@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import React, { useState, useTransition } from "react";
 import {
   Dialog,
   DialogContent,
@@ -31,15 +31,8 @@ interface MedicineFormDialogProps {
   medicine?: Medicine | null;
 }
 
-export function MedicineFormDialog({
-  open,
-  onClose,
-  medicine,
-}: MedicineFormDialogProps) {
-  const isEdit = !!medicine;
-  const [isPending, startTransition] = useTransition();
-
-  const [form, setForm] = useState({
+function getInitialForm(medicine?: Medicine | null) {
+  return {
     name: medicine?.name ?? "",
     generic_name: medicine?.generic_name ?? "",
     category: medicine?.category ?? "",
@@ -50,7 +43,23 @@ export function MedicineFormDialog({
     expiry_date: medicine?.expiry_date ?? "",
     barcode: medicine?.barcode ?? "",
     requires_prescription: medicine?.requires_prescription ?? false,
-  });
+  };
+}
+
+export function MedicineFormDialog({
+  open,
+  onClose,
+  medicine,
+}: MedicineFormDialogProps) {
+  const isEdit = !!medicine;
+  const [isPending, startTransition] = useTransition();
+
+  const [form, setForm] = useState(getInitialForm(medicine));
+
+  // Reset form when medicine prop changes (e.g. editing a different medicine)
+  React.useEffect(() => {
+    setForm(getInitialForm(medicine));
+  }, [medicine]);
 
   function update(key: string, value: string | boolean) {
     setForm((prev) => ({ ...prev, [key]: value }));

@@ -38,6 +38,8 @@ interface SidebarProps {
   userName: string;
   branchName?: string;
   onNavigate?: () => void;
+  collapsed?: boolean;
+  onCollapse?: (collapsed: boolean) => void;
 }
 
 export function Sidebar({
@@ -45,9 +47,18 @@ export function Sidebar({
   userName,
   branchName,
   onNavigate,
+  collapsed: controlledCollapsed,
+  onCollapse,
 }: SidebarProps) {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
+  const [internalCollapsed, setInternalCollapsed] = useState(false);
+
+  // Use controlled state from parent if provided, otherwise use internal
+  const collapsed = controlledCollapsed ?? internalCollapsed;
+  const setCollapsed = (val: boolean) => {
+    if (onCollapse) onCollapse(val);
+    else setInternalCollapsed(val);
+  };
 
   const filteredNavItems = NAV_ITEMS.filter((item) =>
     (item.roles as readonly string[]).includes(userRole),
