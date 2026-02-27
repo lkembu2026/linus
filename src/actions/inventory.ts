@@ -56,6 +56,7 @@ export async function createMedicine(formData: {
   name: string;
   generic_name?: string;
   category: string;
+  dispensing_unit?: string;
   unit_price: number;
   cost_price: number;
   quantity_in_stock: number;
@@ -110,6 +111,7 @@ export async function updateMedicine(
     name?: string;
     generic_name?: string;
     category?: string;
+    dispensing_unit?: string;
     unit_price?: number;
     cost_price?: number;
     quantity_in_stock?: number;

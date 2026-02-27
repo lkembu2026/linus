@@ -477,7 +477,10 @@ export function InventoryClient({
         open={importOpen}
         onClose={() => setImportOpen(false)}
         onImported={async () => {
-          const data = await getMedicines(search || undefined, category || undefined);
+          const data = await getMedicines(
+            search || undefined,
+            category || undefined,
+          );
           setMedicines(data);
         }}
       />

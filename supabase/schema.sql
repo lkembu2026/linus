@@ -44,6 +44,7 @@ CREATE TABLE medicines (
   reorder_level         INT NOT NULL DEFAULT 10,
   expiry_date           DATE,
   barcode               TEXT,
+  dispensing_unit       TEXT,
   requires_prescription BOOLEAN DEFAULT false,
   branch_id             UUID NOT NULL REFERENCES branches(id),
   created_by            UUID REFERENCES users(id),
