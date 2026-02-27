@@ -106,8 +106,8 @@ export function MedicineSearch({ onSelect }: MedicineSearchProps) {
 
   return (
     <div className="relative">
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1 min-w-0">
+      <div className="space-y-3">
+        <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             ref={inputRef}
@@ -124,12 +124,11 @@ export function MedicineSearch({ onSelect }: MedicineSearchProps) {
         </div>
         <Button
           variant="outline"
-          className="h-12 px-3 border-primary/50 text-primary hover:bg-primary/10 hover:text-primary shrink-0 gap-2"
+          className="w-full h-11 border-primary text-primary hover:bg-primary/10 hover:text-primary gap-2 font-medium"
           onClick={() => setScannerOpen(true)}
-          title="Scan barcode with camera"
         >
           <ScanBarcode className="h-5 w-5" />
-          <span className="hidden sm:inline text-sm">Scan</span>
+          Scan Barcode / QR Code
         </Button>
       </div>
 

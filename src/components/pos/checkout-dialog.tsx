@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useRef } from "react";
+import { useState, useTransition } from "react";
 import {
   Dialog,
   DialogContent,
@@ -15,7 +15,6 @@ import { Label } from "@/components/ui/label";
 import { createSale } from "@/actions/sales";
 import { formatCurrency, generateReceiptNumber } from "@/lib/utils";
 import { saveOfflineSale } from "@/lib/offline/db";
-import { Receipt } from "./receipt";
 import {
   CheckCircle,
   Loader2,
@@ -55,7 +54,6 @@ export function CheckoutDialog({
   const [isOfflineSale, setIsOfflineSale] = useState(false);
   const [cashTendered, setCashTendered] = useState("");
   const [mpesaCode, setMpesaCode] = useState("");
-  const receiptRef = useRef<HTMLDivElement>(null);
 
   const cashAmount = parseFloat(cashTendered) || 0;
   const change = cashAmount - total;
@@ -111,38 +109,71 @@ export function CheckoutDialog({
   }
 
   function handlePrintReceipt() {
-    const printWindow = window.open("", "_blank", "width=350,height=600");
+    const printWindow = window.open("", "_blank", "width=400,height=700");
     if (!printWindow) {
-      toast.error("Popup blocked — allow popups for printing");
+      toast.error("Popup blocked — please allow popups for printing");
       return;
     }
-    const receiptHtml = receiptRef.current?.innerHTML ?? "";
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Receipt ${receiptNo}</title>
-          <style>
-            body { margin: 0; padding: 0; font-family: 'Courier New', monospace; font-size: 12px; }
-            .receipt { padding: 16px; max-width: 300px; margin: 0 auto; }
-            .text-center { text-align: center; }
-            .font-bold { font-weight: bold; }
-            .text-sm { font-size: 14px; }
-            .flex { display: flex; justify-content: space-between; }
-            .border-t { border-top: 1px dashed #999; margin: 8px 0; }
-            .mt-1 { margin-top: 4px; }
-            .mt-2 { margin-top: 8px; }
-            .mt-4 { margin-top: 16px; }
-            .mb-4 { margin-bottom: 16px; }
-            .pl-4 { padding-left: 16px; }
-            .text-xs { font-size: 10px; }
-            .space-y-1 > * + * { margin-top: 4px; }
-          </style>
-        </head>
-        <body onload="window.print(); window.close();">
-          ${receiptHtml}
-        </body>
-      </html>
-    `);
+
+    const now = new Date();
+    const dateStr = now.toLocaleString("en-KE", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    const itemsHtml = items
+      .map(
+        (item) =>
+          `<div style="margin-bottom:4px;">
+            <div>${item.name}</div>
+            <div style="display:flex;justify-content:space-between;padding-left:16px;">
+              <span>${item.quantity} × KES ${item.unit_price.toLocaleString()}</span>
+              <span>KES ${(item.unit_price * item.quantity).toLocaleString()}</span>
+            </div>
+          </div>`,
+      )
+      .join("");
+
+    const cashSection =
+      paymentMethod === "cash" && cashAmount > 0
+        ? `<div style="display:flex;justify-content:space-between;margin-top:4px;"><span>Cash Tendered</span><span>KES ${cashAmount.toLocaleString()}</span></div>
+           ${change > 0 ? `<div style="display:flex;justify-content:space-between;margin-top:4px;font-weight:bold;"><span>Change</span><span>KES ${change.toLocaleString()}</span></div>` : ""}`
+        : "";
+
+    printWindow.document.write(`<!DOCTYPE html>
+<html><head><title>Receipt ${receiptNo}</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Courier New',monospace; font-size:12px; padding:16px; max-width:300px; margin:0 auto; color:#000; }
+  .center { text-align:center; }
+  .bold { font-weight:bold; }
+  .title { font-size:16px; font-weight:bold; }
+  .divider { border-top:1px dashed #333; margin:8px 0; }
+  .row { display:flex; justify-content:space-between; }
+  .total { font-size:14px; font-weight:bold; }
+  .small { font-size:10px; }
+  .mt { margin-top:8px; }
+</style></head>
+<body onload="window.print();">
+  <div class="center"><div class="title">LK PharmaCare</div><div>${branchName}</div><div class="small mt">${dateStr}</div></div>
+  <div class="divider"></div>
+  <div class="center bold">${receiptNo}</div>
+  <div class="divider"></div>
+  ${itemsHtml}
+  <div class="divider"></div>
+  <div class="row total"><span>TOTAL</span><span>KES ${total.toLocaleString()}</span></div>
+  <div class="row mt"><span>Payment</span><span>${paymentMethod.toUpperCase()}</span></div>
+  ${cashSection}
+  <div class="divider"></div>
+  <div class="center small mt">
+    <div>Served by: ${cashierName}</div>
+    <div style="margin-top:8px;">Thank you for your purchase!</div>
+    <div style="margin-top:4px;" class="bold">LK PharmaCare</div>
+  </div>
+</body></html>`);
     printWindow.document.close();
   }
 
@@ -351,27 +382,6 @@ export function CheckoutDialog({
                 <Printer className="h-4 w-4 mr-2" />
                 Print Receipt
               </Button>
-            </div>
-
-            {/* Hidden receipt for printing */}
-            <div className="hidden">
-              <div ref={receiptRef}>
-                <Receipt
-                  receiptNo={receiptNo}
-                  items={items}
-                  total={total}
-                  paymentMethod={paymentMethod}
-                  cashierName={cashierName}
-                  branchName={branchName}
-                  date={new Date()}
-                  cashTendered={
-                    paymentMethod === "cash" ? cashAmount : undefined
-                  }
-                  change={
-                    paymentMethod === "cash" && change > 0 ? change : undefined
-                  }
-                />
-              </div>
             </div>
           </div>
         )}

@@ -19,18 +19,19 @@ import { useCart } from "@/hooks/use-cart";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { ShoppingCart, Clock, XCircle } from "lucide-react";
 import { voidSale, getRecentSales } from "@/actions/sales";
+import type { RecentSale } from "@/actions/sales";
 import { toast } from "sonner";
-import type { User, Sale } from "@/types/database";
+import type { User } from "@/types/database";
 
 interface POSClientProps {
   user: User & { branch?: { name: string } | null };
-  initialRecentSales: Sale[];
+  initialRecentSales: RecentSale[];
 }
 
 export function POSClient({ user, initialRecentSales }: POSClientProps) {
   const cart = useCart();
   const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [recentSales, setRecentSales] = useState<Sale[]>(initialRecentSales);
+  const [recentSales, setRecentSales] = useState<RecentSale[]>(initialRecentSales);
 
   async function handleSaleSuccess() {
     cart.clearCart();
@@ -116,6 +117,9 @@ export function POSClient({ user, initialRecentSales }: POSClientProps) {
                           Receipt #
                         </TableHead>
                         <TableHead className="text-muted-foreground">
+                          Items Sold
+                        </TableHead>
+                        <TableHead className="text-muted-foreground">
                           Total
                         </TableHead>
                         <TableHead className="text-muted-foreground">
@@ -137,6 +141,9 @@ export function POSClient({ user, initialRecentSales }: POSClientProps) {
                         <TableRow key={sale.id} className="border-border">
                           <TableCell className="text-white font-mono text-xs">
                             {sale.receipt_number}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-xs max-w-[200px] truncate" title={sale.items_summary ?? "-"}>
+                            {sale.items_summary || "-"}
                           </TableCell>
                           <TableCell className="text-primary font-medium">
                             {formatCurrency(sale.total_amount)}

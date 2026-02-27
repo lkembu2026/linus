@@ -281,18 +281,22 @@ export async function voidSale(saleId: string) {
   return { success: true };
 }
 
+export type RecentSale = Sale & {
+  items_summary?: string;
+};
+
 export async function getRecentSales() {
   const supabase = await createClient();
   const user = await getCurrentUser();
 
-  if (!user) return [] as Sale[];
+  if (!user) return [] as RecentSale[];
 
   const isAdmin = user.role === "admin";
 
   let query = supabase
     .from("sales")
     .select(
-      "id, receipt_number, total_amount, payment_method, is_voided, created_at",
+      "id, receipt_number, total_amount, payment_method, is_voided, created_at, branch_id, cashier_id, voided_by",
     )
     .order("created_at", { ascending: false })
     .limit(20);
@@ -301,6 +305,45 @@ export async function getRecentSales() {
     query = query.eq("branch_id", user.branch_id);
   }
 
-  const { data } = await query;
-  return (data ?? []) as unknown as Sale[];
+  const { data: salesData } = await query;
+  const sales = (salesData ?? []) as unknown as Sale[];
+
+  if (sales.length === 0) return [] as RecentSale[];
+
+  // Fetch sale items with medicine names for each sale
+  const saleIds = sales.map((s) => s.id);
+  const { data: saleItemsData } = await supabase
+    .from("sale_items")
+    .select("sale_id, quantity, medicine_id")
+    .in("sale_id", saleIds);
+
+  type SaleItemRow = { sale_id: string; quantity: number; medicine_id: string };
+  const saleItems = (saleItemsData ?? []) as unknown as SaleItemRow[];
+
+  // Get unique medicine IDs and fetch names
+  const medIds = [...new Set(saleItems.map((si) => si.medicine_id))];
+  const { data: medsData } =
+    medIds.length > 0
+      ? await supabase.from("medicines").select("id, name").in("id", medIds)
+      : { data: [] };
+  const medsMap = new Map(
+    ((medsData ?? []) as unknown as { id: string; name: string }[]).map((m) => [
+      m.id,
+      m.name,
+    ]),
+  );
+
+  // Build items summary per sale
+  const salesWithItems: RecentSale[] = sales.map((sale) => {
+    const saleSpecificItems = saleItems.filter((si) => si.sale_id === sale.id);
+    const summary = saleSpecificItems
+      .map((si) => {
+        const medName = medsMap.get(si.medicine_id) ?? "Unknown";
+        return `${medName} ×${si.quantity}`;
+      })
+      .join(", ");
+    return { ...sale, items_summary: summary };
+  });
+
+  return salesWithItems;
 }
