@@ -7,6 +7,9 @@ import type {
   TopMedicine,
   RevenueDataPoint,
   BranchComparison,
+  InventoryOverview,
+  MedicineDailySales,
+  MedicineCategoryBreakdown,
 } from "@/types";
 import type { Medicine } from "@/types/database";
 
@@ -244,4 +247,187 @@ export async function getLowStockItems() {
   const medicines = (data ?? []) as unknown as Medicine[];
 
   return medicines.filter((m) => m.quantity_in_stock <= m.reorder_level);
+}
+
+// ── Inventory Overview ──────────────────────────────────────────────────────
+export async function getInventoryOverview(): Promise<InventoryOverview> {
+  const supabase = await createClient();
+  const user = await getCurrentUser();
+  const branchId = user?.branch_id;
+  const isAdmin = user?.role === "admin";
+
+  let q = supabase
+    .from("medicines")
+    .select("id, quantity_in_stock, reorder_level, created_at")
+    .order("created_at", { ascending: false });
+  if (!isAdmin && branchId) q = q.eq("branch_id", branchId);
+
+  const { data } = await q;
+  const meds = (data ?? []) as unknown as {
+    id: string;
+    quantity_in_stock: number;
+    reorder_level: number;
+    created_at: string;
+  }[];
+
+  const total = meds.length;
+  const out_of_stock = meds.filter((m) => m.quantity_in_stock === 0).length;
+  const low_stock = meds.filter(
+    (m) => m.quantity_in_stock > 0 && m.quantity_in_stock <= m.reorder_level,
+  ).length;
+  const in_stock = total - low_stock - out_of_stock;
+
+  // Group additions by date (last 30 days)
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 30);
+  const dateMap = new Map<string, number>();
+  for (const m of meds) {
+    const d = new Date(m.created_at);
+    if (d >= cutoff) {
+      const key = d.toISOString().split("T")[0];
+      dateMap.set(key, (dateMap.get(key) ?? 0) + 1);
+    }
+  }
+  const recently_added = Array.from(dateMap.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, count]) => ({ date, count }));
+
+  return { total, in_stock, low_stock, out_of_stock, recently_added };
+}
+
+// ── Medicine Units Sold Per Day ─────────────────────────────────────────────
+export async function getMedicineDailySales(
+  days: number = 14,
+): Promise<MedicineDailySales[]> {
+  const supabase = await createClient();
+  const user = await getCurrentUser();
+  const branchId = user?.branch_id;
+  const isAdmin = user?.role === "admin";
+
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days);
+
+  let salesQ = supabase
+    .from("sales")
+    .select("id")
+    .gte("created_at", startDate.toISOString())
+    .eq("is_voided", false);
+  if (!isAdmin && branchId) salesQ = salesQ.eq("branch_id", branchId);
+  const { data: salesData } = await salesQ;
+  const saleIds = ((salesData ?? []) as unknown as { id: string }[]).map(
+    (s) => s.id,
+  );
+  if (saleIds.length === 0) return [];
+
+  // Get sale items with sale date
+  const { data: itemsData } = await supabase
+    .from("sale_items")
+    .select("quantity, sale_id, sales(created_at)")
+    .in("sale_id", saleIds);
+
+  const items = (itemsData ?? []) as unknown as {
+    quantity: number;
+    sales: { created_at: string } | null;
+  }[];
+
+  const dateMap = new Map<string, number>();
+  for (const item of items) {
+    const rawDate = item.sales?.created_at;
+    if (!rawDate) continue;
+    const key = new Date(rawDate).toISOString().split("T")[0];
+    dateMap.set(key, (dateMap.get(key) ?? 0) + item.quantity);
+  }
+
+  // Fill missing days with 0
+  const results: MedicineDailySales[] = [];
+  for (let i = days; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().split("T")[0];
+    results.push({ date: key, units_sold: dateMap.get(key) ?? 0 });
+  }
+  return results;
+}
+
+// ── Medicine Sales + Stock by Category ─────────────────────────────────────
+export async function getMedicineCategoryBreakdown(): Promise<
+  MedicineCategoryBreakdown[]
+> {
+  const supabase = await createClient();
+  const user = await getCurrentUser();
+  const branchId = user?.branch_id;
+  const isAdmin = user?.role === "admin";
+
+  // All medicines with stock
+  let medQ = supabase
+    .from("medicines")
+    .select("id, category, quantity_in_stock");
+  if (!isAdmin && branchId) medQ = medQ.eq("branch_id", branchId);
+  const { data: medsData } = await medQ;
+  const meds = (medsData ?? []) as unknown as {
+    id: string;
+    category: string;
+    quantity_in_stock: number;
+  }[];
+
+  // Aggregate remaining stock by category
+  const stockMap = new Map<string, { stock: number; medIds: string[] }>();
+  for (const m of meds) {
+    const cat = m.category || "Uncategorised";
+    const entry = stockMap.get(cat) ?? { stock: 0, medIds: [] };
+    entry.stock += m.quantity_in_stock;
+    entry.medIds.push(m.id);
+    stockMap.set(cat, entry);
+  }
+
+  // Sale items for all these medicines (all time)
+  const allMedIds = meds.map((m) => m.id);
+  if (allMedIds.length === 0) return [];
+
+  // Filter to non-voided sales first
+  let salesQ = supabase
+    .from("sales")
+    .select("id")
+    .eq("is_voided", false);
+  if (!isAdmin && branchId) salesQ = salesQ.eq("branch_id", branchId);
+  const { data: salesData } = await salesQ;
+  const saleIds = ((salesData ?? []) as unknown as { id: string }[]).map(
+    (s) => s.id,
+  );
+
+  const soldMap = new Map<string, number>(); // medId -> total qty sold
+  if (saleIds.length > 0) {
+    const { data: itemsData } = await supabase
+      .from("sale_items")
+      .select("medicine_id, quantity")
+      .in("sale_id", saleIds)
+      .in("medicine_id", allMedIds);
+    for (const item of (itemsData ?? []) as unknown as {
+      medicine_id: string;
+      quantity: number;
+    }[]) {
+      soldMap.set(
+        item.medicine_id,
+        (soldMap.get(item.medicine_id) ?? 0) + item.quantity,
+      );
+    }
+  }
+
+  // Aggregate sold by category
+  const soldByCategory = new Map<string, number>();
+  for (const m of meds) {
+    const cat = m.category || "Uncategorised";
+    soldByCategory.set(
+      cat,
+      (soldByCategory.get(cat) ?? 0) + (soldMap.get(m.id) ?? 0),
+    );
+  }
+
+  return Array.from(stockMap.entries())
+    .map(([category, { stock }]) => ({
+      category,
+      units_sold: soldByCategory.get(category) ?? 0,
+      remaining_stock: stock,
+    }))
+    .sort((a, b) => b.remaining_stock - a.remaining_stock);
 }

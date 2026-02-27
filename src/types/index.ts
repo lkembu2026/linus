@@ -58,6 +58,30 @@ export interface BranchComparison {
   sales_count: number;
 }
 
+export interface MedicineAddedPoint {
+  date: string;
+  count: number;
+}
+
+export interface MedicineDailySales {
+  date: string;
+  units_sold: number;
+}
+
+export interface MedicineCategoryBreakdown {
+  category: string;
+  units_sold: number;
+  remaining_stock: number;
+}
+
+export interface InventoryOverview {
+  total: number;
+  in_stock: number;
+  low_stock: number;
+  out_of_stock: number;
+  recently_added: MedicineAddedPoint[];
+}
+
 // ---- Navigation ----
 export interface NavItem {
   title: string;
