@@ -4,7 +4,11 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/actions/auth";
 import { revalidatePath } from "next/cache";
 import { generateReceiptNumber } from "@/lib/utils";
-import { sendReceiptEmail, sendAuditEmail, sendLowStockEmail } from "@/lib/email";
+import {
+  sendReceiptEmail,
+  sendAuditEmail,
+  sendLowStockEmail,
+} from "@/lib/email";
 import type { CartItem } from "@/types";
 import type { Sale } from "@/types/database";
 
@@ -53,7 +57,12 @@ export async function createSale(
     if (itemsError) throw itemsError;
 
     // 3. Deduct stock for each item
-    const lowStockAfterSale: { name: string; category: string; quantity_in_stock: number; reorder_level: number }[] = [];
+    const lowStockAfterSale: {
+      name: string;
+      category: string;
+      quantity_in_stock: number;
+      reorder_level: number;
+    }[] = [];
     for (const item of items) {
       const { data: medicine } = await supabase
         .from("medicines")
@@ -62,7 +71,11 @@ export async function createSale(
         .eq("branch_id", user.branch_id)
         .single();
 
-      const med = medicine as { quantity_in_stock: number; reorder_level: number; category: string } | null;
+      const med = medicine as {
+        quantity_in_stock: number;
+        reorder_level: number;
+        category: string;
+      } | null;
 
       if (!med || med.quantity_in_stock < item.quantity) {
         // Rollback: void the sale

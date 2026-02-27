@@ -93,7 +93,11 @@ export async function createMedicine(formData: {
   sendAuditEmail({
     action: "create_medicine",
     userName: user.full_name ?? "Staff",
-    details: { medicine_name: formData.name, category: formData.category, quantity: formData.quantity_in_stock },
+    details: {
+      medicine_name: formData.name,
+      category: formData.category,
+      quantity: formData.quantity_in_stock,
+    },
   }).catch(() => {});
 
   revalidatePath("/inventory");
@@ -238,12 +242,14 @@ export async function adjustStock(
   // Check if the adjusted medicine is now low stock
   if (newStock <= medicine.reorder_level) {
     sendLowStockEmail({
-      items: [{
-        name: medicine.name,
-        category: medicine.category,
-        quantity_in_stock: newStock,
-        reorder_level: medicine.reorder_level,
-      }],
+      items: [
+        {
+          name: medicine.name,
+          category: medicine.category,
+          quantity_in_stock: newStock,
+          reorder_level: medicine.reorder_level,
+        },
+      ],
     }).catch(() => {});
   }
 

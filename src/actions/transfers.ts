@@ -97,8 +97,16 @@ export async function createTransfer(formData: {
   });
 
   // Fetch branch names for the email
-  const { data: fromBr } = await supabase.from("branches").select("name").eq("id", formData.from_branch_id).single();
-  const { data: toBr } = await supabase.from("branches").select("name").eq("id", formData.to_branch_id).single();
+  const { data: fromBr } = await supabase
+    .from("branches")
+    .select("name")
+    .eq("id", formData.from_branch_id)
+    .single();
+  const { data: toBr } = await supabase
+    .from("branches")
+    .select("name")
+    .eq("id", formData.to_branch_id)
+    .single();
 
   sendTransferEmail({
     medicineName: medicine.name,
@@ -187,9 +195,21 @@ export async function approveTransfer(transferId: string) {
   });
 
   // Fetch details for email
-  const { data: medName } = await supabase.from("medicines").select("name").eq("id", transfer.medicine_id).single();
-  const { data: fromBrA } = await supabase.from("branches").select("name").eq("id", transfer.from_branch_id).single();
-  const { data: toBrA } = await supabase.from("branches").select("name").eq("id", transfer.to_branch_id).single();
+  const { data: medName } = await supabase
+    .from("medicines")
+    .select("name")
+    .eq("id", transfer.medicine_id)
+    .single();
+  const { data: fromBrA } = await supabase
+    .from("branches")
+    .select("name")
+    .eq("id", transfer.from_branch_id)
+    .single();
+  const { data: toBrA } = await supabase
+    .from("branches")
+    .select("name")
+    .eq("id", transfer.to_branch_id)
+    .single();
 
   sendTransferEmail({
     medicineName: (medName as { name: string } | null)?.name ?? "Medicine",
@@ -217,8 +237,17 @@ export async function rejectTransfer(transferId: string) {
   if (error) return { error: error.message };
 
   // Fetch details for rejection email
-  const { data: rejTransfer } = await supabase.from("stock_transfers").select("medicine_id, quantity, from_branch_id, to_branch_id").eq("id", transferId).single();
-  const rejT = rejTransfer as { medicine_id: string; quantity: number; from_branch_id: string; to_branch_id: string } | null;
+  const { data: rejTransfer } = await supabase
+    .from("stock_transfers")
+    .select("medicine_id, quantity, from_branch_id, to_branch_id")
+    .eq("id", transferId)
+    .single();
+  const rejT = rejTransfer as {
+    medicine_id: string;
+    quantity: number;
+    from_branch_id: string;
+    to_branch_id: string;
+  } | null;
 
   await supabase.from("audit_logs").insert({
     user_id: user.id,
@@ -227,9 +256,21 @@ export async function rejectTransfer(transferId: string) {
   });
 
   if (rejT) {
-    const { data: rejMed } = await supabase.from("medicines").select("name").eq("id", rejT.medicine_id).single();
-    const { data: rejFrom } = await supabase.from("branches").select("name").eq("id", rejT.from_branch_id).single();
-    const { data: rejTo } = await supabase.from("branches").select("name").eq("id", rejT.to_branch_id).single();
+    const { data: rejMed } = await supabase
+      .from("medicines")
+      .select("name")
+      .eq("id", rejT.medicine_id)
+      .single();
+    const { data: rejFrom } = await supabase
+      .from("branches")
+      .select("name")
+      .eq("id", rejT.from_branch_id)
+      .single();
+    const { data: rejTo } = await supabase
+      .from("branches")
+      .select("name")
+      .eq("id", rejT.to_branch_id)
+      .single();
 
     sendTransferEmail({
       medicineName: (rejMed as { name: string } | null)?.name ?? "Medicine",

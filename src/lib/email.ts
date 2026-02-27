@@ -243,7 +243,9 @@ export async function sendLowStockEmail(data: {
       .join("");
 
     const hasBranch = data.items.some((i) => i.branch_name);
-    const outOfStock = data.items.filter((i) => i.quantity_in_stock === 0).length;
+    const outOfStock = data.items.filter(
+      (i) => i.quantity_in_stock === 0,
+    ).length;
 
     const body = `
       <div class="card">
