@@ -216,7 +216,7 @@ export function LoginForm() {
       {/* Footer */}
       <p className="text-center text-xs text-muted-foreground mt-6">
         LK PharmaCare v1.0 — Powered by{" "}
-        <span className="text-primary font-medium">HYKROX</span>
+        <span className="text-primary font-medium">STEM ED</span>
       </p>
     </div>
   );
