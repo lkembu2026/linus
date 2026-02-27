@@ -26,6 +26,7 @@ export interface CartItem {
   quantity: number;
   unit_price: number;
   max_quantity: number; // available stock
+  dispensing_unit?: string | null;
 }
 
 // ---- Dashboard Stats ----

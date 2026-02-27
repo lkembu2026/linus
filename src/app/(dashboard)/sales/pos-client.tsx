@@ -46,13 +46,7 @@ export function POSClient({ user }: POSClientProps) {
         return;
       }
       if (results.length === 1) {
-        cart.addItem({
-          medicine_id: results[0].medicine_id,
-          name: results[0].name,
-          unit_price: results[0].unit_price,
-          quantity: 1,
-          max_quantity: results[0].max_quantity,
-        });
+        cart.addItem({\n          medicine_id: results[0].medicine_id,\n          name: results[0].name,\n          unit_price: results[0].unit_price,\n          quantity: 1,\n          max_quantity: results[0].max_quantity,\n          dispensing_unit: (results[0] as any).dispensing_unit ?? null,\n        });
         showFeedback("success", `Added: ${results[0].name}`);
         toast.success(`Added ${results[0].name} to cart`);
         return;
@@ -145,6 +139,7 @@ export function POSClient({ user }: POSClientProps) {
                     unit_price: medicine.unit_price,
                     quantity: 1,
                     max_quantity: medicine.max_quantity,
+                    dispensing_unit: (medicine as any).dispensing_unit ?? null,
                   })
                 }
               />

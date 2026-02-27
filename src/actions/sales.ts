@@ -224,7 +224,7 @@ export async function searchMedicines(query: string) {
   const { data } = await supabase
     .from("medicines")
     .select(
-      "id, name, generic_name, category, barcode, unit_price, quantity_in_stock",
+      "id, name, generic_name, category, barcode, unit_price, quantity_in_stock, dispensing_unit",
     )
     .eq("branch_id", user.branch_id)
     .gt("quantity_in_stock", 0)
@@ -241,6 +241,7 @@ export async function searchMedicines(query: string) {
     barcode: string | null;
     unit_price: number;
     quantity_in_stock: number;
+    dispensing_unit: string | null;
   };
 
   return ((data ?? []) as unknown as MedResult[]).map((item) => ({
@@ -251,6 +252,7 @@ export async function searchMedicines(query: string) {
     barcode: item.barcode,
     unit_price: Number(item.unit_price),
     max_quantity: item.quantity_in_stock,
+    dispensing_unit: item.dispensing_unit,
   }));
 }
 

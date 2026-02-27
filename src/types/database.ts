@@ -41,6 +41,7 @@ export type Medicine = {
   reorder_level: number;
   expiry_date: string | null;
   barcode: string | null;
+  dispensing_unit: string | null;
   requires_prescription: boolean;
   branch_id: string;
   created_by: string | null;

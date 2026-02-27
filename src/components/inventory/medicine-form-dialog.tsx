@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { createMedicine, updateMedicine } from "@/actions/inventory";
-import { MEDICINE_CATEGORIES } from "@/lib/constants";
+import { MEDICINE_CATEGORIES, DISPENSING_UNITS } from "@/lib/constants";
 import { Loader2, ScanBarcode, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import type { Medicine } from "@/types/database";
@@ -42,6 +42,7 @@ function getInitialForm(medicine?: Medicine | null) {
     reorder_level: medicine?.reorder_level?.toString() ?? "10",
     expiry_date: medicine?.expiry_date ?? "",
     barcode: medicine?.barcode ?? "",
+    dispensing_unit: medicine?.dispensing_unit ?? "",
     requires_prescription: medicine?.requires_prescription ?? false,
   };
 }
@@ -113,6 +114,7 @@ export function MedicineFormDialog({
         reorder_level: parseInt(form.reorder_level) || 10,
         expiry_date: form.expiry_date || undefined,
         barcode: form.barcode || undefined,
+        dispensing_unit: form.dispensing_unit || undefined,
         requires_prescription: form.requires_prescription,
       };
 
@@ -314,6 +316,33 @@ export function MedicineFormDialog({
               onChange={(e) => update("expiry_date", e.target.value)}
               className="bg-background border-border text-white mt-1"
             />
+          </div>
+
+          {/* Dispensing unit */}
+          <div>
+            <Label className="text-muted-foreground">
+              Dispensing Unit
+              <span className="text-xs text-primary ml-1">(what you sell per qty)</span>
+            </Label>
+            <Select
+              value={form.dispensing_unit}
+              onValueChange={(v) => update("dispensing_unit", v)}
+            >
+              <SelectTrigger className="bg-background border-border text-white mt-1">
+                <SelectValue placeholder="e.g. Tablet, ml, Sachet" />
+              </SelectTrigger>
+              <SelectContent className="bg-card border-border">
+                {DISPENSING_UNITS.map((u) => (
+                  <SelectItem key={u} value={u} className="text-white focus:bg-primary/10">
+                    {u}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1">
+              Stock quantity = number of {form.dispensing_unit || "units"} in stock.
+              Selling 3 means 3 {form.dispensing_unit || "units"} are deducted.
+            </p>
           </div>
 
           {/* Prescription */}

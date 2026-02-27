@@ -108,6 +108,22 @@ export const MEDICINE_CATEGORIES = [
   "Other",
 ] as const;
 
+// Dispensing units for loose medicine
+export const DISPENSING_UNITS = [
+  "Tablet",
+  "Capsule",
+  "Sachet",
+  "Strip",
+  "Bottle",
+  "Vial",
+  "Ampoule",
+  "Tube",
+  "ml",
+  "g",
+  "Box",
+  "Piece",
+] as const;
+
 // Payment methods
 export const PAYMENT_METHODS = [
   { value: "cash", label: "Cash" },

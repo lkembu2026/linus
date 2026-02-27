@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/utils";
 import type { CartItem } from "@/types";
 
@@ -20,6 +22,8 @@ export function Cart({
   onRemove,
   onCheckout,
 }: CartProps) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
   return (
     <div className="glass-card flex flex-col h-full">
       {/* Header */}
@@ -55,7 +59,11 @@ export function Cart({
                   {item.name}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {formatCurrency(item.unit_price)} × {item.quantity}
+                  {formatCurrency(item.unit_price)} ×{" "}
+                  <span className="text-white font-medium">{item.quantity}</span>
+                  {item.dispensing_unit ? (
+                    <span className="text-primary/70"> {item.dispensing_unit}{item.quantity > 1 && item.dispensing_unit !== "ml" && item.dispensing_unit !== "g" ? "s" : ""}</span>
+                  ) : null}
                 </p>
               </div>
 
@@ -72,9 +80,39 @@ export function Cart({
                 >
                   <Minus className="h-3 w-3" />
                 </Button>
-                <span className="w-8 text-center text-sm font-medium text-white">
-                  {item.quantity}
-                </span>
+                {editingId === item.medicine_id ? (
+                  <Input
+                    type="number"
+                    value={editValue}
+                    autoFocus
+                    className="w-14 h-7 text-center text-sm bg-background border-primary text-white p-1"
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onBlur={() => {
+                      const n = parseInt(editValue);
+                      if (n > 0) onUpdateQuantity(item.medicine_id, n);
+                      setEditingId(null);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        const n = parseInt(editValue);
+                        if (n > 0) onUpdateQuantity(item.medicine_id, n);
+                        setEditingId(null);
+                      }
+                      if (e.key === "Escape") setEditingId(null);
+                    }}
+                  />
+                ) : (
+                  <button
+                    className="w-8 text-center text-sm font-medium text-white hover:text-primary transition-colors cursor-pointer"
+                    title="Click to type quantity"
+                    onClick={() => {
+                      setEditingId(item.medicine_id);
+                      setEditValue(item.quantity.toString());
+                    }}
+                  >
+                    {item.quantity}
+                  </button>
+                )}
                 <Button
                   variant="ghost"
                   size="icon"
