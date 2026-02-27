@@ -15,6 +15,7 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  Receipt,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NAV_ITEMS } from "@/lib/constants";
@@ -31,6 +32,7 @@ const iconMap: Record<string, React.ElementType> = {
   ArrowLeftRight,
   FileText,
   Settings,
+  Receipt,
 };
 
 interface SidebarProps {

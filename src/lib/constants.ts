@@ -66,6 +66,12 @@ export const NAV_ITEMS = [
     roles: ["admin"],
   },
   {
+    title: "Receipts",
+    href: "/receipts",
+    icon: "Receipt",
+    roles: ["admin", "supervisor", "pharmacist", "cashier"],
+  },
+  {
     title: "Settings",
     href: "/settings",
     icon: "Settings",

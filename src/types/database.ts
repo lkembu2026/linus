@@ -103,6 +103,20 @@ export type Notification = {
   created_at: string;
 };
 
+// ---- RECEIPTS ----
+export type ReceiptRecord = {
+  id: string;
+  sale_id: string | null;
+  receipt_number: string;
+  receipt_html: string;
+  total_amount: number;
+  payment_method: string;
+  cashier_name: string | null;
+  branch_name: string | null;
+  items_summary: string | null;
+  created_at: string;
+};
+
 // =============================================
 // JOIN / VIEW TYPES (for queries with relations)
 // =============================================
@@ -239,6 +253,23 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<Notification>;
+        Relationships: [];
+      };
+      receipts: {
+        Row: ReceiptRecord;
+        Insert: {
+          id?: string;
+          sale_id?: string | null;
+          receipt_number: string;
+          receipt_html: string;
+          total_amount?: number;
+          payment_method?: string;
+          cashier_name?: string | null;
+          branch_name?: string | null;
+          items_summary?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<ReceiptRecord>;
         Relationships: [];
       };
     };

@@ -31,7 +31,8 @@ interface POSClientProps {
 export function POSClient({ user, initialRecentSales }: POSClientProps) {
   const cart = useCart();
   const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [recentSales, setRecentSales] = useState<RecentSale[]>(initialRecentSales);
+  const [recentSales, setRecentSales] =
+    useState<RecentSale[]>(initialRecentSales);
 
   async function handleSaleSuccess() {
     cart.clearCart();
@@ -142,7 +143,10 @@ export function POSClient({ user, initialRecentSales }: POSClientProps) {
                           <TableCell className="text-white font-mono text-xs">
                             {sale.receipt_number}
                           </TableCell>
-                          <TableCell className="text-muted-foreground text-xs max-w-[200px] truncate" title={sale.items_summary ?? "-"}>
+                          <TableCell
+                            className="text-muted-foreground text-xs max-w-[200px] truncate"
+                            title={sale.items_summary ?? "-"}
+                          >
                             {sale.items_summary || "-"}
                           </TableCell>
                           <TableCell className="text-primary font-medium">

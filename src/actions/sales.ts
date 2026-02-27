@@ -9,6 +9,8 @@ import {
   sendAuditEmail,
   sendLowStockEmail,
 } from "@/lib/email";
+import { generateReceiptHtml } from "@/lib/receipt-html";
+import { saveReceipt } from "@/actions/receipts";
 import type { CartItem } from "@/types";
 import type { Sale } from "@/types/database";
 
@@ -123,6 +125,48 @@ export async function createSale(
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/sales");
     revalidatePath("/dashboard/inventory");
+    revalidatePath("/receipts");
+
+    const cashierName = user.full_name ?? "Staff";
+    const branchName = user.branch?.name ?? "Branch";
+    const itemsSummary = items
+      .map((i) => `${i.name} \u00d7${i.quantity}`)
+      .join(", ");
+    const now = new Date();
+    const dateStr = now.toLocaleString("en-KE", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    // Generate premium receipt HTML
+    const receiptHtml = generateReceiptHtml({
+      receiptNo: saleData.receipt_number,
+      items: items.map((i) => ({
+        name: i.name,
+        quantity: i.quantity,
+        unit_price: i.unit_price,
+      })),
+      total: totalAmount,
+      paymentMethod,
+      cashierName,
+      branchName,
+      date: dateStr,
+    });
+
+    // Save receipt to database (fire-and-forget)
+    saveReceipt({
+      saleId: saleData.id,
+      receiptNo: saleData.receipt_number,
+      receiptHtml,
+      totalAmount,
+      paymentMethod,
+      cashierName,
+      branchName,
+      itemsSummary,
+    }).catch((err) => console.error("[Receipt] Save failed:", err));
 
     // Send receipt email to admin (fire-and-forget)
     sendReceiptEmail({
@@ -134,14 +178,14 @@ export async function createSale(
       })),
       total: totalAmount,
       paymentMethod,
-      cashierName: user.full_name ?? "Staff",
-      branchName: user.branch?.name ?? "Branch",
-    }).catch(() => {});
+      cashierName,
+      branchName,
+    }).catch((err) => console.error("[Email] Receipt email failed:", err));
 
     // Audit email for sale (fire-and-forget)
     sendAuditEmail({
       action: "create_sale",
-      userName: user.full_name ?? "Staff",
+      userName: cashierName,
       details: {
         sale_id: saleData.id,
         receipt_number: saleData.receipt_number,
@@ -149,14 +193,21 @@ export async function createSale(
         payment_method: paymentMethod,
         items_count: items.length,
       },
-    }).catch(() => {});
+    }).catch((err) => console.error("[Email] Audit email failed:", err));
 
     // Low stock email if any items dropped below reorder level
     if (lowStockAfterSale.length > 0) {
-      sendLowStockEmail({ items: lowStockAfterSale }).catch(() => {});
+      sendLowStockEmail({ items: lowStockAfterSale }).catch((err) =>
+        console.error("[Email] Low stock email failed:", err),
+      );
     }
 
-    return { success: true, saleId: saleData.id };
+    return {
+      success: true,
+      saleId: saleData.id,
+      receiptNumber: saleData.receipt_number,
+      receiptHtml,
+    };
   } catch (error: unknown) {
     const message =
       error instanceof Error ? error.message : "Failed to create sale";
