@@ -271,6 +271,35 @@ CREATE POLICY "notifications_update" ON notifications
   FOR UPDATE TO authenticated
   USING (user_id = auth.uid());
 
+-- --------------------------------------------------------
+-- SAVED REPORTS
+-- --------------------------------------------------------
+CREATE TABLE saved_reports (
+  id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  report_type   TEXT NOT NULL,
+  title         TEXT NOT NULL,
+  period        TEXT NOT NULL,
+  summary       JSONB NOT NULL DEFAULT '{}',
+  data          JSONB NOT NULL DEFAULT '[]',
+  generated_by  UUID REFERENCES users(id),
+  branch_id     UUID REFERENCES branches(id),
+  created_at    TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE saved_reports ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "saved_reports_select" ON saved_reports
+  FOR SELECT TO authenticated
+  USING (get_user_role() = 'admin' OR branch_id = get_user_branch_id());
+
+CREATE POLICY "saved_reports_insert" ON saved_reports
+  FOR INSERT TO authenticated
+  WITH CHECK (get_user_role() IN ('admin','pharmacist'));
+
+CREATE POLICY "saved_reports_delete" ON saved_reports
+  FOR DELETE TO authenticated
+  USING (get_user_role() = 'admin');
+
 -- ========================================================
 -- SEED DATA (optional — remove in production)
 -- ========================================================

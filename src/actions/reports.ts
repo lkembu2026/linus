@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/actions/auth";
+import { sendReportEmail } from "@/lib/email";
 
 type SaleRow = {
   id: string;
@@ -210,6 +211,49 @@ export async function getTopSellingReport(
   return Array.from(map.values())
     .sort((a, b) => b.totalRevenue - a.totalRevenue)
     .slice(0, limit);
+}
+
+export async function saveReport(data: {
+  report_type: string;
+  title: string;
+  period: string;
+  summary: Record<string, unknown>;
+  reportData: unknown[];
+}) {
+  const supabase = await createClient();
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { error } = await supabase.from("saved_reports").insert({
+    report_type: data.report_type,
+    title: data.title,
+    period: data.period,
+    summary: data.summary,
+    data: data.reportData,
+    generated_by: user.id,
+    branch_id: user.branch_id,
+  });
+
+  if (error) return { error: error.message };\n\n  // fire-and-forget email\n  sendReportEmail({\n    title: data.title,\n    period: data.period,\n    reportType: data.report_type,\n    summary: data.summary,\n    generatedBy: user.full_name ?? user.email ?? "Staff",\n  }).catch(() => {});\n\n  return { success: true };\n}
+
+export async function getSavedReports() {
+  const supabase = await createClient();
+  const user = await getCurrentUser();
+  if (!user) return [];
+
+  let query = supabase
+    .from("saved_reports")
+    .select("id, report_type, title, period, summary, generated_by, created_at")
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  if (user.role !== "admin") {
+    query = query.eq("branch_id", user.branch_id!);
+  }
+
+  const { data, error } = await query;
+  if (error) return [];
+  return data ?? [];
 }
 
 export async function getBranchComparisonReport(year: number, month: number) {
