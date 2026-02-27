@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MedicineFormDialog } from "@/components/inventory/medicine-form-dialog";
 import { StockAdjustDialog } from "@/components/inventory/stock-adjust-dialog";
+import { BarcodeLabelDialog } from "@/components/inventory/barcode-label-dialog";
 import { getMedicines, deleteMedicine } from "@/actions/inventory";
 import { usePermissions } from "@/hooks/use-permissions";
 import { formatCurrency, formatDate, exportToCSV } from "@/lib/utils";
@@ -42,6 +43,7 @@ import {
   AlertTriangle,
   Pill,
   Download,
+  ScanBarcode,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { User, Medicine } from "@/types/database";
@@ -62,6 +64,7 @@ export function InventoryClient({
   const [formOpen, setFormOpen] = useState(false);
   const [editMedicine, setEditMedicine] = useState<Medicine | null>(null);
   const [adjustMedicine, setAdjustMedicine] = useState<Medicine | null>(null);
+  const [labelMedicine, setLabelMedicine] = useState<Medicine | null>(null);
   const [isPending, startTransition] = useTransition();
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 20;
@@ -379,6 +382,13 @@ export function InventoryClient({
                                     <Package className="h-4 w-4 mr-2" />
                                     Adjust Stock
                                   </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className="text-white focus:bg-primary/10 cursor-pointer"
+                                    onClick={() => setLabelMedicine(med)}
+                                  >
+                                    <ScanBarcode className="h-4 w-4 mr-2" />
+                                    Print Barcode Label
+                                  </DropdownMenuItem>
                                 </>
                               )}
                               {user.role === "admin" && (
@@ -441,6 +451,16 @@ export function InventoryClient({
         open={!!adjustMedicine}
         onClose={handleAdjustClose}
         medicine={adjustMedicine}
+      />
+      <BarcodeLabelDialog
+        open={!!labelMedicine}
+        onClose={() => setLabelMedicine(null)}
+        medicine={labelMedicine}
+        onBarcodeGenerated={(medicineId, barcode) => {
+          setMedicines((prev) =>
+            prev.map((m) => (m.id === medicineId ? { ...m, barcode } : m)),
+          );
+        }}
       />
     </div>
   );
