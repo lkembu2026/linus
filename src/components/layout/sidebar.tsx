@@ -79,24 +79,37 @@ export function Sidebar({
         !onNavigate && (collapsed ? "w-[72px]" : "w-64"),
       )}
     >
-      {/* Logo */}
-      <div className="flex h-16 items-center border-b border-border px-4">
-        <Link href="/dashboard" className="flex items-center gap-3">
-          <Image
-            src="/lk1.webp"
-            alt="LK PharmaCare"
-            width={36}
-            height={36}
-            className="shrink-0 rounded-lg"
-          />
+      {/* Logo + Collapse */}
+      <div className="flex h-16 items-center border-b border-border px-3 gap-2">
+        <Link href="/dashboard" className={cn("flex items-center gap-3 flex-1 min-w-0", collapsed && "justify-center")}>
+          <div className="shrink-0 rounded-full ring-2 ring-primary/50 ring-offset-2 ring-offset-[#0A0A0A] shadow-[0_0_12px_rgba(0,255,224,0.25)]">
+            <Image
+              src="/LKL.webp"
+              alt="LK PharmaCare"
+              width={36}
+              height={36}
+              className="rounded-full"
+            />
+          </div>
           {!collapsed && (
-            <div>
-              <span className="text-sm font-bold font-[family-name:var(--font-sans)] text-white">
-                LK <span className="text-primary">PharmaCare</span>
-              </span>
-            </div>
+            <span className="text-sm font-bold font-[family-name:var(--font-sans)] text-white truncate">
+              LK <span className="text-primary">PharmaCare</span>
+            </span>
           )}
         </Link>
+        {/* Collapse toggle — desktop only */}
+        {!onNavigate && (
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="shrink-0 flex items-center justify-center rounded-lg p-1.5 text-muted-foreground hover:bg-card hover:text-white transition-colors"
+          >
+            {collapsed ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" />
+            )}
+          </button>
+        )}
       </div>
 
       {/* Navigation */}
@@ -145,19 +158,7 @@ export function Sidebar({
             )}
           </div>
         )}
-        {/* Hide collapse toggle on mobile */}
-        {!onNavigate && (
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            className="flex w-full items-center justify-center rounded-lg p-2 text-muted-foreground hover:bg-card hover:text-white transition-colors"
-          >
-            {collapsed ? (
-              <ChevronRight className="h-4 w-4" />
-            ) : (
-              <ChevronLeft className="h-4 w-4" />
-            )}
-          </button>
-        )}
+
       </div>
     </aside>
   );

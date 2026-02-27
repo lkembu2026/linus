@@ -51,13 +51,15 @@ export function LoginForm() {
     <div className="w-full max-w-md mx-auto">
       {/* Logo & Header */}
       <div className="text-center mb-8">
-        <Image
-          src="/lk1.webp"
-          alt="LK PharmaCare"
-          width={64}
-          height={64}
-          className="rounded-xl mb-4 mx-auto"
-        />
+        <div className="inline-block rounded-full ring-2 ring-primary/50 ring-offset-4 ring-offset-background shadow-[0_0_20px_rgba(0,255,224,0.3)] mb-4">
+          <Image
+            src="/LKL.webp"
+            alt="LK PharmaCare"
+            width={80}
+            height={80}
+            className="rounded-full block"
+          />
+        </div>
         <h1 className="text-2xl font-bold font-[family-name:var(--font-sans)] text-white">
           LK <span className="text-primary">PharmaCare</span>
         </h1>
