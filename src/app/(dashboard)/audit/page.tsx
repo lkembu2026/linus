@@ -1,5 +1,5 @@
 import { getCurrentUser } from "@/actions/auth";
-import { getAuditLogs } from "@/actions/audit";
+import { getAuditLogs, getAuditUsers } from "@/actions/audit";
 import { redirect } from "next/navigation";
 import { AuditClient } from "./audit-client";
 
@@ -8,7 +8,10 @@ export default async function AuditPage() {
   if (!user) redirect("/login");
   if (user.role !== "admin") redirect("/dashboard");
 
-  const { logs, total } = await getAuditLogs();
+  const [{ logs, total }, users] = await Promise.all([
+    getAuditLogs(),
+    getAuditUsers(),
+  ]);
 
-  return <AuditClient initialLogs={logs} initialTotal={total} />;
+  return <AuditClient initialLogs={logs} initialTotal={total} users={users} />;
 }

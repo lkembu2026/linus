@@ -4,6 +4,14 @@ import { useState, useTransition } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -14,11 +22,19 @@ import {
 } from "@/components/ui/table";
 import { getAuditLogs } from "@/actions/audit";
 import { formatDateTime } from "@/lib/utils";
-import { ScrollText, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import {
+  ScrollText,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Filter,
+  X,
+} from "lucide-react";
 
 interface AuditClientProps {
   initialLogs: any[];
   initialTotal: number;
+  users: { id: string; full_name: string }[];
 }
 
 const ACTION_LABELS: Record<string, { label: string; color: string }> = {
@@ -77,20 +93,61 @@ const ACTION_LABELS: Record<string, { label: string; color: string }> = {
   },
 };
 
-export function AuditClient({ initialLogs, initialTotal }: AuditClientProps) {
+export function AuditClient({
+  initialLogs,
+  initialTotal,
+  users,
+}: AuditClientProps) {
   const [logs, setLogs] = useState(initialLogs);
   const [total, setTotal] = useState(initialTotal);
   const [page, setPage] = useState(1);
   const [isPending, startTransition] = useTransition();
+  const [filterAction, setFilterAction] = useState("");
+  const [filterUser, setFilterUser] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const limit = 50;
   const totalPages = Math.ceil(total / limit);
 
+  const hasFilters = filterAction || filterUser || dateFrom || dateTo;
+
+  function buildFilters() {
+    return {
+      action: filterAction || undefined,
+      userId: filterUser || undefined,
+      dateFrom: dateFrom || undefined,
+      dateTo: dateTo || undefined,
+    };
+  }
+
   function loadPage(p: number) {
     startTransition(async () => {
-      const { logs: newLogs, total: newTotal } = await getAuditLogs(p, limit);
+      const { logs: newLogs, total: newTotal } = await getAuditLogs(
+        p,
+        limit,
+        buildFilters(),
+      );
       setLogs(newLogs);
       setTotal(newTotal);
       setPage(p);
+    });
+  }
+
+  function applyFilters() {
+    setPage(1);
+    loadPage(1);
+  }
+
+  function clearFilters() {
+    setFilterAction("");
+    setFilterUser("");
+    setDateFrom("");
+    setDateTo("");
+    startTransition(async () => {
+      const { logs: newLogs, total: newTotal } = await getAuditLogs(1, limit);
+      setLogs(newLogs);
+      setTotal(newTotal);
+      setPage(1);
     });
   }
 
@@ -102,6 +159,77 @@ export function AuditClient({ initialLogs, initialTotal }: AuditClientProps) {
         </h1>
         <p className="text-muted-foreground text-sm">{total} total entries</p>
       </div>
+
+      {/* Filters */}
+      <Card className="glass-card">
+        <CardContent className="pt-4 pb-3">
+          <div className="flex items-center gap-2 mb-3">
+            <Filter className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium text-white">Filters</span>
+            {hasFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground text-xs h-auto py-0.5 px-2 ml-auto"
+                onClick={clearFilters}
+              >
+                <X className="h-3 w-3 mr-1" />
+                Clear
+              </Button>
+            )}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            <Select value={filterAction} onValueChange={setFilterAction}>
+              <SelectTrigger className="bg-background border-border text-white h-9 text-xs">
+                <SelectValue placeholder="Action type" />
+              </SelectTrigger>
+              <SelectContent className="bg-card border-border">
+                {Object.entries(ACTION_LABELS).map(([key, val]) => (
+                  <SelectItem key={key} value={key}>
+                    {val.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={filterUser} onValueChange={setFilterUser}>
+              <SelectTrigger className="bg-background border-border text-white h-9 text-xs">
+                <SelectValue placeholder="User" />
+              </SelectTrigger>
+              <SelectContent className="bg-card border-border">
+                {users.map((u) => (
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.full_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="bg-background border-border text-white h-9 text-xs"
+              placeholder="From date"
+            />
+            <Input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="bg-background border-border text-white h-9 text-xs"
+              placeholder="To date"
+            />
+            <Button
+              onClick={applyFilters}
+              disabled={isPending}
+              className="bg-primary text-primary-foreground hover:bg-[#00B8A9] h-9 text-xs"
+            >
+              {isPending ? (
+                <Loader2 className="h-3 w-3 animate-spin mr-1" />
+              ) : null}
+              Apply
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="glass-card">
         <CardHeader>

@@ -20,7 +20,12 @@ import {
   getTopSellingReport,
   getBranchComparisonReport,
 } from "@/actions/reports";
-import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
+import {
+  formatCurrency,
+  formatDate,
+  formatDateTime,
+  exportToCSV,
+} from "@/lib/utils";
 import {
   BarChart3,
   TrendingUp,
@@ -29,6 +34,7 @@ import {
   ShoppingCart,
   Loader2,
   Building2,
+  Download,
 } from "lucide-react";
 import {
   BarChart,
@@ -227,10 +233,31 @@ export function ReportsClient({ user }: ReportsClientProps) {
 
               {/* Sales table */}
               <Card className="glass-card">
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="text-base text-white">
                     Sales on {formatDate(dailyDate)}
                   </CardTitle>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-border text-muted-foreground h-8"
+                    onClick={() =>
+                      exportToCSV(
+                        dailyReport.sales.map((s: any) => ({
+                          receipt: s.receipt_number,
+                          cashier: s.cashier?.full_name ?? "",
+                          amount: s.total_amount,
+                          payment: s.payment_method,
+                          time: s.created_at,
+                          status: s.is_voided ? "Voided" : "Completed",
+                        })),
+                        `daily-sales-${dailyDate}`,
+                      )
+                    }
+                  >
+                    <Download className="h-3 w-3 mr-1" />
+                    CSV
+                  </Button>
                 </CardHeader>
                 <CardContent>
                   <div className="overflow-x-auto -mx-6 px-6">

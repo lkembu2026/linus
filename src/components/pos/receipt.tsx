@@ -12,6 +12,8 @@ interface ReceiptProps {
   cashierName: string;
   branchName: string;
   date: Date;
+  cashTendered?: number;
+  change?: number;
 }
 
 export function Receipt({
@@ -22,6 +24,8 @@ export function Receipt({
   cashierName,
   branchName,
   date,
+  cashTendered,
+  change,
 }: ReceiptProps) {
   return (
     <div className="bg-white text-black p-6 max-w-xs mx-auto font-mono text-xs leading-relaxed">
@@ -66,6 +70,20 @@ export function Receipt({
         <span>Payment</span>
         <span>{paymentMethod.toUpperCase()}</span>
       </div>
+
+      {cashTendered !== undefined && (
+        <div className="flex justify-between mt-1">
+          <span>Cash Tendered</span>
+          <span>{formatCurrency(cashTendered)}</span>
+        </div>
+      )}
+
+      {change !== undefined && change > 0 && (
+        <div className="flex justify-between mt-1 font-bold">
+          <span>Change</span>
+          <span>{formatCurrency(change)}</span>
+        </div>
+      )}
 
       <div className="border-t border-dashed border-gray-400 my-2" />
 

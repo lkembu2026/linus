@@ -4,7 +4,19 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/actions/auth";
 import type { AuditLog } from "@/types/database";
 
-export async function getAuditLogs(page = 1, limit = 50) {
+interface AuditFilters {
+  action?: string;
+  userId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  search?: string;
+}
+
+export async function getAuditLogs(
+  page = 1,
+  limit = 50,
+  filters?: AuditFilters,
+) {
   const supabase = await createClient();
   const user = await getCurrentUser();
   if (!user || user.role !== "admin")
@@ -13,13 +25,27 @@ export async function getAuditLogs(page = 1, limit = 50) {
   const from = (page - 1) * limit;
   const to = from + limit - 1;
 
-  const { data, error, count } = await supabase
+  let query = supabase
     .from("audit_logs")
     .select("*, user:users!audit_logs_user_id_fkey(full_name, email, role)", {
       count: "exact",
     })
-    .order("created_at", { ascending: false })
-    .range(from, to);
+    .order("created_at", { ascending: false });
+
+  if (filters?.action) {
+    query = query.eq("action", filters.action);
+  }
+  if (filters?.userId) {
+    query = query.eq("user_id", filters.userId);
+  }
+  if (filters?.dateFrom) {
+    query = query.gte("created_at", filters.dateFrom);
+  }
+  if (filters?.dateTo) {
+    query = query.lte("created_at", `${filters.dateTo}T23:59:59.999Z`);
+  }
+
+  const { data, error, count } = await query.range(from, to);
 
   if (error) {
     console.error("getAuditLogs error:", error);
@@ -32,4 +58,17 @@ export async function getAuditLogs(page = 1, limit = 50) {
     })[],
     total: count ?? 0,
   };
+}
+
+export async function getAuditUsers() {
+  const supabase = await createClient();
+  const user = await getCurrentUser();
+  if (!user || user.role !== "admin") return [];
+
+  const { data } = await supabase
+    .from("users")
+    .select("id, full_name")
+    .order("full_name");
+
+  return (data ?? []) as { id: string; full_name: string }[];
 }

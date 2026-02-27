@@ -19,9 +19,11 @@ import {
   Wifi,
   WifiOff,
   Monitor,
+  Save,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useOnlineStatus } from "@/hooks/use-online-status";
+import { updateProfile } from "@/actions/auth";
 import type { User as UserType } from "@/types/database";
 
 interface SettingsClientProps {
@@ -31,11 +33,34 @@ interface SettingsClientProps {
 export function SettingsClient({ user }: SettingsClientProps) {
   const isOnline = useOnlineStatus();
   const [isPending, startTransition] = useTransition();
+  const [fullName, setFullName] = useState(user.full_name ?? "");
+  const [nameChanged, setNameChanged] = useState(false);
   const [passwords, setPasswords] = useState({
     current: "",
     newPass: "",
     confirm: "",
   });
+
+  function handleNameChange(val: string) {
+    setFullName(val);
+    setNameChanged(val !== (user.full_name ?? ""));
+  }
+
+  function handleSaveName() {
+    if (!fullName.trim()) {
+      toast.error("Name cannot be empty");
+      return;
+    }
+    startTransition(async () => {
+      const result = await updateProfile(fullName.trim());
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Profile updated");
+      setNameChanged(false);
+    });
+  }
 
   function handleChangePassword() {
     if (!passwords.current || !passwords.newPass) {
@@ -90,7 +115,27 @@ export function SettingsClient({ user }: SettingsClientProps) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label className="text-xs text-muted-foreground">Full Name</Label>
-              <p className="text-white mt-1">{user.full_name}</p>
+              <div className="flex gap-2 mt-1">
+                <Input
+                  value={fullName}
+                  onChange={(e) => handleNameChange(e.target.value)}
+                  className="bg-background border-border text-white h-9"
+                />
+                {nameChanged && (
+                  <Button
+                    size="sm"
+                    onClick={handleSaveName}
+                    disabled={isPending}
+                    className="bg-primary text-primary-foreground hover:bg-[#00B8A9] h-9 px-3"
+                  >
+                    {isPending ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Save className="h-3 w-3" />
+                    )}
+                  </Button>
+                )}
+              </div>
             </div>
             <div>
               <Label className="text-xs text-muted-foreground">Email</Label>

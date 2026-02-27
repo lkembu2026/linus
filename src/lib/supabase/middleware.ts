@@ -1,6 +1,15 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+// Route restrictions: path prefix → allowed roles
+const ROUTE_ROLES: Record<string, string[]> = {
+  "/branches": ["admin"],
+  "/users": ["admin"],
+  "/audit": ["admin"],
+  "/settings": ["admin"],
+  "/transfers": ["admin", "supervisor"],
+};
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
@@ -51,6 +60,32 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);
+  }
+
+  // Role-based route protection
+  if (user && isDashboardPage) {
+    const pathname = request.nextUrl.pathname;
+    const restrictedRoute = Object.entries(ROUTE_ROLES).find(([path]) =>
+      pathname.startsWith(path),
+    );
+
+    if (restrictedRoute) {
+      const [, allowedRoles] = restrictedRoute;
+      // Fetch user role from the users table
+      const { data: userData } = await supabase
+        .from("users")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
+      const userRole = (userData as { role: string } | null)?.role;
+
+      if (!userRole || !allowedRoles.includes(userRole)) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/dashboard";
+        return NextResponse.redirect(url);
+      }
+    }
   }
 
   return supabaseResponse;

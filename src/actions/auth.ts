@@ -103,3 +103,33 @@ export async function registerUser(data: {
 
   return { success: true };
 }
+
+export async function resetPassword(email: string) {
+  const supabase = await createClient();
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"}/login`,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  return { success: true };
+}
+
+export async function updateProfile(fullName: string) {
+  const supabase = await createClient();
+  const {
+    data: { user: authUser },
+  } = await supabase.auth.getUser();
+  if (!authUser) return { error: "Not authenticated" };
+
+  const { error } = await supabase
+    .from("users")
+    .update({ full_name: fullName })
+    .eq("id", authUser.id);
+
+  if (error) return { error: error.message };
+  return { success: true };
+}

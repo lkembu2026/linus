@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="64" fill="#0D0D0D"/>
+  <text x="256" y="200" font-family="Arial, sans-serif" font-size="120" font-weight="bold" text-anchor="middle" fill="#00FFE0">LK</text>
+  <text x="256" y="310" font-family="Arial, sans-serif" font-size="52" font-weight="600" text-anchor="middle" fill="#FFFFFF">Pharma</text>
+  <text x="256" y="370" font-family="Arial, sans-serif" font-size="52" font-weight="600" text-anchor="middle" fill="#00FFE0">Care</text>
+  <circle cx="256" cy="440" r="10" fill="#00FFE0" opacity="0.6"/>
+</svg>

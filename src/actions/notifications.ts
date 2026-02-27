@@ -1,0 +1,79 @@
+"use server";
+
+import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/actions/auth";
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  title: string;
+  message: string;
+  type: string;
+  is_read: boolean;
+  created_at: string;
+}
+
+export async function getNotifications(): Promise<Notification[]> {
+  const supabase = await createClient();
+  const user = await getCurrentUser();
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from("notifications")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  if (error) {
+    console.error("getNotifications error:", error);
+    return [];
+  }
+
+  return (data ?? []) as unknown as Notification[];
+}
+
+export async function getUnreadCount(): Promise<number> {
+  const supabase = await createClient();
+  const user = await getCurrentUser();
+  if (!user) return 0;
+
+  const { count, error } = await supabase
+    .from("notifications")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .eq("is_read", false);
+
+  if (error) return 0;
+  return count ?? 0;
+}
+
+export async function markNotificationRead(id: string) {
+  const supabase = await createClient();
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { error } = await supabase
+    .from("notifications")
+    .update({ is_read: true })
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  if (error) return { error: error.message };
+  return { success: true };
+}
+
+export async function markAllRead() {
+  const supabase = await createClient();
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { error } = await supabase
+    .from("notifications")
+    .update({ is_read: true })
+    .eq("user_id", user.id)
+    .eq("is_read", false);
+
+  if (error) return { error: error.message };
+  return { success: true };
+}

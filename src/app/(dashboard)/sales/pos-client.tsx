@@ -201,6 +201,9 @@ export function POSClient({ user, initialRecentSales }: POSClientProps) {
         items={cart.items}
         total={cart.total}
         onSuccess={handleSaleSuccess}
+        cashierName={user.full_name ?? "Staff"}
+        branchName={user.branch?.name ?? "Branch"}
+        branchId={user.branch_id ?? ""}
       />
     </div>
   );

@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { startAutoSync } from "@/lib/offline/sync-queue";
+import { toast } from "sonner";
 import type { UserRole } from "@/types";
 
 interface DashboardShellProps {
@@ -21,6 +23,19 @@ export function DashboardShell({
 }: DashboardShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+
+  // Start auto-sync for offline sales when coming back online
+  useEffect(() => {
+    const cleanup = startAutoSync((result) => {
+      if (result.synced > 0) {
+        toast.success(`Synced ${result.synced} offline sale(s)`);
+      }
+      if (result.failed > 0) {
+        toast.error(`Failed to sync ${result.failed} sale(s)`);
+      }
+    });
+    return cleanup;
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">

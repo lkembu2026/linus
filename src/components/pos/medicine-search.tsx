@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
-import { searchMedicines } from "@/actions/sales";
-import { Search, Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { searchMedicines } from "@/actions/sales";
+import { Search, Loader2, Plus, ScanBarcode } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { BarcodeScanner } from "./barcode-scanner";
 
 interface SearchResult {
   medicine_id: string;
@@ -32,20 +33,44 @@ export function MedicineSearch({ onSelect }: MedicineSearchProps) {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isPending, startTransition] = useTransition();
   const [showResults, setShowResults] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const doSearch = useCallback(
+    (value: string) => {
+      if (value.length < 2) {
+        setResults([]);
+        setShowResults(false);
+        return;
+      }
+      startTransition(async () => {
+        const data = await searchMedicines(value);
+        setResults(data);
+        setShowResults(true);
+
+        // Auto-select if barcode exact match (single result)
+        if (data.length === 1 && data[0].barcode && data[0].barcode === value) {
+          onSelect({
+            medicine_id: data[0].medicine_id,
+            name: data[0].name,
+            unit_price: data[0].unit_price,
+            max_quantity: data[0].max_quantity,
+          });
+          setQuery("");
+          setResults([]);
+          setShowResults(false);
+        }
+      });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
 
   function handleSearch(value: string) {
     setQuery(value);
-    if (value.length < 2) {
-      setResults([]);
-      setShowResults(false);
-      return;
-    }
-
-    startTransition(async () => {
-      const data = await searchMedicines(value);
-      setResults(data);
-      setShowResults(true);
-    });
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => doSearch(value), 300);
   }
 
   function handleSelect(item: SearchResult) {
@@ -60,20 +85,52 @@ export function MedicineSearch({ onSelect }: MedicineSearchProps) {
     setShowResults(false);
   }
 
+  function handleBarcodeScan(barcode: string) {
+    setQuery(barcode);
+    doSearch(barcode);
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter" && query.length >= 2) {
+      e.preventDefault();
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      doSearch(query);
+    }
+  }
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
+
   return (
     <div className="relative">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search medicine by name, generic name, or barcode..."
-          value={query}
-          onChange={(e) => handleSearch(e.target.value)}
-          onFocus={() => results.length > 0 && setShowResults(true)}
-          className="pl-10 bg-card border-border focus:border-primary h-12 text-base"
-        />
-        {isPending && (
-          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-primary" />
-        )}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            ref={inputRef}
+            placeholder="Search medicine by name, generic name, or barcode..."
+            value={query}
+            onChange={(e) => handleSearch(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onFocus={() => results.length > 0 && setShowResults(true)}
+            className="pl-10 bg-card border-border focus:border-primary h-12 text-base"
+          />
+          {isPending && (
+            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-primary" />
+          )}
+        </div>
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-12 w-12 border-border text-muted-foreground hover:text-primary hover:border-primary shrink-0"
+          onClick={() => setScannerOpen(true)}
+          title="Scan barcode with camera"
+        >
+          <ScanBarcode className="h-5 w-5" />
+        </Button>
       </div>
 
       {/* Search Results Dropdown */}
@@ -101,6 +158,11 @@ export function MedicineSearch({ onSelect }: MedicineSearchProps) {
                       {item.category}
                     </Badge>
                   )}
+                  {item.barcode && (
+                    <span className="text-[10px] text-muted-foreground font-mono">
+                      {item.barcode}
+                    </span>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-4 ml-4">
@@ -127,6 +189,13 @@ export function MedicineSearch({ onSelect }: MedicineSearchProps) {
             <p className="text-sm text-muted-foreground">No medicines found</p>
           </div>
         )}
+
+      {/* Camera Barcode Scanner */}
+      <BarcodeScanner
+        open={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onScan={handleBarcodeScan}
+      />
     </div>
   );
 }

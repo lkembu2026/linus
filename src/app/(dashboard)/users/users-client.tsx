@@ -64,6 +64,10 @@ export function UsersClient({
   const [users, setUsers] = useState(initialUsers);
   const [isPending, startTransition] = useTransition();
   const [registerOpen, setRegisterOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
+  const totalPages = Math.ceil(users.length / PAGE_SIZE);
+  const pagedUsers = users.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const [regForm, setRegForm] = useState({
     email: "",
     password: "",
@@ -196,7 +200,7 @@ export function UsersClient({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((u) => (
+                {pagedUsers.map((u) => (
                   <TableRow key={u.id} className="border-border">
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -318,6 +322,34 @@ export function UsersClient({
               </TableBody>
             </Table>
           </div>
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-4">
+              <p className="text-xs text-muted-foreground">
+                Page {page} of {totalPages} ({users.length} users)
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-border text-muted-foreground h-8"
+                  disabled={page <= 1}
+                  onClick={() => setPage(page - 1)}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-border text-muted-foreground h-8"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage(page + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

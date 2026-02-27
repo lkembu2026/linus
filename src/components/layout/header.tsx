@@ -1,7 +1,14 @@
 "use client";
 
+import { useState, useEffect, useCallback } from "react";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { logout } from "@/actions/auth";
+import {
+  getNotifications,
+  markNotificationRead,
+  markAllRead,
+  type Notification,
+} from "@/actions/notifications";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,7 +18,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Bell, LogOut, Menu, User, Wifi, WifiOff } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Bell,
+  LogOut,
+  Menu,
+  User,
+  Wifi,
+  WifiOff,
+  CheckCheck,
+  Info,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+} from "lucide-react";
 import type { UserRole } from "@/types";
 
 interface HeaderProps {
@@ -28,6 +48,53 @@ export function Header({
   onMenuClick,
 }: HeaderProps) {
   const isOnline = useOnlineStatus();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const data = await getNotifications();
+      setNotifications(data);
+      setUnreadCount(data.filter((n) => !n.is_read).length);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30000); // poll every 30s
+    return () => clearInterval(interval);
+  }, [fetchNotifications]);
+
+  async function handleMarkRead(id: string) {
+    await markNotificationRead(id);
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)),
+    );
+    setUnreadCount((c) => Math.max(0, c - 1));
+  }
+
+  async function handleMarkAllRead() {
+    await markAllRead();
+    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    setUnreadCount(0);
+  }
+
+  const notifIcon = (type: string) => {
+    switch (type) {
+      case "warning":
+        return (
+          <AlertTriangle className="h-3.5 w-3.5 text-yellow-400 shrink-0" />
+        );
+      case "success":
+        return <CheckCircle className="h-3.5 w-3.5 text-green-400 shrink-0" />;
+      case "error":
+        return <XCircle className="h-3.5 w-3.5 text-destructive shrink-0" />;
+      default:
+        return <Info className="h-3.5 w-3.5 text-primary shrink-0" />;
+    }
+  };
 
   const initials = userName
     .split(" ")
@@ -78,14 +145,73 @@ export function Header({
         </div>
 
         {/* Notifications */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative text-muted-foreground hover:text-white"
-        >
-          <Bell className="h-5 w-5" />
-          <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary" />
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="relative text-muted-foreground hover:text-white"
+            >
+              <Bell className="h-5 w-5" />
+              {unreadCount > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="end"
+            className="w-80 bg-card border-border p-0"
+          >
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+              <span className="text-sm font-medium text-white">
+                Notifications
+              </span>
+              {unreadCount > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-primary text-xs h-auto py-1 px-2"
+                  onClick={handleMarkAllRead}
+                >
+                  <CheckCheck className="h-3 w-3 mr-1" />
+                  Mark all read
+                </Button>
+              )}
+            </div>
+            <ScrollArea className="max-h-72">
+              {notifications.length === 0 ? (
+                <p className="text-center text-sm text-muted-foreground py-8">
+                  No notifications
+                </p>
+              ) : (
+                notifications.map((n) => (
+                  <div
+                    key={n.id}
+                    className={`flex items-start gap-3 px-4 py-3 border-b border-border/50 hover:bg-background/50 cursor-pointer ${!n.is_read ? "bg-primary/5" : ""}`}
+                    onClick={() => !n.is_read && handleMarkRead(n.id)}
+                  >
+                    {notifIcon(n.type)}
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className={`text-xs leading-tight ${!n.is_read ? "text-white font-medium" : "text-muted-foreground"}`}
+                      >
+                        {n.title}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                        {n.message}
+                      </p>
+                    </div>
+                    {!n.is_read && (
+                      <span className="h-2 w-2 rounded-full bg-primary shrink-0 mt-1" />
+                    )}
+                  </div>
+                ))
+              )}
+            </ScrollArea>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* User menu */}
         <DropdownMenu>

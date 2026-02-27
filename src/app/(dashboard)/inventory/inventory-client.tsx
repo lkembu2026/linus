@@ -30,7 +30,7 @@ import { MedicineFormDialog } from "@/components/inventory/medicine-form-dialog"
 import { StockAdjustDialog } from "@/components/inventory/stock-adjust-dialog";
 import { getMedicines, deleteMedicine } from "@/actions/inventory";
 import { usePermissions } from "@/hooks/use-permissions";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, exportToCSV } from "@/lib/utils";
 import { MEDICINE_CATEGORIES } from "@/lib/constants";
 import {
   Plus,
@@ -41,6 +41,7 @@ import {
   Package,
   AlertTriangle,
   Pill,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { User, Medicine } from "@/types/database";
@@ -62,6 +63,14 @@ export function InventoryClient({
   const [editMedicine, setEditMedicine] = useState<Medicine | null>(null);
   const [adjustMedicine, setAdjustMedicine] = useState<Medicine | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
+
+  const totalPages = Math.ceil(medicines.length / PAGE_SIZE);
+  const pagedMedicines = medicines.slice(
+    (page - 1) * PAGE_SIZE,
+    page * PAGE_SIZE,
+  );
 
   function handleSearch(searchTerm: string, cat: string) {
     startTransition(async () => {
@@ -75,12 +84,14 @@ export function InventoryClient({
 
   function handleSearchChange(value: string) {
     setSearch(value);
+    setPage(1);
     handleSearch(value, category);
   }
 
   function handleCategoryChange(value: string) {
     const cat = value === "all" ? "" : value;
     setCategory(cat);
+    setPage(1);
     handleSearch(search, cat);
   }
 
@@ -120,13 +131,47 @@ export function InventoryClient({
           </p>
         </div>
         {can("add_medicine") && (
-          <Button
-            onClick={() => setFormOpen(true)}
-            className="bg-primary text-primary-foreground hover:bg-[#00B8A9]"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Medicine
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="border-border text-muted-foreground"
+              onClick={() =>
+                exportToCSV(
+                  medicines.map((m) => ({
+                    name: m.name,
+                    generic_name: m.generic_name ?? "",
+                    category: m.category,
+                    unit_price: m.unit_price,
+                    quantity_in_stock: m.quantity_in_stock,
+                    barcode: m.barcode ?? "",
+                    branch: m.branch?.name ?? "",
+                    expiry_date: m.expiry_date ?? "",
+                  })),
+                  "inventory-export",
+                  [
+                    { key: "name", label: "Name" },
+                    { key: "generic_name", label: "Generic Name" },
+                    { key: "category", label: "Category" },
+                    { key: "unit_price", label: "Unit Price" },
+                    { key: "quantity_in_stock", label: "Stock" },
+                    { key: "barcode", label: "Barcode" },
+                    { key: "branch", label: "Branch" },
+                    { key: "expiry_date", label: "Expiry Date" },
+                  ],
+                )
+              }
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export CSV
+            </Button>
+            <Button
+              onClick={() => setFormOpen(true)}
+              className="bg-primary text-primary-foreground hover:bg-[#00B8A9]"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Medicine
+            </Button>
+          </div>
         )}
       </div>
 
@@ -220,7 +265,7 @@ export function InventoryClient({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {medicines.map((med) => {
+                  {pagedMedicines.map((med) => {
                     const isLow = med.quantity_in_stock <= med.reorder_level;
                     const isExpired =
                       med.expiry_date && new Date(med.expiry_date) < new Date();
@@ -353,6 +398,34 @@ export function InventoryClient({
                   })}
                 </TableBody>
               </Table>
+            </div>
+          )}
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-4">
+              <p className="text-xs text-muted-foreground">
+                Page {page} of {totalPages} ({medicines.length} items)
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-border text-muted-foreground h-8"
+                  disabled={page <= 1}
+                  onClick={() => setPage(page - 1)}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-border text-muted-foreground h-8"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage(page + 1)}
+                >
+                  Next
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>
