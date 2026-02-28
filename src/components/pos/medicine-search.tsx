@@ -45,6 +45,14 @@ export function MedicineSearch({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Clear stale results whenever mode switches
+  useEffect(() => {
+    setQuery("");
+    setResults([]);
+    setShowResults(false);
+    setIsOfflineResults(false);
+  }, [mode]);
+
   const doSearch = useCallback(
     (value: string) => {
       if (value.length < 2) {

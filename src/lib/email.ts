@@ -634,7 +634,10 @@ export async function sendWeeklySummaryEmail(data: {
       from: FROM_EMAIL,
       to: ADMIN_EMAIL,
       subject: `📅 Weekly Summary (${data.weekStart} – ${data.weekEnd}): ${formatKES(data.totalRevenue)} | ${data.totalSales} sales`,
-      html: wrapHtml(`Weekly Summary — ${data.weekStart} to ${data.weekEnd}`, body),
+      html: wrapHtml(
+        `Weekly Summary — ${data.weekStart} to ${data.weekEnd}`,
+        body,
+      ),
     });
   } catch (err) {
     console.error("[Email] Failed to send weekly summary email:", err);

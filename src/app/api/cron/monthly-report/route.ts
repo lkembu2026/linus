@@ -57,7 +57,9 @@ export async function GET(req: NextRequest) {
     // ── 1. Sales for the month ─────────────────────────────────────────────
     const { data: salesData } = await supabase
       .from("sales")
-      .select("id, total_amount, payment_method, is_voided, branch_id, created_at")
+      .select(
+        "id, total_amount, payment_method, is_voided, branch_id, created_at",
+      )
       .gte("created_at", startTs)
       .lte("created_at", endTs);
 
@@ -77,7 +79,8 @@ export async function GET(req: NextRequest) {
     const paymentBreakdown: Record<string, number> = {};
     for (const s of activeSales) {
       const pm = (s.payment_method as string) ?? "unknown";
-      paymentBreakdown[pm] = (paymentBreakdown[pm] ?? 0) + (s.total_amount as number);
+      paymentBreakdown[pm] =
+        (paymentBreakdown[pm] ?? 0) + (s.total_amount as number);
     }
 
     // Best day
@@ -101,7 +104,10 @@ export async function GET(req: NextRequest) {
         const bSales = activeSales.filter((s) => s.branch_id === b.id);
         return {
           name: b.name as string,
-          revenue: bSales.reduce((sum, s) => sum + (s.total_amount as number), 0),
+          revenue: bSales.reduce(
+            (sum, s) => sum + (s.total_amount as number),
+            0,
+          ),
           salesCount: bSales.length,
         };
       })

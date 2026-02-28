@@ -85,12 +85,14 @@ export function InventoryClient({
 
   // Re-fetch the correct product list whenever mode changes
   useEffect(() => {
+    setSearch("");
     setCategory("");
     setPage(1);
     const cats =
       mode === "beauty" ? [...BEAUTY_CATEGORIES] : [...MEDICINE_CATEGORIES];
-    startTransition(async () => {
-      const data = await getMedicines(undefined, undefined, cats);
+    // NOTE: do NOT wrap in startTransition here — async state updates
+    // after await inside startTransition are silently dropped in React 19.
+    getMedicines(undefined, undefined, cats).then((data) => {
       setMedicines(data);
     });
   }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps

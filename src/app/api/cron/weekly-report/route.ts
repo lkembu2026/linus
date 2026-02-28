@@ -55,7 +55,8 @@ export async function GET(req: NextRequest) {
     const paymentBreakdown: Record<string, number> = {};
     for (const s of activeSales) {
       const pm = (s.payment_method as string) ?? "unknown";
-      paymentBreakdown[pm] = (paymentBreakdown[pm] ?? 0) + (s.total_amount as number);
+      paymentBreakdown[pm] =
+        (paymentBreakdown[pm] ?? 0) + (s.total_amount as number);
     }
 
     // Days count (for avg)
@@ -73,7 +74,10 @@ export async function GET(req: NextRequest) {
         const bSales = activeSales.filter((s) => s.branch_id === b.id);
         return {
           name: b.name as string,
-          revenue: bSales.reduce((sum, s) => sum + (s.total_amount as number), 0),
+          revenue: bSales.reduce(
+            (sum, s) => sum + (s.total_amount as number),
+            0,
+          ),
           salesCount: bSales.length,
         };
       })
@@ -138,7 +142,12 @@ export async function GET(req: NextRequest) {
     });
 
     console.log(`[Cron] Weekly report sent for ${start} → ${end}`);
-    return NextResponse.json({ ok: true, weekStart: start, weekEnd: end, totalRevenue });
+    return NextResponse.json({
+      ok: true,
+      weekStart: start,
+      weekEnd: end,
+      totalRevenue,
+    });
   } catch (err) {
     console.error("[Cron] Weekly report error:", err);
     return NextResponse.json(
