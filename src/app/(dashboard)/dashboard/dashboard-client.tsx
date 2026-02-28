@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMode } from "@/contexts/mode-context";
 import { MEDICINE_CATEGORIES, BEAUTY_CATEGORIES } from "@/lib/constants";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,12 +31,16 @@ import { MedicineCategoryBreakdownCard } from "@/components/dashboard/medicine-c
 export function DashboardClient() {
   const { mode } = useMode();
   const [data, setData] = useState<any>(null);
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
     // Mode-aware fetching. Note: DO NOT use startTransition around this await block
     // as React 19 drops state updates following an await in startTransition.
     const categories =
       mode === "beauty" ? [...BEAUTY_CATEGORIES] : [...MEDICINE_CATEGORIES];
+    requestIdRef.current += 1;
+    const requestId = requestIdRef.current;
+    console.log("[Dashboard] Fetch start", { mode, categories, requestId });
 
     Promise.all([
       getDashboardStats(categories),
@@ -48,19 +52,9 @@ export function DashboardClient() {
       getMedicineCategoryBreakdown(categories),
       getRecentSales(10, categories),
       getCurrentUser(),
-    ]).then(
-      ([
-        stats,
-        topMedicines,
-        revenueData,
-        lowStock,
-        overview,
-        dailySales,
-        categoryBreakdown,
-        recentSales,
-        user,
-      ]) => {
-        setData({
+    ])
+      .then(
+        ([
           stats,
           topMedicines,
           revenueData,
@@ -69,12 +63,47 @@ export function DashboardClient() {
           dailySales,
           categoryBreakdown,
           recentSales,
-          role: user?.role ?? "cashier",
-        });
-      }
-    ).catch((err) => {
-        console.error("Dashboard fetch error:", err);
-    });
+          user,
+        ]) => {
+          if (requestId !== requestIdRef.current) {
+            console.log("[Dashboard] Ignored stale response", {
+              requestId,
+              latest: requestIdRef.current,
+              mode,
+            });
+            return;
+          }
+
+          console.log("[Dashboard] Fetch success", {
+            mode,
+            requestId,
+            totalMedicines: stats?.totalMedicines,
+            lowStock: stats?.lowStockCount,
+            topCount: Array.isArray(topMedicines) ? topMedicines.length : 0,
+            recentSales: Array.isArray(recentSales) ? recentSales.length : 0,
+            categoryRows: Array.isArray(categoryBreakdown)
+              ? categoryBreakdown.length
+              : 0,
+          });
+
+          setData({
+            stats,
+            topMedicines,
+            revenueData,
+            lowStock,
+            overview,
+            dailySales,
+            categoryBreakdown,
+            recentSales,
+            role: user?.role ?? "cashier",
+          });
+        },
+      ).catch((err) => {
+        if (requestId !== requestIdRef.current) {
+          return;
+        }
+        console.error("[Dashboard] Fetch error", { mode, requestId, err });
+      });
   }, [mode]);
 
   if (!data) {
