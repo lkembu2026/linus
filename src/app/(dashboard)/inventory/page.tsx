@@ -10,11 +10,9 @@ export default async function InventoryPage() {
   if (!user) redirect("/login");
 
   // Load pharmacy items by default; the client will re-fetch when mode hydrates from localStorage
-  const medicines = await getMedicines(
-    undefined,
-    undefined,
-    [...MEDICINE_CATEGORIES],
-  );
+  const medicines = await getMedicines(undefined, undefined, [
+    ...MEDICINE_CATEGORIES,
+  ]);
 
   return <InventoryClient user={user} initialMedicines={medicines} />;
 }

@@ -343,7 +343,10 @@ export type RecentSale = Sale & {
   items_summary?: string;
 };
 
-export async function getRecentSales() {
+export async function getRecentSales(
+  limit: number = 20,
+  categories?: string[],
+) {
   const supabase = await createClient();
   const user = await getCurrentUser();
 
@@ -356,14 +359,38 @@ export async function getRecentSales() {
     .select(
       "id, receipt_number, total_amount, payment_method, is_voided, created_at, branch_id, cashier_id, voided_by",
     )
-    .order("created_at", { ascending: false })
-    .limit(20);
+    .order("created_at", { ascending: false });
 
   if (!isAdmin && user.branch_id) {
     query = query.eq("branch_id", user.branch_id);
   }
 
-  const { data: salesData } = await query;
+  // If categories filter is provided, get sales with matching sale_items
+  if (categories && categories.length > 0) {
+    const { data: medsData } = await supabase
+      .from("medicines")
+      .select("id")
+      .in("category", categories);
+    
+    const validMedIds = ((medsData ?? []) as unknown as { id: string }[]).map(m => m.id);
+    
+    if (validMedIds.length > 0) {
+      const { data: saleItemsData } = await supabase
+        .from("sale_items")
+        .select("sale_id")
+        .in("medicine_id", validMedIds);
+        
+      const validSaleIds = [...new Set(((saleItemsData ?? []) as unknown as { sale_id: string }[]).map(si => si.sale_id))];
+      
+      if (validSaleIds.length === 0) return [] as RecentSale[];
+      
+      query = query.in("id", validSaleIds);
+    } else {
+      return [] as RecentSale[];
+    }
+  }
+
+  const { data: salesData } = await query.limit(limit);
   const sales = (salesData ?? []) as unknown as Sale[];
 
   if (sales.length === 0) return [] as RecentSale[];

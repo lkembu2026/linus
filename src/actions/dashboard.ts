@@ -19,11 +19,43 @@ type SaleAmount = {
   branch_id: string;
 };
 
-export async function getDashboardStats(): Promise<DashboardStats> {
+export async function getDashboardStats(
+  categories?: string[],
+): Promise<DashboardStats> {
   const supabase = await createClient();
   const user = await getCurrentUser();
   const branchId = user?.branch_id;
   const isAdmin = user?.role === "admin";
+
+  let validMedIds: string[] | undefined;
+  if (categories && categories.length > 0) {
+    const { data: medsData } = await supabase
+      .from("medicines")
+      .select("id")
+      .in("category", categories);
+    validMedIds = ((medsData ?? []) as unknown as { id: string }[]).map(
+      (m) => m.id,
+    );
+  }
+
+  let validSaleIds: string[] | undefined;
+  if (validMedIds !== undefined) {
+    if (validMedIds.length === 0) {
+      validSaleIds = [];
+    } else {
+      const { data: saleItemsData } = await supabase
+        .from("sale_items")
+        .select("sale_id")
+        .in("medicine_id", validMedIds);
+      validSaleIds = [
+        ...new Set(
+          ((saleItemsData ?? []) as unknown as { sale_id: string }[]).map(
+            (si) => si.sale_id,
+          ),
+        ),
+      ];
+    }
+  }
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -36,6 +68,13 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     .eq("is_voided", false);
 
   if (!isAdmin && branchId) salesQuery = salesQuery.eq("branch_id", branchId);
+  if (validSaleIds !== undefined) {
+    if (validSaleIds.length === 0) {
+      salesQuery = salesQuery.limit(0); 
+    } else {
+      salesQuery = salesQuery.in("id", validSaleIds);
+    }
+  }
 
   const { data: salesData } = await salesQuery;
   const sales = (salesData ?? []) as unknown as { total_amount: number }[];
@@ -44,6 +83,8 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   // Total medicines count
   let medQuery = supabase.from("medicines").select("id", { count: "exact" });
   if (!isAdmin && branchId) medQuery = medQuery.eq("branch_id", branchId);
+  if (categories && categories.length > 0)
+    medQuery = medQuery.in("category", categories);
   const { count: totalMedicines } = await medQuery;
 
   // Low stock count
@@ -52,8 +93,10 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       .from("medicines")
       .select("quantity_in_stock, reorder_level");
     if (!isAdmin && branchId) q = q.eq("branch_id", branchId);
+    if (categories && categories.length > 0) q = q.in("category", categories);
     return q;
   })();
+
   const meds = (allMeds ?? []) as unknown as {
     quantity_in_stock: number;
     reorder_level: number;
@@ -72,6 +115,13 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     .gte("created_at", monthStart.toISOString())
     .eq("is_voided", false);
   if (!isAdmin && branchId) monthQuery = monthQuery.eq("branch_id", branchId);
+  if (validSaleIds !== undefined) {
+    if (validSaleIds.length === 0) {
+      monthQuery = monthQuery.limit(0);
+    } else {
+      monthQuery = monthQuery.in("id", validSaleIds);
+    }
+  }
   const { data: monthData } = await monthQuery;
   const monthSales = (monthData ?? []) as unknown as { total_amount: number }[];
   const monthRevenue = monthSales.reduce(
@@ -91,11 +141,24 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 
 export async function getTopMedicines(
   limit: number = 10,
+  categories?: string[],
 ): Promise<TopMedicine[]> {
   const supabase = await createClient();
   const user = await getCurrentUser();
   const branchId = user?.branch_id;
   const isAdmin = user?.role === "admin";
+
+  let validMedIds: string[] | undefined;
+  if (categories && categories.length > 0) {
+    const { data: medsData } = await supabase
+      .from("medicines")
+      .select("id")
+      .in("category", categories);
+    validMedIds = ((medsData ?? []) as unknown as { id: string }[]).map(
+      (m) => m.id,
+    );
+    if (validMedIds.length === 0) return [];
+  }
 
   // Get completed sales
   let salesQuery = supabase.from("sales").select("id").eq("is_voided", false);
@@ -108,10 +171,16 @@ export async function getTopMedicines(
   if (saleIds.length === 0) return [];
 
   // Get sale items for those sales
-  const { data: itemsData } = await supabase
+  let itemsQuery = supabase
     .from("sale_items")
     .select("medicine_id, quantity, unit_price")
     .in("sale_id", saleIds);
+
+  if (validMedIds !== undefined) {
+    itemsQuery = itemsQuery.in("medicine_id", validMedIds);
+  }
+
+  const { data: itemsData } = await itemsQuery;
 
   const items = (itemsData ?? []) as unknown as {
     medicine_id: string;
@@ -161,11 +230,37 @@ export async function getTopMedicines(
 
 export async function getRevenueChart(
   days: number = 30,
+  categories?: string[],
 ): Promise<RevenueDataPoint[]> {
   const supabase = await createClient();
   const user = await getCurrentUser();
   const branchId = user?.branch_id;
   const isAdmin = user?.role === "admin";
+
+  let validSaleIds: string[] | undefined;
+  if (categories && categories.length > 0) {
+    const { data: medsData } = await supabase
+      .from("medicines")
+      .select("id")
+      .in("category", categories);
+    const validMedIds = ((medsData ?? []) as unknown as { id: string }[]).map(
+      (m) => m.id,
+    );
+    if (validMedIds.length === 0) return [];
+
+    const { data: saleItemsData } = await supabase
+      .from("sale_items")
+      .select("sale_id")
+      .in("medicine_id", validMedIds);
+    validSaleIds = [
+      ...new Set(
+        ((saleItemsData ?? []) as unknown as { sale_id: string }[]).map(
+          (si) => si.sale_id,
+        ),
+      ),
+    ];
+    if (validSaleIds.length === 0) return [];
+  }
 
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - days);
@@ -178,6 +273,7 @@ export async function getRevenueChart(
     .order("created_at", { ascending: true });
 
   if (!isAdmin && branchId) query = query.eq("branch_id", branchId);
+  if (validSaleIds !== undefined) query = query.in("id", validSaleIds);
 
   const { data } = await query;
   const rows = (data ?? []) as unknown as SaleAmount[];
@@ -195,8 +291,35 @@ export async function getRevenueChart(
   }));
 }
 
-export async function getBranchComparison(): Promise<BranchComparison[]> {
+export async function getBranchComparison(
+  categories?: string[],
+): Promise<BranchComparison[]> {
   const supabase = await createClient();
+
+  let validSaleIds: string[] | undefined;
+  if (categories && categories.length > 0) {
+    const { data: medsData } = await supabase
+      .from("medicines")
+      .select("id")
+      .in("category", categories);
+    const validMedIds = ((medsData ?? []) as unknown as { id: string }[]).map(
+      (m) => m.id,
+    );
+    if (validMedIds.length === 0) validSaleIds = [];
+    else {
+      const { data: saleItemsData } = await supabase
+        .from("sale_items")
+        .select("sale_id")
+        .in("medicine_id", validMedIds);
+      validSaleIds = [
+        ...new Set(
+          ((saleItemsData ?? []) as unknown as { sale_id: string }[]).map(
+            (si) => si.sale_id,
+          ),
+        ),
+      ];
+    }
+  }
 
   const { data: branchesData } = await supabase
     .from("branches")
@@ -210,11 +333,21 @@ export async function getBranchComparison(): Promise<BranchComparison[]> {
   const results: BranchComparison[] = [];
 
   for (const branch of branches) {
-    const { data: salesData } = await supabase
+    let salesQuery = supabase
       .from("sales")
       .select("total_amount")
       .eq("branch_id", branch.id)
       .eq("is_voided", false);
+
+    if (validSaleIds !== undefined) {
+      if (validSaleIds.length === 0) {
+        salesQuery = salesQuery.limit(0);
+      } else {
+        salesQuery = salesQuery.in("id", validSaleIds);
+      }
+    }
+
+    const { data: salesData } = await salesQuery;
 
     const sales = (salesData ?? []) as unknown as { total_amount: number }[];
     const totalRevenue = sales.reduce((s, r) => s + (r.total_amount ?? 0), 0);
@@ -230,7 +363,7 @@ export async function getBranchComparison(): Promise<BranchComparison[]> {
   return results;
 }
 
-export async function getLowStockItems() {
+export async function getLowStockItems(categories?: string[]) {
   const supabase = await createClient();
   const user = await getCurrentUser();
   const branchId = user?.branch_id;
@@ -242,6 +375,7 @@ export async function getLowStockItems() {
     .order("quantity_in_stock", { ascending: true });
 
   if (!isAdmin && branchId) query = query.eq("branch_id", branchId);
+  if (categories && categories.length > 0) query = query.in("category", categories);
 
   const { data } = await query;
   const medicines = (data ?? []) as unknown as Medicine[];
@@ -250,7 +384,9 @@ export async function getLowStockItems() {
 }
 
 // ── Inventory Overview ──────────────────────────────────────────────────────
-export async function getInventoryOverview(): Promise<InventoryOverview> {
+export async function getInventoryOverview(
+  categories?: string[],
+): Promise<InventoryOverview> {
   const supabase = await createClient();
   const user = await getCurrentUser();
   const branchId = user?.branch_id;
@@ -261,6 +397,7 @@ export async function getInventoryOverview(): Promise<InventoryOverview> {
     .select("id, quantity_in_stock, reorder_level, created_at")
     .order("created_at", { ascending: false });
   if (!isAdmin && branchId) q = q.eq("branch_id", branchId);
+  if (categories && categories.length > 0) q = q.in("category", categories);
 
   const { data } = await q;
   const meds = (data ?? []) as unknown as {
@@ -298,11 +435,33 @@ export async function getInventoryOverview(): Promise<InventoryOverview> {
 // ── Medicine Units Sold Per Day ─────────────────────────────────────────────
 export async function getMedicineDailySales(
   days: number = 14,
+  categories?: string[],
 ): Promise<MedicineDailySales[]> {
   const supabase = await createClient();
   const user = await getCurrentUser();
   const branchId = user?.branch_id;
   const isAdmin = user?.role === "admin";
+
+  let validMedIds: string[] | undefined;
+  if (categories && categories.length > 0) {
+    const { data: medsData } = await supabase
+      .from("medicines")
+      .select("id")
+      .in("category", categories);
+    validMedIds = ((medsData ?? []) as unknown as { id: string }[]).map(
+      (m) => m.id,
+    );
+    if (validMedIds.length === 0) {
+      const results: MedicineDailySales[] = [];
+      for (let i = days; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const key = d.toISOString().split("T")[0];
+        results.push({ date: key, units_sold: 0 });
+      }
+      return results;
+    }
+  }
 
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - days);
@@ -317,13 +476,28 @@ export async function getMedicineDailySales(
   const saleIds = ((salesData ?? []) as unknown as { id: string }[]).map(
     (s) => s.id,
   );
-  if (saleIds.length === 0) return [];
+  if (saleIds.length === 0) {
+      const results: MedicineDailySales[] = [];
+      for (let i = days; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const key = d.toISOString().split("T")[0];
+        results.push({ date: key, units_sold: 0 });
+      }
+      return results;
+  }
 
   // Get sale items with sale date
-  const { data: itemsData } = await supabase
+  let itemsQuery = supabase
     .from("sale_items")
     .select("quantity, sale_id, sales(created_at)")
     .in("sale_id", saleIds);
+
+  if (validMedIds !== undefined) {
+    itemsQuery = itemsQuery.in("medicine_id", validMedIds);
+  }
+
+  const { data: itemsData } = await itemsQuery;
 
   const items = (itemsData ?? []) as unknown as {
     quantity: number;
@@ -350,7 +524,9 @@ export async function getMedicineDailySales(
 }
 
 // ── Medicine Sales + Stock by Category ─────────────────────────────────────
-export async function getMedicineCategoryBreakdown(): Promise<
+export async function getMedicineCategoryBreakdown(
+  categories?: string[],
+): Promise<
   MedicineCategoryBreakdown[]
 > {
   const supabase = await createClient();
@@ -363,6 +539,7 @@ export async function getMedicineCategoryBreakdown(): Promise<
     .from("medicines")
     .select("id, category, quantity_in_stock");
   if (!isAdmin && branchId) medQ = medQ.eq("branch_id", branchId);
+  if (categories && categories.length > 0) medQ = medQ.in("category", categories);
   const { data: medsData } = await medQ;
   const meds = (medsData ?? []) as unknown as {
     id: string;
