@@ -547,3 +547,192 @@ export async function sendDailySummaryEmail(data: {
     console.error("[Email] Failed to send daily summary email:", err);
   }
 }
+
+/**
+ * Send a weekly summary email to the admin (auto-generated every Sunday night)
+ */
+export async function sendWeeklySummaryEmail(data: {
+  weekStart: string;
+  weekEnd: string;
+  totalSales: number;
+  totalRevenue: number;
+  totalVoided: number;
+  avgDailyRevenue: number;
+  paymentBreakdown: Record<string, number>;
+  topItems: { name: string; quantity: number; revenue: number }[];
+  branchBreakdown: { name: string; revenue: number; salesCount: number }[];
+}) {
+  try {
+    const topRows = data.topItems
+      .slice(0, 10)
+      .map(
+        (item, i) =>
+          `<tr>
+            <td style="color:#00FFE0; font-weight:700;">#${i + 1}</td>
+            <td>${item.name}</td>
+            <td style="text-align:center">${item.quantity}</td>
+            <td style="text-align:right">${formatKES(item.revenue)}</td>
+          </tr>`,
+      )
+      .join("");
+
+    const branchRows = data.branchBreakdown
+      .map(
+        (b) =>
+          `<tr>
+            <td>${b.name}</td>
+            <td style="text-align:center">${b.salesCount}</td>
+            <td style="text-align:right">${formatKES(b.revenue)}</td>
+          </tr>`,
+      )
+      .join("");
+
+    const paymentRows = Object.entries(data.paymentBreakdown)
+      .map(
+        ([method, amount]) =>
+          `<div class="row"><span class="label">${method.toUpperCase()}</span><span class="value">${formatKES(amount)}</span></div>`,
+      )
+      .join("");
+
+    const body = `
+      <div class="card">
+        <h2>📅 Weekly Sales Summary</h2>
+        <div class="row"><span class="label">Period</span><span class="value">${data.weekStart} → ${data.weekEnd}</span></div>
+        <div class="row"><span class="label">Total Transactions</span><span class="value">${data.totalSales}</span></div>
+        <div class="row"><span class="label">Total Revenue</span><span class="value" style="color:#00FFE0; font-size:18px;">${formatKES(data.totalRevenue)}</span></div>
+        <div class="row"><span class="label">Avg Daily Revenue</span><span class="value">${formatKES(data.avgDailyRevenue)}</span></div>
+        <div class="row"><span class="label">Voided Sales</span><span class="value" style="color:#FBBF24;">${data.totalVoided}</span></div>
+      </div>
+      <div class="card">
+        <h2>💳 Payment Breakdown</h2>
+        ${paymentRows}
+      </div>
+      ${
+        data.branchBreakdown.length > 1
+          ? `<div class="card">
+              <h2>🏢 Branch Performance</h2>
+              <table>
+                <thead><tr><th>Branch</th><th style="text-align:center">Sales</th><th style="text-align:right">Revenue</th></tr></thead>
+                <tbody>${branchRows}</tbody>
+              </table>
+            </div>`
+          : ""
+      }
+      ${
+        data.topItems.length > 0
+          ? `<div class="card">
+              <h2>🏆 Top Selling Items</h2>
+              <table>
+                <thead><tr><th>#</th><th>Item</th><th style="text-align:center">Qty Sold</th><th style="text-align:right">Revenue</th></tr></thead>
+                <tbody>${topRows}</tbody>
+              </table>
+            </div>`
+          : ""
+      }`;
+
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: ADMIN_EMAIL,
+      subject: `📅 Weekly Summary (${data.weekStart} – ${data.weekEnd}): ${formatKES(data.totalRevenue)} | ${data.totalSales} sales`,
+      html: wrapHtml(`Weekly Summary — ${data.weekStart} to ${data.weekEnd}`, body),
+    });
+  } catch (err) {
+    console.error("[Email] Failed to send weekly summary email:", err);
+  }
+}
+
+/**
+ * Send a monthly summary email to the admin (auto-generated on the 1st of each month)
+ */
+export async function sendMonthlySummaryEmail(data: {
+  monthLabel: string; // e.g. "January 2026"
+  totalSales: number;
+  totalRevenue: number;
+  totalVoided: number;
+  avgDailyRevenue: number;
+  bestDay: { date: string; revenue: number };
+  paymentBreakdown: Record<string, number>;
+  topItems: { name: string; quantity: number; revenue: number }[];
+  branchBreakdown: { name: string; revenue: number; salesCount: number }[];
+}) {
+  try {
+    const topRows = data.topItems
+      .slice(0, 10)
+      .map(
+        (item, i) =>
+          `<tr>
+            <td style="color:#00FFE0; font-weight:700;">#${i + 1}</td>
+            <td>${item.name}</td>
+            <td style="text-align:center">${item.quantity}</td>
+            <td style="text-align:right">${formatKES(item.revenue)}</td>
+          </tr>`,
+      )
+      .join("");
+
+    const branchRows = data.branchBreakdown
+      .map(
+        (b) =>
+          `<tr>
+            <td>${b.name}</td>
+            <td style="text-align:center">${b.salesCount}</td>
+            <td style="text-align:right">${formatKES(b.revenue)}</td>
+          </tr>`,
+      )
+      .join("");
+
+    const paymentRows = Object.entries(data.paymentBreakdown)
+      .map(
+        ([method, amount]) =>
+          `<div class="row"><span class="label">${method.toUpperCase()}</span><span class="value">${formatKES(amount)}</span></div>`,
+      )
+      .join("");
+
+    const body = `
+      <div class="card">
+        <h2>📊 Monthly Sales Report — ${data.monthLabel}</h2>
+        <div class="row"><span class="label">Total Transactions</span><span class="value">${data.totalSales}</span></div>
+        <div class="row"><span class="label">Total Revenue</span><span class="value" style="color:#00FFE0; font-size:20px;">${formatKES(data.totalRevenue)}</span></div>
+        <div class="row"><span class="label">Avg Daily Revenue</span><span class="value">${formatKES(data.avgDailyRevenue)}</span></div>
+        <div class="row"><span class="label">Best Day</span><span class="value">${data.bestDay.date} — ${formatKES(data.bestDay.revenue)}</span></div>
+        <div class="row"><span class="label">Voided Sales</span><span class="value" style="color:#FBBF24;">${data.totalVoided}</span></div>
+      </div>
+      <div class="card">
+        <h2>💳 Payment Breakdown</h2>
+        ${paymentRows}
+      </div>
+      ${
+        data.branchBreakdown.length > 1
+          ? `<div class="card">
+              <h2>🏢 Branch Performance</h2>
+              <table>
+                <thead><tr><th>Branch</th><th style="text-align:center">Sales</th><th style="text-align:right">Revenue</th></tr></thead>
+                <tbody>${branchRows}</tbody>
+              </table>
+            </div>`
+          : ""
+      }
+      ${
+        data.topItems.length > 0
+          ? `<div class="card">
+              <h2>🏆 Top Selling Items — ${data.monthLabel}</h2>
+              <table>
+                <thead><tr><th>#</th><th>Item</th><th style="text-align:center">Qty Sold</th><th style="text-align:right">Revenue</th></tr></thead>
+                <tbody>${topRows}</tbody>
+              </table>
+            </div>`
+          : ""
+      }
+      <div style="text-align:center; padding:16px 0;">
+        <p style="color:#9CA3AF; font-size:12px;">Log in to LK PharmaCare to download this report as PDF.</p>
+      </div>`;
+
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: ADMIN_EMAIL,
+      subject: `📊 Monthly Report — ${data.monthLabel}: ${formatKES(data.totalRevenue)} | ${data.totalSales} sales`,
+      html: wrapHtml(`Monthly Report — ${data.monthLabel}`, body),
+    });
+  } catch (err) {
+    console.error("[Email] Failed to send monthly summary email:", err);
+  }
+}
