@@ -64,6 +64,9 @@ export async function createMedicine(formData: {
   expiry_date?: string;
   barcode?: string;
   requires_prescription: boolean;
+  brand?: string;
+  size?: string;
+  colour?: string;
 }) {
   const supabase = await createClient();
   const user = await getCurrentUser();
@@ -119,6 +122,9 @@ export async function updateMedicine(
     expiry_date?: string;
     barcode?: string;
     requires_prescription?: boolean;
+    brand?: string;
+    size?: string;
+    colour?: string;
   },
 ) {
   const supabase = await createClient();

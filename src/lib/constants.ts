@@ -114,6 +114,89 @@ export const MEDICINE_CATEGORIES = [
   "Other",
 ] as const;
 
+// Beauty & clothing categories
+export const BEAUTY_CATEGORIES = [
+  "Hair Care",
+  "Hair Accessories",
+  "Perfumes & Fragrances",
+  "Oils & Serums",
+  "Skin Care",
+  "Makeup",
+  "Footwear",
+  "Clothing & Apparel",
+  "General Accessories",
+] as const;
+
+// Sizes for beauty/clothing products
+export const BEAUTY_SIZE_OPTIONS = [
+  "XS",
+  "S",
+  "M",
+  "L",
+  "XL",
+  "XXL",
+  "One Size",
+  "30ml",
+  "50ml",
+  "100ml",
+  "200ml",
+  "250ml",
+  "500ml",
+  "1L",
+  "US 5",
+  "US 6",
+  "US 7",
+  "US 8",
+  "US 9",
+  "US 10",
+  "US 11",
+  "US 12",
+] as const;
+
+// Common colours
+export const BEAUTY_COLOUR_OPTIONS = [
+  "Black",
+  "White",
+  "Brown",
+  "Beige",
+  "Red",
+  "Pink",
+  "Purple",
+  "Blue",
+  "Green",
+  "Yellow",
+  "Orange",
+  "Gold",
+  "Silver",
+  "Clear / Transparent",
+  "Multi-colour",
+] as const;
+
+// Which categories belong to which mode
+export const PRODUCT_MODE_MAP: Record<string, "pharmacy" | "beauty"> = {
+  Painkillers: "pharmacy",
+  Antibiotics: "pharmacy",
+  Antihistamines: "pharmacy",
+  Antacids: "pharmacy",
+  Antifungals: "pharmacy",
+  Cardiovascular: "pharmacy",
+  Diabetes: "pharmacy",
+  Respiratory: "pharmacy",
+  "Vitamins & Supplements": "pharmacy",
+  Dermatology: "pharmacy",
+  Gastrointestinal: "pharmacy",
+  "Eye & Ear": "pharmacy",
+  "Hair Care": "beauty",
+  "Hair Accessories": "beauty",
+  "Perfumes & Fragrances": "beauty",
+  "Oils & Serums": "beauty",
+  "Skin Care": "beauty",
+  Makeup: "beauty",
+  Footwear: "beauty",
+  "Clothing & Apparel": "beauty",
+  "General Accessories": "beauty",
+};
+
 // Dispensing units for loose medicine
 export const DISPENSING_UNITS = [
   "Tablet",

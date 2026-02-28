@@ -32,8 +32,9 @@ import { BarcodeLabelDialog } from "@/components/inventory/barcode-label-dialog"
 import { ImportMedicinesDialog } from "@/components/inventory/import-medicines-dialog";
 import { getMedicines, deleteMedicine } from "@/actions/inventory";
 import { usePermissions } from "@/hooks/use-permissions";
+import { useMode } from "@/contexts/mode-context";
 import { formatCurrency, formatDate, exportToCSV } from "@/lib/utils";
-import { MEDICINE_CATEGORIES } from "@/lib/constants";
+import { MEDICINE_CATEGORIES, BEAUTY_CATEGORIES } from "@/lib/constants";
 import {
   Plus,
   Search,
@@ -60,6 +61,9 @@ export function InventoryClient({
   initialMedicines,
 }: InventoryClientProps) {
   const { can } = usePermissions(user.role);
+  const { mode } = useMode();
+  const modeCategories = mode === "beauty" ? BEAUTY_CATEGORIES : MEDICINE_CATEGORIES;
+  const itemLabel = mode === "beauty" ? "Product" : "Medicine";
   const [medicines, setMedicines] = useState(initialMedicines);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
@@ -130,10 +134,10 @@ export function InventoryClient({
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-xl md:text-2xl font-bold text-white font-[family-name:var(--font-sans)]">
-            Inventory
+            {mode === "beauty" ? "Beauty & Clothing" : "Inventory"}
           </h1>
           <p className="text-muted-foreground text-sm">
-            {medicines.length} medicines • {user.branch?.name ?? "All Branches"}
+            {medicines.length} {itemLabel.toLowerCase()}s • {user.branch?.name ?? "All Branches"}
           </p>
         </div>
         {can("add_medicine") && (
@@ -183,7 +187,7 @@ export function InventoryClient({
               className="bg-primary text-primary-foreground hover:bg-[#00B8A9]"
             >
               <Plus className="h-4 w-4 mr-2" />
-              Add Medicine
+              Add {itemLabel}
             </Button>
           </div>
         )}
@@ -196,7 +200,7 @@ export function InventoryClient({
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by name, generic name, or barcode..."
+                placeholder={`Search by name${mode === "beauty" ? ", brand" : ", generic name"}, or barcode...`}
                 value={search}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 className="pl-10 bg-background border-border text-white"
@@ -216,7 +220,7 @@ export function InventoryClient({
                 >
                   All Categories
                 </SelectItem>
-                {MEDICINE_CATEGORIES.map((cat) => (
+                {modeCategories.map((cat) => (
                   <SelectItem
                     key={cat}
                     value={cat}
@@ -236,14 +240,14 @@ export function InventoryClient({
         <CardHeader>
           <CardTitle className="text-base text-white flex items-center gap-2">
             <Pill className="h-4 w-4 text-primary" />
-            Medicine Catalog
+            {mode === "beauty" ? "Products Catalog" : "Medicine Catalog"}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {medicines.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Package className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p>No medicines found</p>
+              <p>No {itemLabel.toLowerCase()}s found</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -253,6 +257,11 @@ export function InventoryClient({
                     <TableHead className="text-muted-foreground">
                       Name
                     </TableHead>
+                    {mode === "beauty" && (
+                      <TableHead className="text-muted-foreground">
+                        Brand / Size
+                      </TableHead>
+                    )}
                     <TableHead className="text-muted-foreground">
                       Category
                     </TableHead>
@@ -299,7 +308,7 @@ export function InventoryClient({
                                 {med.generic_name}
                               </p>
                             )}
-                            {med.requires_prescription && (
+                            {med.requires_prescription && mode === "pharmacy" && (
                               <Badge
                                 variant="outline"
                                 className="border-amber-500 text-amber-500 text-xs mt-1"
@@ -309,6 +318,21 @@ export function InventoryClient({
                             )}
                           </div>
                         </TableCell>
+                        {mode === "beauty" && (
+                          <TableCell>
+                            <div className="text-xs">
+                              {(med as any).brand && (
+                                <p className="text-white">{(med as any).brand}</p>
+                              )}
+                              {(med as any).size && (
+                                <p className="text-muted-foreground">{(med as any).size}</p>
+                              )}
+                              {(med as any).colour && (
+                                <p className="text-primary/70">{(med as any).colour}</p>
+                              )}
+                            </div>
+                          </TableCell>
+                        )}
                         <TableCell>
                           <Badge
                             variant="outline"
@@ -457,6 +481,7 @@ export function InventoryClient({
         open={formOpen}
         onClose={handleFormClose}
         medicine={editMedicine}
+        mode={mode}
       />
       <StockAdjustDialog
         open={!!adjustMedicine}

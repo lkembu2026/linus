@@ -66,7 +66,11 @@ export async function getAnalyticsOverview(
     .eq("is_voided", false);
   if (branchId) q = q.eq("branch_id", branchId);
   const { data: salesData } = await q;
-  const sales = (salesData ?? []) as { id: string; total_amount: number; created_at: string }[];
+  const sales = (salesData ?? []) as {
+    id: string;
+    total_amount: number;
+    created_at: string;
+  }[];
 
   const saleIds = sales.map((s) => s.id);
   const totalRevenue = sales.reduce((s, r) => s + r.total_amount, 0);
@@ -109,7 +113,8 @@ export async function getAnalyticsOverview(
   }
 
   const totalProfit = totalRevenue - totalCost;
-  const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
+  const profitMargin =
+    totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
 
   // Revenue + profit by day
   const dayMap = new Map<string, { revenue: number; cost: number }>();
@@ -159,7 +164,9 @@ export async function getAnalyticsSalesBreakdown(
 
   let q = supabase
     .from("sales")
-    .select("total_amount, payment_method, created_at, cashier_id, users(full_name)")
+    .select(
+      "total_amount, payment_method, created_at, cashier_id, users(full_name)",
+    )
     .gte("created_at", from.toISOString())
     .lte("created_at", to.toISOString())
     .eq("is_voided", false);
@@ -220,7 +227,10 @@ export async function getAnalyticsSalesBreakdown(
   });
 
   // By cashier
-  const cashierMap = new Map<string, { name: string; count: number; amount: number }>();
+  const cashierMap = new Map<
+    string,
+    { name: string; count: number; amount: number }
+  >();
   for (const r of rows) {
     const name = r.users?.full_name ?? "Unknown";
     const key = r.cashier_id ?? name;
@@ -274,7 +284,10 @@ export async function getAnalyticsInventoryHealth(
   const potentialProfit = totalStockValue - totalCostValue;
 
   // Category summary
-  const catMap = new Map<string, { units: number; value: number; cost: number }>();
+  const catMap = new Map<
+    string,
+    { units: number; value: number; cost: number }
+  >();
   for (const m of meds) {
     const cat = m.category || "Uncategorised";
     const e = catMap.get(cat) ?? { units: 0, value: 0, cost: 0 };
@@ -284,14 +297,24 @@ export async function getAnalyticsInventoryHealth(
     catMap.set(cat, e);
   }
   const categorySummary = Array.from(catMap.entries())
-    .map(([category, { units, value, cost }]) => ({ category, units, value, cost }))
+    .map(([category, { units, value, cost }]) => ({
+      category,
+      units,
+      value,
+      cost,
+    }))
     .sort((a, b) => b.value - a.value);
 
   // Near expiry (within 90 days)
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() + 90);
   const nearExpiry = meds
-    .filter((m) => m.expiry_date && new Date(m.expiry_date) <= cutoff && m.quantity_in_stock > 0)
+    .filter(
+      (m) =>
+        m.expiry_date &&
+        new Date(m.expiry_date) <= cutoff &&
+        m.quantity_in_stock > 0,
+    )
     .sort(
       (a, b) =>
         new Date(a.expiry_date!).getTime() - new Date(b.expiry_date!).getTime(),
@@ -337,7 +360,9 @@ export async function getAnalyticsMedicinePerformance(
   const saleIds = ((salesData ?? []) as { id: string }[]).map((s) => s.id);
 
   // All medicines for this branch
-  let medQ = supabase.from("medicines").select("id, name, category, quantity_in_stock");
+  let medQ = supabase
+    .from("medicines")
+    .select("id, name, category, quantity_in_stock");
   if (branchId) medQ = medQ.eq("branch_id", branchId);
   const { data: medsData } = await medQ;
   const allMeds = (medsData ?? []) as {
@@ -353,7 +378,11 @@ export async function getAnalyticsMedicinePerformance(
       slowMovers: allMeds
         .filter((m) => m.quantity_in_stock > 0)
         .slice(0, 10)
-        .map((m) => ({ name: m.name, category: m.category, quantity_in_stock: m.quantity_in_stock })),
+        .map((m) => ({
+          name: m.name,
+          category: m.category,
+          quantity_in_stock: m.quantity_in_stock,
+        })),
       categoryPerformance: [],
     };
   }
@@ -414,7 +443,11 @@ export async function getAnalyticsMedicinePerformance(
     catMap.set(cat, e);
   }
   const categoryPerformance = Array.from(catMap.entries())
-    .map(([category, { units_sold, revenue }]) => ({ category, units_sold, revenue }))
+    .map(([category, { units_sold, revenue }]) => ({
+      category,
+      units_sold,
+      revenue,
+    }))
     .sort((a, b) => b.revenue - a.revenue);
 
   return { topSellers, slowMovers, categoryPerformance };
@@ -423,6 +456,9 @@ export async function getAnalyticsMedicinePerformance(
 // ── Branch list for filter ────────────────────────────────────────────────────
 export async function getAnalyticsBranches() {
   const supabase = await createClient();
-  const { data } = await supabase.from("branches").select("id, name").order("name");
+  const { data } = await supabase
+    .from("branches")
+    .select("id, name")
+    .order("name");
   return (data ?? []) as { id: string; name: string }[];
 }

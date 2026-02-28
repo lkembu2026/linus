@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useMode } from "@/contexts/mode-context";
 import {
   Table,
   TableBody,
@@ -157,6 +158,7 @@ async function downloadPDF(
 export function ReportsClient({ user }: ReportsClientProps) {
   const [isPending, startTransition] = useTransition();
   const [isSaving, setIsSaving] = useState(false);
+  const { mode } = useMode();
   const today = new Date().toISOString().slice(0, 10);
 
   const [dailyDate, setDailyDate] = useState(today);
@@ -428,7 +430,10 @@ export function ReportsClient({ user }: ReportsClientProps) {
           Reports
         </h1>
         <p className="text-muted-foreground text-sm">
-          Sales analytics and performance data
+          Sales analytics and performance data ·{" "}
+          <span className="text-primary/70">
+            {mode === "beauty" ? "💫 Beauty & Clothing" : "💊 Pharmacy"}
+          </span>
         </p>
       </div>
 

@@ -8,6 +8,7 @@ import { Search, Loader2, Plus, ScanBarcode } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { BarcodeScanner } from "./barcode-scanner";
+import type { AppMode } from "@/types";
 
 interface SearchResult {
   medicine_id: string;
@@ -26,9 +27,10 @@ interface MedicineSearchProps {
     unit_price: number;
     max_quantity: number;
   }) => void;
+  mode?: AppMode;
 }
 
-export function MedicineSearch({ onSelect }: MedicineSearchProps) {
+export function MedicineSearch({ onSelect, mode = "pharmacy" }: MedicineSearchProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isPending, startTransition] = useTransition();
@@ -111,7 +113,7 @@ export function MedicineSearch({ onSelect }: MedicineSearchProps) {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             ref={inputRef}
-            placeholder="Search medicine by name, generic name, or barcode..."
+            placeholder={mode === "beauty" ? "Search product by name, brand, or barcode..." : "Search medicine by name, generic name, or barcode..."}
             value={query}
             onChange={(e) => handleSearch(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -145,10 +147,28 @@ export function MedicineSearch({ onSelect }: MedicineSearchProps) {
               <div className="flex-1">
                 <p className="text-sm font-medium text-white">{item.name}</p>
                 <div className="flex items-center gap-2 mt-0.5">
-                  {item.generic_name && (
-                    <span className="text-xs text-muted-foreground">
-                      {item.generic_name}
-                    </span>
+                  {mode === "beauty" ? (
+                    <>
+                      {(item as any).brand && (
+                        <span className="text-xs text-muted-foreground">{(item as any).brand}</span>
+                      )}
+                      {(item as any).size && (
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                          {(item as any).size}
+                        </Badge>
+                      )}
+                      {(item as any).colour && (
+                        <span className="text-[10px] text-primary/70">{(item as any).colour}</span>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {item.generic_name && (
+                        <span className="text-xs text-muted-foreground">
+                          {item.generic_name}
+                        </span>
+                      )}
+                    </>
                   )}
                   {item.category && (
                     <Badge
@@ -186,7 +206,7 @@ export function MedicineSearch({ onSelect }: MedicineSearchProps) {
         results.length === 0 &&
         !isPending && (
           <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-lg border border-border bg-card p-4 text-center">
-            <p className="text-sm text-muted-foreground">No medicines found</p>
+            <p className="text-sm text-muted-foreground">No {mode === "beauty" ? "products" : "medicines"} found</p>
           </div>
         )}
 

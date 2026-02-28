@@ -7,6 +7,7 @@ import {
   getAnalyticsInventoryHealth,
   getAnalyticsMedicinePerformance,
 } from "@/actions/analytics";
+import { useMode } from "@/contexts/mode-context";
 import {
   AreaChart,
   Area,
@@ -80,8 +81,14 @@ const PERIOD_OPTIONS: { value: AnalyticsPeriod; label: string }[] = [
 ];
 
 const CHART_COLORS = [
-  "#00FFE0", "#3B82F6", "#8B5CF6", "#F59E0B",
-  "#EF4444", "#10B981", "#EC4899", "#14B8A6",
+  "#00FFE0",
+  "#3B82F6",
+  "#8B5CF6",
+  "#F59E0B",
+  "#EF4444",
+  "#10B981",
+  "#EC4899",
+  "#14B8A6",
 ];
 
 function StatCard({
@@ -109,7 +116,9 @@ function StatCard({
   return (
     <div className={`glass-card p-5 ${colours[accent]}`}>
       <div className="flex items-center justify-between mb-3">
-        <p className="text-xs text-muted-foreground uppercase tracking-wider">{label}</p>
+        <p className="text-xs text-muted-foreground uppercase tracking-wider">
+          {label}
+        </p>
         <Icon className="h-4 w-4 opacity-60" />
       </div>
       {loading ? (
@@ -130,8 +139,13 @@ function ChartTooltip({ active, payload, label, currency }: any) {
     <div className="rounded-lg border border-[rgba(0,255,224,0.2)] bg-[#1A1A1A] p-3 shadow-lg text-sm">
       <p className="text-xs text-muted-foreground mb-1">{label}</p>
       {payload.map((p: any, i: number) => (
-        <p key={i} style={{ color: p.color || p.fill }} className="font-semibold">
-          {p.name}: {currency ? formatCurrency(p.value) : p.value.toLocaleString()}
+        <p
+          key={i}
+          style={{ color: p.color || p.fill }}
+          className="font-semibold"
+        >
+          {p.name}:{" "}
+          {currency ? formatCurrency(p.value) : p.value.toLocaleString()}
         </p>
       ))}
     </div>
@@ -140,14 +154,17 @@ function ChartTooltip({ active, payload, label, currency }: any) {
 
 export function AnalyticsClient({ user, branches }: AnalyticsClientProps) {
   const isAdmin = user.role === "admin" || user.role === "supervisor";
+  const { mode } = useMode();
   const today = new Date().toISOString().split("T")[0];
-  const monthStart = new Date(new Date().setDate(1)).toISOString().split("T")[0];
+  const monthStart = new Date(new Date().setDate(1))
+    .toISOString()
+    .split("T")[0];
 
   const [filters, setFilters] = useState<AnalyticsFilters>({
     period: "month",
     dateFrom: monthStart,
     dateTo: today,
-    branchId: isAdmin ? undefined : user.branch_id ?? undefined,
+    branchId: isAdmin ? undefined : (user.branch_id ?? undefined),
   });
 
   const [overview, setOverview] = useState<AnalyticsOverview | null>(null);
@@ -157,22 +174,19 @@ export function AnalyticsClient({ user, branches }: AnalyticsClientProps) {
   const [activeTab, setActiveTab] = useState("overview");
   const [isPending, startTransition] = useTransition();
 
-  const load = useCallback(
-    (tab: string, f: AnalyticsFilters) => {
-      startTransition(async () => {
-        if (tab === "overview") {
-          setOverview(await getAnalyticsOverview(f));
-        } else if (tab === "sales") {
-          setSalesBreak(await getAnalyticsSalesBreakdown(f));
-        } else if (tab === "inventory") {
-          setInventory(await getAnalyticsInventoryHealth(f.branchId));
-        } else if (tab === "medicines") {
-          setMedicines(await getAnalyticsMedicinePerformance(f));
-        }
-      });
-    },
-    [],
-  );
+  const load = useCallback((tab: string, f: AnalyticsFilters) => {
+    startTransition(async () => {
+      if (tab === "overview") {
+        setOverview(await getAnalyticsOverview(f));
+      } else if (tab === "sales") {
+        setSalesBreak(await getAnalyticsSalesBreakdown(f));
+      } else if (tab === "inventory") {
+        setInventory(await getAnalyticsInventoryHealth(f.branchId));
+      } else if (tab === "medicines") {
+        setMedicines(await getAnalyticsMedicinePerformance(f));
+      }
+    });
+  }, []);
 
   useEffect(() => {
     load(activeTab, filters);
@@ -186,13 +200,17 @@ export function AnalyticsClient({ user, branches }: AnalyticsClientProps) {
       let f = t;
       if (patch.period === "today") f = t;
       else if (patch.period === "week") {
-        const d = new Date(now); d.setDate(d.getDate() - 6);
+        const d = new Date(now);
+        d.setDate(d.getDate() - 6);
         f = d.toISOString().split("T")[0];
       } else if (patch.period === "month") {
-        const d = new Date(now); d.setDate(1);
+        const d = new Date(now);
+        d.setDate(1);
         f = d.toISOString().split("T")[0];
       } else if (patch.period === "quarter") {
-        const d = new Date(now); d.setMonth(d.getMonth() - 2); d.setDate(1);
+        const d = new Date(now);
+        d.setMonth(d.getMonth() - 2);
+        d.setDate(1);
         f = d.toISOString().split("T")[0];
       } else if (patch.period === "year") {
         f = `${now.getFullYear()}-01-01`;
@@ -214,14 +232,18 @@ export function AnalyticsClient({ user, branches }: AnalyticsClientProps) {
           <p className="text-xs text-muted-foreground mb-1.5">Period</p>
           <Select
             value={filters.period}
-            onValueChange={(v) => updateFilters({ period: v as AnalyticsPeriod })}
+            onValueChange={(v) =>
+              updateFilters({ period: v as AnalyticsPeriod })
+            }
           >
             <SelectTrigger className="w-40 h-9 bg-background border-border">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {PERIOD_OPTIONS.map((o) => (
-                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -265,7 +287,9 @@ export function AnalyticsClient({ user, branches }: AnalyticsClientProps) {
               <SelectContent>
                 <SelectItem value="all">All Branches</SelectItem>
                 {branches.map((b) => (
-                  <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                  <SelectItem key={b.id} value={b.id}>
+                    {b.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -278,12 +302,21 @@ export function AnalyticsClient({ user, branches }: AnalyticsClientProps) {
               <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading…
             </span>
           )}
-          <Badge variant="outline" className="border-primary/30 text-primary text-xs">
+          <Badge
+            variant="outline"
+            className="border-primary/30 text-primary text-xs"
+          >
             <Filter className="h-3 w-3 mr-1" />
             {PERIOD_OPTIONS.find((o) => o.value === filters.period)?.label}
             {filters.period === "custom"
               ? ` · ${fmtShortDate(filters.dateFrom)} – ${fmtShortDate(filters.dateTo)}`
               : ""}
+          </Badge>
+          <Badge
+            variant="outline"
+            className="border-primary/20 text-primary/70 text-xs"
+          >
+            {mode === "beauty" ? "💫 Beauty" : "💊 Pharmacy"}
           </Badge>
         </div>
       </div>
@@ -299,7 +332,7 @@ export function AnalyticsClient({ user, branches }: AnalyticsClientProps) {
             { value: "overview", label: "Overview", icon: Activity },
             { value: "sales", label: "Sales", icon: ShoppingCart },
             { value: "inventory", label: "Inventory", icon: Package },
-            { value: "medicines", label: "Medicines", icon: Pill },
+            { value: "medicines", label: mode === "beauty" ? "Products" : "Medicines", icon: Pill },
           ].map(({ value, label, icon: Icon }) => (
             <TabsTrigger
               key={value}
@@ -315,15 +348,46 @@ export function AnalyticsClient({ user, branches }: AnalyticsClientProps) {
         {/* ──────────────────────── OVERVIEW ─────────────────────────── */}
         <TabsContent value="overview" className="space-y-6">
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-            <StatCard label="Revenue" value={formatCurrency(overview?.totalRevenue ?? 0)} icon={DollarSign} loading={isPending && !overview} />
-            <StatCard label="Transactions" value={(overview?.totalSales ?? 0).toLocaleString()} icon={ShoppingCart} accent="blue" loading={isPending && !overview} />
-            <StatCard label="Avg Order" value={formatCurrency(overview?.avgOrderValue ?? 0)} icon={BarChart3} accent="blue" loading={isPending && !overview} />
-            <StatCard label="Units Sold" value={(overview?.totalUnitsSold ?? 0).toLocaleString()} icon={Package} accent="green" loading={isPending && !overview} />
-            <StatCard label="Gross Profit" value={formatCurrency(overview?.totalProfit ?? 0)} icon={TrendingUp} accent="green" loading={isPending && !overview} />
+            <StatCard
+              label="Revenue"
+              value={formatCurrency(overview?.totalRevenue ?? 0)}
+              icon={DollarSign}
+              loading={isPending && !overview}
+            />
+            <StatCard
+              label="Transactions"
+              value={(overview?.totalSales ?? 0).toLocaleString()}
+              icon={ShoppingCart}
+              accent="blue"
+              loading={isPending && !overview}
+            />
+            <StatCard
+              label="Avg Order"
+              value={formatCurrency(overview?.avgOrderValue ?? 0)}
+              icon={BarChart3}
+              accent="blue"
+              loading={isPending && !overview}
+            />
+            <StatCard
+              label="Units Sold"
+              value={(overview?.totalUnitsSold ?? 0).toLocaleString()}
+              icon={Package}
+              accent="green"
+              loading={isPending && !overview}
+            />
+            <StatCard
+              label="Gross Profit"
+              value={formatCurrency(overview?.totalProfit ?? 0)}
+              icon={TrendingUp}
+              accent="green"
+              loading={isPending && !overview}
+            />
             <StatCard
               label="Profit Margin"
               value={`${(overview?.profitMargin ?? 0).toFixed(1)}%`}
-              icon={(overview?.profitMargin ?? 0) >= 20 ? TrendingUp : TrendingDown}
+              icon={
+                (overview?.profitMargin ?? 0) >= 20 ? TrendingUp : TrendingDown
+              }
               accent={(overview?.profitMargin ?? 0) >= 20 ? "green" : "amber"}
               loading={isPending && !overview}
             />
@@ -344,23 +408,66 @@ export function AnalyticsClient({ user, branches }: AnalyticsClientProps) {
                   <AreaChart data={overview.revenueByDay}>
                     <defs>
                       <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#00FFE0" stopOpacity={0.25} />
-                        <stop offset="95%" stopColor="#00FFE0" stopOpacity={0} />
+                        <stop
+                          offset="5%"
+                          stopColor="#00FFE0"
+                          stopOpacity={0.25}
+                        />
+                        <stop
+                          offset="95%"
+                          stopColor="#00FFE0"
+                          stopOpacity={0}
+                        />
                       </linearGradient>
                       <linearGradient id="profGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10B981" stopOpacity={0.25} />
-                        <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
+                        <stop
+                          offset="5%"
+                          stopColor="#10B981"
+                          stopOpacity={0.25}
+                        />
+                        <stop
+                          offset="95%"
+                          stopColor="#10B981"
+                          stopOpacity={0}
+                        />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                    <XAxis dataKey="date" tick={{ fill: "#B4B4B4", fontSize: 11 }} axisLine={false} tickLine={false}
-                      tickFormatter={fmtShortDate} interval="preserveStartEnd" />
-                    <YAxis tick={{ fill: "#B4B4B4", fontSize: 11 }} axisLine={false} tickLine={false}
-                      tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="rgba(255,255,255,0.05)"
+                    />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fill: "#B4B4B4", fontSize: 11 }}
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={fmtShortDate}
+                      interval="preserveStartEnd"
+                    />
+                    <YAxis
+                      tick={{ fill: "#B4B4B4", fontSize: 11 }}
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+                    />
                     <Tooltip content={<ChartTooltip currency />} />
                     <Legend wrapperStyle={{ fontSize: 12, color: "#B4B4B4" }} />
-                    <Area type="monotone" dataKey="revenue" name="Revenue" stroke="#00FFE0" strokeWidth={2} fill="url(#revGrad)" />
-                    <Area type="monotone" dataKey="profit" name="Profit" stroke="#10B981" strokeWidth={2} fill="url(#profGrad)" />
+                    <Area
+                      type="monotone"
+                      dataKey="revenue"
+                      name="Revenue"
+                      stroke="#00FFE0"
+                      strokeWidth={2}
+                      fill="url(#revGrad)"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="profit"
+                      name="Profit"
+                      stroke="#10B981"
+                      strokeWidth={2}
+                      fill="url(#profGrad)"
+                    />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -373,21 +480,47 @@ export function AnalyticsClient({ user, branches }: AnalyticsClientProps) {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Payment method */}
             <div className="glass-card p-6">
-              <h3 className="text-sm font-semibold text-white mb-4">Payment Methods</h3>
+              <h3 className="text-sm font-semibold text-white mb-4">
+                Payment Methods
+              </h3>
               {!salesBreak || salesBreak.byPaymentMethod.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-10">No data</p>
+                <p className="text-sm text-muted-foreground text-center py-10">
+                  No data
+                </p>
               ) : (
                 <div className="h-56">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={salesBreak.byPaymentMethod} layout="vertical">
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
-                      <XAxis type="number" tick={{ fill: "#B4B4B4", fontSize: 11 }} axisLine={false} tickLine={false}
-                        tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                      <YAxis type="category" dataKey="method" tick={{ fill: "#B4B4B4", fontSize: 11 }} axisLine={false} tickLine={false} width={55} />
+                    <BarChart
+                      data={salesBreak.byPaymentMethod}
+                      layout="vertical"
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="rgba(255,255,255,0.05)"
+                        horizontal={false}
+                      />
+                      <XAxis
+                        type="number"
+                        tick={{ fill: "#B4B4B4", fontSize: 11 }}
+                        axisLine={false}
+                        tickLine={false}
+                        tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+                      />
+                      <YAxis
+                        type="category"
+                        dataKey="method"
+                        tick={{ fill: "#B4B4B4", fontSize: 11 }}
+                        axisLine={false}
+                        tickLine={false}
+                        width={55}
+                      />
                       <Tooltip content={<ChartTooltip currency />} />
                       <Bar dataKey="amount" name="Amount" radius={[0, 4, 4, 0]}>
                         {salesBreak.byPaymentMethod.map((_, i) => (
-                          <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                          <Cell
+                            key={i}
+                            fill={CHART_COLORS[i % CHART_COLORS.length]}
+                          />
                         ))}
                       </Bar>
                     </BarChart>
@@ -398,18 +531,40 @@ export function AnalyticsClient({ user, branches }: AnalyticsClientProps) {
 
             {/* Day of week */}
             <div className="glass-card p-6">
-              <h3 className="text-sm font-semibold text-white mb-4">Sales by Day of Week</h3>
+              <h3 className="text-sm font-semibold text-white mb-4">
+                Sales by Day of Week
+              </h3>
               {!salesBreak ? (
-                <p className="text-sm text-muted-foreground text-center py-10">No data</p>
+                <p className="text-sm text-muted-foreground text-center py-10">
+                  No data
+                </p>
               ) : (
                 <div className="h-56">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={salesBreak.byDayOfWeek}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                      <XAxis dataKey="day" tick={{ fill: "#B4B4B4", fontSize: 11 }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fill: "#B4B4B4", fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="rgba(255,255,255,0.05)"
+                        vertical={false}
+                      />
+                      <XAxis
+                        dataKey="day"
+                        tick={{ fill: "#B4B4B4", fontSize: 11 }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        tick={{ fill: "#B4B4B4", fontSize: 11 }}
+                        axisLine={false}
+                        tickLine={false}
+                        allowDecimals={false}
+                      />
                       <Tooltip content={<ChartTooltip />} />
-                      <Bar dataKey="count" name="Transactions" radius={[4, 4, 0, 0]}>
+                      <Bar
+                        dataKey="count"
+                        name="Transactions"
+                        radius={[4, 4, 0, 0]}
+                      >
                         {salesBreak.byDayOfWeek.map((_, i) => (
                           <Cell key={i} fill="rgba(0,255,224,0.45)" />
                         ))}
@@ -428,21 +583,42 @@ export function AnalyticsClient({ user, branches }: AnalyticsClientProps) {
               Busiest Hours
             </h3>
             {!salesBreak || salesBreak.byHour.every((h) => h.count === 0) ? (
-              <p className="text-sm text-muted-foreground text-center py-8">No data</p>
+              <p className="text-sm text-muted-foreground text-center py-8">
+                No data
+              </p>
             ) : (
               <div className="h-44">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={salesBreak.byHour} barCategoryGap="15%">
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                    <XAxis dataKey="hour" tick={{ fill: "#B4B4B4", fontSize: 10 }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fill: "#B4B4B4", fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="rgba(255,255,255,0.05)"
+                      vertical={false}
+                    />
+                    <XAxis
+                      dataKey="hour"
+                      tick={{ fill: "#B4B4B4", fontSize: 10 }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      tick={{ fill: "#B4B4B4", fontSize: 11 }}
+                      axisLine={false}
+                      tickLine={false}
+                      allowDecimals={false}
+                    />
                     <Tooltip content={<ChartTooltip />} />
-                    <Bar dataKey="count" name="Transactions" radius={[3, 3, 0, 0]}>
+                    <Bar
+                      dataKey="count"
+                      name="Transactions"
+                      radius={[3, 3, 0, 0]}
+                    >
                       {salesBreak.byHour.map((h, i) => (
                         <Cell
                           key={i}
                           fill={
-                            h.count === Math.max(...salesBreak.byHour.map((x) => x.count))
+                            h.count ===
+                            Math.max(...salesBreak.byHour.map((x) => x.count))
                               ? "#00FFE0"
                               : "rgba(0,255,224,0.3)"
                           }
@@ -465,19 +641,35 @@ export function AnalyticsClient({ user, branches }: AnalyticsClientProps) {
               <Table>
                 <TableHeader>
                   <TableRow className="border-border hover:bg-transparent">
-                    <TableHead className="text-muted-foreground">Staff</TableHead>
-                    <TableHead className="text-muted-foreground text-right">Transactions</TableHead>
-                    <TableHead className="text-muted-foreground text-right">Total Sales</TableHead>
-                    <TableHead className="text-muted-foreground text-right">Avg / Sale</TableHead>
+                    <TableHead className="text-muted-foreground">
+                      Staff
+                    </TableHead>
+                    <TableHead className="text-muted-foreground text-right">
+                      Transactions
+                    </TableHead>
+                    <TableHead className="text-muted-foreground text-right">
+                      Total Sales
+                    </TableHead>
+                    <TableHead className="text-muted-foreground text-right">
+                      Avg / Sale
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {salesBreak.byCashier.map((c, i) => (
                     <TableRow key={i} className="border-border">
-                      <TableCell className="font-medium text-white">{c.name}</TableCell>
-                      <TableCell className="text-right text-muted-foreground">{c.count}</TableCell>
-                      <TableCell className="text-right text-primary font-semibold">{formatCurrency(c.amount)}</TableCell>
-                      <TableCell className="text-right text-muted-foreground">{formatCurrency(c.count > 0 ? c.amount / c.count : 0)}</TableCell>
+                      <TableCell className="font-medium text-white">
+                        {c.name}
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {c.count}
+                      </TableCell>
+                      <TableCell className="text-right text-primary font-semibold">
+                        {formatCurrency(c.amount)}
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {formatCurrency(c.count > 0 ? c.amount / c.count : 0)}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -489,30 +681,83 @@ export function AnalyticsClient({ user, branches }: AnalyticsClientProps) {
         {/* ──────────────────────── INVENTORY ─────────────────────────── */}
         <TabsContent value="inventory" className="space-y-6">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <StatCard label="Stock Value" value={formatCurrency(inventory?.totalStockValue ?? 0)} icon={DollarSign} loading={isPending && !inventory} />
-            <StatCard label="Cost Value" value={formatCurrency(inventory?.totalCostValue ?? 0)} icon={Package} accent="blue" loading={isPending && !inventory} />
-            <StatCard label="Potential Profit" value={formatCurrency(inventory?.potentialProfit ?? 0)} icon={TrendingUp} accent="green" loading={isPending && !inventory} />
-            <StatCard label="Total Units" value={(inventory?.totalUnits ?? 0).toLocaleString()} icon={Package} accent="amber" loading={isPending && !inventory} />
+            <StatCard
+              label="Stock Value"
+              value={formatCurrency(inventory?.totalStockValue ?? 0)}
+              icon={DollarSign}
+              loading={isPending && !inventory}
+            />
+            <StatCard
+              label="Cost Value"
+              value={formatCurrency(inventory?.totalCostValue ?? 0)}
+              icon={Package}
+              accent="blue"
+              loading={isPending && !inventory}
+            />
+            <StatCard
+              label="Potential Profit"
+              value={formatCurrency(inventory?.potentialProfit ?? 0)}
+              icon={TrendingUp}
+              accent="green"
+              loading={isPending && !inventory}
+            />
+            <StatCard
+              label="Total Units"
+              value={(inventory?.totalUnits ?? 0).toLocaleString()}
+              icon={Package}
+              accent="amber"
+              loading={isPending && !inventory}
+            />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Category stock value bar */}
             <div className="glass-card p-6">
-              <h3 className="text-sm font-semibold text-white mb-4">Stock Value by Category</h3>
+              <h3 className="text-sm font-semibold text-white mb-4">
+                Stock Value by Category
+              </h3>
               {!inventory || inventory.categorySummary.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-10">No data</p>
+                <p className="text-sm text-muted-foreground text-center py-10">
+                  No data
+                </p>
               ) : (
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={inventory.categorySummary.slice(0, 10)} layout="vertical">
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
-                      <XAxis type="number" tick={{ fill: "#B4B4B4", fontSize: 10 }} axisLine={false} tickLine={false}
-                        tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                      <YAxis type="category" dataKey="category" tick={{ fill: "#B4B4B4", fontSize: 11 }} axisLine={false} tickLine={false} width={100} />
+                    <BarChart
+                      data={inventory.categorySummary.slice(0, 10)}
+                      layout="vertical"
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="rgba(255,255,255,0.05)"
+                        horizontal={false}
+                      />
+                      <XAxis
+                        type="number"
+                        tick={{ fill: "#B4B4B4", fontSize: 10 }}
+                        axisLine={false}
+                        tickLine={false}
+                        tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+                      />
+                      <YAxis
+                        type="category"
+                        dataKey="category"
+                        tick={{ fill: "#B4B4B4", fontSize: 11 }}
+                        axisLine={false}
+                        tickLine={false}
+                        width={100}
+                      />
                       <Tooltip content={<ChartTooltip currency />} />
-                      <Bar dataKey="value" name="Stock Value" radius={[0, 4, 4, 0]}>
+                      <Bar
+                        dataKey="value"
+                        name="Stock Value"
+                        radius={[0, 4, 4, 0]}
+                      >
                         {inventory.categorySummary.slice(0, 10).map((_, i) => (
-                          <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                          <Cell
+                            key={i}
+                            fill={CHART_COLORS[i % CHART_COLORS.length]}
+                          />
                         ))}
                       </Bar>
                     </BarChart>
@@ -536,19 +781,28 @@ export function AnalyticsClient({ user, branches }: AnalyticsClientProps) {
                   <Table>
                     <TableHeader>
                       <TableRow className="border-border hover:bg-transparent">
-                        <TableHead className="text-muted-foreground text-xs">Medicine</TableHead>
-                        <TableHead className="text-muted-foreground text-xs">Expiry</TableHead>
-                        <TableHead className="text-muted-foreground text-xs text-right">Qty</TableHead>
+                        <TableHead className="text-muted-foreground text-xs">
+                          Medicine
+                        </TableHead>
+                        <TableHead className="text-muted-foreground text-xs">
+                          Expiry
+                        </TableHead>
+                        <TableHead className="text-muted-foreground text-xs text-right">
+                          Qty
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {inventory.nearExpiry.map((m, i) => {
                         const daysLeft = Math.ceil(
-                          (new Date(m.expiry_date).getTime() - Date.now()) / 86400000,
+                          (new Date(m.expiry_date).getTime() - Date.now()) /
+                            86400000,
                         );
                         return (
                           <TableRow key={i} className="border-border">
-                            <TableCell className="text-white text-sm font-medium">{m.name}</TableCell>
+                            <TableCell className="text-white text-sm font-medium">
+                              {m.name}
+                            </TableCell>
                             <TableCell>
                               <Badge
                                 variant="outline"
@@ -558,10 +812,15 @@ export function AnalyticsClient({ user, branches }: AnalyticsClientProps) {
                                     : "border-amber-500/40 text-amber-400 text-xs"
                                 }
                               >
-                                {new Date(m.expiry_date).toLocaleDateString("en-GB", {
-                                  day: "numeric", month: "short", year: "numeric",
-                                })}
-                                {" "}({daysLeft}d)
+                                {new Date(m.expiry_date).toLocaleDateString(
+                                  "en-GB",
+                                  {
+                                    day: "numeric",
+                                    month: "short",
+                                    year: "numeric",
+                                  },
+                                )}{" "}
+                                ({daysLeft}d)
                               </Badge>
                             </TableCell>
                             <TableCell className="text-right text-muted-foreground text-sm">
@@ -580,28 +839,52 @@ export function AnalyticsClient({ user, branches }: AnalyticsClientProps) {
           {/* Category table */}
           {inventory && inventory.categorySummary.length > 0 && (
             <div className="glass-card p-6">
-              <h3 className="text-sm font-semibold text-white mb-4">Category Breakdown</h3>
+              <h3 className="text-sm font-semibold text-white mb-4">
+                Category Breakdown
+              </h3>
               <Table>
                 <TableHeader>
                   <TableRow className="border-border hover:bg-transparent">
-                    <TableHead className="text-muted-foreground">Category</TableHead>
-                    <TableHead className="text-muted-foreground text-right">Units</TableHead>
-                    <TableHead className="text-muted-foreground text-right">Stock Value</TableHead>
-                    <TableHead className="text-muted-foreground text-right">Cost Value</TableHead>
-                    <TableHead className="text-muted-foreground text-right">Margin</TableHead>
+                    <TableHead className="text-muted-foreground">
+                      Category
+                    </TableHead>
+                    <TableHead className="text-muted-foreground text-right">
+                      Units
+                    </TableHead>
+                    <TableHead className="text-muted-foreground text-right">
+                      Stock Value
+                    </TableHead>
+                    <TableHead className="text-muted-foreground text-right">
+                      Cost Value
+                    </TableHead>
+                    <TableHead className="text-muted-foreground text-right">
+                      Margin
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {inventory.categorySummary.map((c, i) => {
-                    const margin = c.value > 0 ? ((c.value - c.cost) / c.value) * 100 : 0;
+                    const margin =
+                      c.value > 0 ? ((c.value - c.cost) / c.value) * 100 : 0;
                     return (
                       <TableRow key={i} className="border-border">
-                        <TableCell className="font-medium text-white">{c.category}</TableCell>
-                        <TableCell className="text-right text-muted-foreground">{c.units.toLocaleString()}</TableCell>
-                        <TableCell className="text-right text-primary font-semibold">{formatCurrency(c.value)}</TableCell>
-                        <TableCell className="text-right text-muted-foreground">{formatCurrency(c.cost)}</TableCell>
+                        <TableCell className="font-medium text-white">
+                          {c.category}
+                        </TableCell>
+                        <TableCell className="text-right text-muted-foreground">
+                          {c.units.toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-right text-primary font-semibold">
+                          {formatCurrency(c.value)}
+                        </TableCell>
+                        <TableCell className="text-right text-muted-foreground">
+                          {formatCurrency(c.cost)}
+                        </TableCell>
                         <TableCell className="text-right">
-                          <Badge variant="outline" className={`text-xs ${margin >= 20 ? "border-emerald-500/40 text-emerald-400" : "border-amber-500/40 text-amber-400"}`}>
+                          <Badge
+                            variant="outline"
+                            className={`text-xs ${margin >= 20 ? "border-emerald-500/40 text-emerald-400" : "border-amber-500/40 text-amber-400"}`}
+                          >
                             {margin.toFixed(1)}%
                           </Badge>
                         </TableCell>
@@ -635,7 +918,9 @@ export function AnalyticsClient({ user, branches }: AnalyticsClientProps) {
                       <div key={i}>
                         <div className="flex items-center justify-between text-xs mb-1">
                           <span className="text-white font-medium truncate max-w-[60%]">
-                            <span className="text-primary mr-1.5">#{i + 1}</span>
+                            <span className="text-primary mr-1.5">
+                              #{i + 1}
+                            </span>
                             {m.name}
                           </span>
                           <span className="text-muted-foreground shrink-0">
@@ -657,21 +942,51 @@ export function AnalyticsClient({ user, branches }: AnalyticsClientProps) {
 
             {/* Category performance */}
             <div className="glass-card p-6">
-              <h3 className="text-sm font-semibold text-white mb-4">Revenue by Category</h3>
+              <h3 className="text-sm font-semibold text-white mb-4">
+                Revenue by Category
+              </h3>
               {!medicines || medicines.categoryPerformance.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-10">No sales data</p>
+                <p className="text-sm text-muted-foreground text-center py-10">
+                  No sales data
+                </p>
               ) : (
                 <div className="h-56">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={medicines.categoryPerformance} layout="vertical">
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
-                      <XAxis type="number" tick={{ fill: "#B4B4B4", fontSize: 10 }} axisLine={false} tickLine={false}
-                        tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                      <YAxis type="category" dataKey="category" tick={{ fill: "#B4B4B4", fontSize: 11 }} axisLine={false} tickLine={false} width={100} />
+                    <BarChart
+                      data={medicines.categoryPerformance}
+                      layout="vertical"
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="rgba(255,255,255,0.05)"
+                        horizontal={false}
+                      />
+                      <XAxis
+                        type="number"
+                        tick={{ fill: "#B4B4B4", fontSize: 10 }}
+                        axisLine={false}
+                        tickLine={false}
+                        tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+                      />
+                      <YAxis
+                        type="category"
+                        dataKey="category"
+                        tick={{ fill: "#B4B4B4", fontSize: 11 }}
+                        axisLine={false}
+                        tickLine={false}
+                        width={100}
+                      />
                       <Tooltip content={<ChartTooltip currency />} />
-                      <Bar dataKey="revenue" name="Revenue" radius={[0, 4, 4, 0]}>
+                      <Bar
+                        dataKey="revenue"
+                        name="Revenue"
+                        radius={[0, 4, 4, 0]}
+                      >
                         {medicines.categoryPerformance.map((_, i) => (
-                          <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                          <Cell
+                            key={i}
+                            fill={CHART_COLORS[i % CHART_COLORS.length]}
+                          />
                         ))}
                       </Bar>
                     </BarChart>
@@ -691,17 +1006,28 @@ export function AnalyticsClient({ user, branches }: AnalyticsClientProps) {
               <Table>
                 <TableHeader>
                   <TableRow className="border-border hover:bg-transparent">
-                    <TableHead className="text-muted-foreground">Medicine</TableHead>
-                    <TableHead className="text-muted-foreground">Category</TableHead>
-                    <TableHead className="text-muted-foreground text-right">Stock Remaining</TableHead>
+                    <TableHead className="text-muted-foreground">
+                      Medicine
+                    </TableHead>
+                    <TableHead className="text-muted-foreground">
+                      Category
+                    </TableHead>
+                    <TableHead className="text-muted-foreground text-right">
+                      Stock Remaining
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {medicines.slowMovers.map((m, i) => (
                     <TableRow key={i} className="border-border">
-                      <TableCell className="font-medium text-white">{m.name}</TableCell>
+                      <TableCell className="font-medium text-white">
+                        {m.name}
+                      </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="border-border text-muted-foreground text-xs">
+                        <Badge
+                          variant="outline"
+                          className="border-border text-muted-foreground text-xs"
+                        >
                           {m.category}
                         </Badge>
                       </TableCell>
@@ -709,7 +1035,9 @@ export function AnalyticsClient({ user, branches }: AnalyticsClientProps) {
                         <span className="text-amber-400 font-semibold">
                           {m.quantity_in_stock}
                         </span>
-                        <span className="text-muted-foreground text-xs ml-1">units</span>
+                        <span className="text-muted-foreground text-xs ml-1">
+                          units
+                        </span>
                       </TableCell>
                     </TableRow>
                   ))}

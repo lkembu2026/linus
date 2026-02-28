@@ -385,10 +385,7 @@ export async function getMedicineCategoryBreakdown(): Promise<
   if (allMedIds.length === 0) return [];
 
   // Filter to non-voided sales first
-  let salesQ = supabase
-    .from("sales")
-    .select("id")
-    .eq("is_voided", false);
+  let salesQ = supabase.from("sales").select("id").eq("is_voided", false);
   if (!isAdmin && branchId) salesQ = salesQ.eq("branch_id", branchId);
   const { data: salesData } = await salesQ;
   const saleIds = ((salesData ?? []) as unknown as { id: string }[]).map(

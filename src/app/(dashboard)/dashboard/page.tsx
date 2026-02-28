@@ -121,7 +121,9 @@ function InventorySkeleton() {
           <Skeleton className="h-5 w-36 bg-muted/30" />
           <Skeleton className="h-10 w-24 bg-muted/20" />
           <div className="grid grid-cols-3 gap-2">
-            {[1,2,3].map((i) => <Skeleton key={i} className="h-16 rounded-lg bg-muted/10" />)}
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-16 rounded-lg bg-muted/10" />
+            ))}
           </div>
         </div>
         <div className="lg:col-span-2 rounded-xl border border-border bg-card p-6">
@@ -132,7 +134,9 @@ function InventorySkeleton() {
       <div className="rounded-xl border border-border bg-card p-6">
         <Skeleton className="h-5 w-48 mb-4 bg-muted/30" />
         <div className="space-y-4">
-          {[1,2,3,4].map((i) => <Skeleton key={i} className="h-8 w-full bg-muted/10 rounded" />)}
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-8 w-full bg-muted/10 rounded" />
+          ))}
         </div>
       </div>
     </div>

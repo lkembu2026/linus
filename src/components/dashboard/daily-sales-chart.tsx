@@ -97,7 +97,10 @@ export function DailySalesChart({ data }: DailySalesChartProps) {
                 tick={{ fill: "#B4B4B4", fontSize: 11 }}
                 allowDecimals={false}
               />
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(0,255,224,0.05)" }} />
+              <Tooltip
+                content={<CustomTooltip />}
+                cursor={{ fill: "rgba(0,255,224,0.05)" }}
+              />
               <Bar dataKey="units_sold" radius={[4, 4, 0, 0]}>
                 {formatted.map((entry) => (
                   <Cell

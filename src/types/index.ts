@@ -83,7 +83,13 @@ export interface InventoryOverview {
 }
 
 // ---- Analytics ----
-export type AnalyticsPeriod = "today" | "week" | "month" | "quarter" | "year" | "custom";
+export type AnalyticsPeriod =
+  | "today"
+  | "week"
+  | "month"
+  | "quarter"
+  | "year"
+  | "custom";
 
 export interface AnalyticsFilters {
   period: AnalyticsPeriod;
@@ -146,6 +152,9 @@ export interface MedicinePerformance {
     revenue: number;
   }[];
 }
+
+// ---- App Mode ----
+export type AppMode = "pharmacy" | "beauty";
 
 // ---- Navigation ----
 export interface NavItem {

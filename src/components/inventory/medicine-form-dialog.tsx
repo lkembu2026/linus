@@ -20,15 +20,17 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { createMedicine, updateMedicine } from "@/actions/inventory";
-import { MEDICINE_CATEGORIES, DISPENSING_UNITS } from "@/lib/constants";
+import { MEDICINE_CATEGORIES, DISPENSING_UNITS, BEAUTY_CATEGORIES, BEAUTY_SIZE_OPTIONS, BEAUTY_COLOUR_OPTIONS } from "@/lib/constants";
 import { Loader2, ScanBarcode, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import type { Medicine } from "@/types/database";
+import type { AppMode } from "@/types";
 
 interface MedicineFormDialogProps {
   open: boolean;
   onClose: () => void;
   medicine?: Medicine | null;
+  mode?: AppMode;
 }
 
 function getInitialForm(medicine?: Medicine | null) {
@@ -44,6 +46,9 @@ function getInitialForm(medicine?: Medicine | null) {
     barcode: medicine?.barcode ?? "",
     dispensing_unit: medicine?.dispensing_unit ?? "",
     requires_prescription: medicine?.requires_prescription ?? false,
+    brand: (medicine as any)?.brand ?? "",
+    size: (medicine as any)?.size ?? "",
+    colour: (medicine as any)?.colour ?? "",
   };
 }
 
@@ -51,7 +56,10 @@ export function MedicineFormDialog({
   open,
   onClose,
   medicine,
+  mode = "pharmacy",
 }: MedicineFormDialogProps) {
+  const isBeauty = mode === "beauty";
+  const categories = isBeauty ? BEAUTY_CATEGORIES : MEDICINE_CATEGORIES;
   const isEdit = !!medicine;
   const [isPending, startTransition] = useTransition();
   const [form, setForm] = useState(getInitialForm(medicine));
@@ -114,8 +122,11 @@ export function MedicineFormDialog({
         reorder_level: parseInt(form.reorder_level) || 10,
         expiry_date: form.expiry_date || undefined,
         barcode: form.barcode || undefined,
-        dispensing_unit: form.dispensing_unit || undefined,
-        requires_prescription: form.requires_prescription,
+        dispensing_unit: isBeauty ? undefined : (form.dispensing_unit || undefined),
+        requires_prescription: isBeauty ? false : form.requires_prescription,
+        brand: form.brand || undefined,
+        size: form.size || undefined,
+        colour: form.colour || undefined,
       };
 
       const result = isEdit
@@ -137,7 +148,9 @@ export function MedicineFormDialog({
       <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-white font-[family-name:var(--font-sans)]">
-            {isEdit ? "Edit Medicine" : "Add New Medicine"}
+          {isEdit
+            ? `Edit ${isBeauty ? "Product" : "Medicine"}`
+            : `Add New ${isBeauty ? "Product" : "Medicine"}`}
           </DialogTitle>
         </DialogHeader>
 
@@ -153,19 +166,25 @@ export function MedicineFormDialog({
             />
           </div>
 
-          {/* Generic name */}
+          {/* Generic name (pharmacy only) / Brand (beauty) */}
           <div className="col-span-2">
             <Label className="text-muted-foreground">
-              Generic Name
+              {isBeauty ? "Brand" : "Generic Name"}
               <span className="text-xs text-muted-foreground/60 ml-1">
                 (optional)
               </span>
             </Label>
             <Input
-              value={form.generic_name}
-              onChange={(e) => update("generic_name", e.target.value)}
+              value={isBeauty ? form.brand : form.generic_name}
+              onChange={(e) =>
+                update(isBeauty ? "brand" : "generic_name", e.target.value)
+              }
               className="bg-background border-border text-white mt-1"
-              placeholder="Generic / scientific name — leave blank if not applicable"
+              placeholder={
+                isBeauty
+                  ? "Brand name e.g. L\u2019Or\xe9al, Nike"
+                  : "Generic / scientific name \u2014 leave blank if not applicable"
+              }
             />
           </div>
 
@@ -180,7 +199,7 @@ export function MedicineFormDialog({
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
               <SelectContent className="bg-card border-border">
-                {MEDICINE_CATEGORIES.map((cat) => (
+                {categories.map((cat) => (
                   <SelectItem
                     key={cat}
                     value={cat}
@@ -283,6 +302,56 @@ export function MedicineFormDialog({
             )}
           </div>
 
+          {/* Size + Colour (beauty only) */}
+          {isBeauty && (
+            <>
+              <div>
+                <Label className="text-muted-foreground">Size</Label>
+                <Select
+                  value={form.size}
+                  onValueChange={(v) => update("size", v)}
+                >
+                  <SelectTrigger className="bg-background border-border text-white mt-1">
+                    <SelectValue placeholder="Select size" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border">
+                    {BEAUTY_SIZE_OPTIONS.map((s) => (
+                      <SelectItem
+                        key={s}
+                        value={s}
+                        className="text-white focus:bg-primary/10"
+                      >
+                        {s}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-muted-foreground">Colour</Label>
+                <Select
+                  value={form.colour}
+                  onValueChange={(v) => update("colour", v)}
+                >
+                  <SelectTrigger className="bg-background border-border text-white mt-1">
+                    <SelectValue placeholder="Select colour" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border">
+                    {BEAUTY_COLOUR_OPTIONS.map((c) => (
+                      <SelectItem
+                        key={c}
+                        value={c}
+                        className="text-white focus:bg-primary/10"
+                      >
+                        {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          )}
+
           {/* Unit price */}
           <div>
             <Label className="text-muted-foreground">
@@ -344,50 +413,54 @@ export function MedicineFormDialog({
             />
           </div>
 
-          {/* Dispensing unit */}
-          <div>
-            <Label className="text-muted-foreground">
-              Dispensing Unit
-              <span className="text-xs text-primary ml-1">
-                (what you sell per qty)
-              </span>
-            </Label>
-            <Select
-              value={form.dispensing_unit}
-              onValueChange={(v) => update("dispensing_unit", v)}
-            >
-              <SelectTrigger className="bg-background border-border text-white mt-1">
-                <SelectValue placeholder="e.g. Tablet, ml, Sachet" />
-              </SelectTrigger>
-              <SelectContent className="bg-card border-border">
-                {DISPENSING_UNITS.map((u) => (
-                  <SelectItem
-                    key={u}
-                    value={u}
-                    className="text-white focus:bg-primary/10"
-                  >
-                    {u}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground mt-1">
-              Stock quantity = number of {form.dispensing_unit || "units"} in
-              stock. Selling 3 means 3 {form.dispensing_unit || "units"} are
-              deducted.
-            </p>
-          </div>
+          {/* Dispensing unit — pharmacy only */}
+          {!isBeauty && (
+            <div>
+              <Label className="text-muted-foreground">
+                Dispensing Unit
+                <span className="text-xs text-primary ml-1">
+                  (what you sell per qty)
+                </span>
+              </Label>
+              <Select
+                value={form.dispensing_unit}
+                onValueChange={(v) => update("dispensing_unit", v)}
+              >
+                <SelectTrigger className="bg-background border-border text-white mt-1">
+                  <SelectValue placeholder="e.g. Tablet, ml, Sachet" />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border">
+                  {DISPENSING_UNITS.map((u) => (
+                    <SelectItem
+                      key={u}
+                      value={u}
+                      className="text-white focus:bg-primary/10"
+                    >
+                      {u}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Stock quantity = number of {form.dispensing_unit || "units"} in
+                stock. Selling 3 means 3 {form.dispensing_unit || "units"} are
+                deducted.
+              </p>
+            </div>
+          )}
 
-          {/* Prescription */}
-          <div className="flex items-center gap-3 pt-6">
-            <Switch
-              checked={form.requires_prescription}
-              onCheckedChange={(v) => update("requires_prescription", v)}
-            />
-            <Label className="text-muted-foreground">
-              Requires Prescription
-            </Label>
-          </div>
+          {/* Prescription — pharmacy only */}
+          {!isBeauty && (
+            <div className="flex items-center gap-3 pt-6">
+              <Switch
+                checked={form.requires_prescription}
+                onCheckedChange={(v) => update("requires_prescription", v)}
+              />
+              <Label className="text-muted-foreground">
+                Requires Prescription
+              </Label>
+            </div>
+          )}
         </div>
 
         <DialogFooter>

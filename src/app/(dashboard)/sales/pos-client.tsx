@@ -8,6 +8,7 @@ import { Cart } from "@/components/pos/cart";
 import { CheckoutDialog } from "@/components/pos/checkout-dialog";
 import { useCart } from "@/hooks/use-cart";
 import { useHardwareScanner } from "@/hooks/use-hardware-scanner";
+import { useMode } from "@/contexts/mode-context";
 import { searchMedicines } from "@/actions/sales";
 import {
   ShoppingCart,
@@ -24,6 +25,7 @@ interface POSClientProps {
 
 export function POSClient({ user }: POSClientProps) {
   const cart = useCart();
+  const { mode } = useMode();
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [scanFeedback, setScanFeedback] = useState<{
     type: "success" | "error" | "multi";
@@ -84,7 +86,10 @@ export function POSClient({ user }: POSClientProps) {
             Point of Sale
           </h1>
           <p className="text-muted-foreground text-sm">
-            {user.branch?.name ?? "All Branches"}
+            {user.branch?.name ?? "All Branches"} •{" "}
+            <span className="text-primary/70">
+              {mode === "beauty" ? "Beauty & Clothing" : "Pharmacy"}
+            </span>
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -130,7 +135,7 @@ export function POSClient({ user }: POSClientProps) {
           <Card className="glass-card">
             <CardHeader>
               <CardTitle className="text-base text-white flex items-center justify-between">
-                <span>Search Medicine</span>
+                <span>{mode === "beauty" ? "Search Products" : "Search Medicine"}</span>
                 <span className="text-xs text-primary/70 font-normal flex items-center gap-1">
                   <ScanBarcode className="h-3.5 w-3.5" />
                   Hardware scanner supported
@@ -139,6 +144,7 @@ export function POSClient({ user }: POSClientProps) {
             </CardHeader>
             <CardContent>
               <MedicineSearch
+                mode={mode}
                 onSelect={(medicine) =>
                   cart.addItem({
                     medicine_id: medicine.medicine_id,

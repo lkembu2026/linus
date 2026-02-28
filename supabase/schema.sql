@@ -46,6 +46,10 @@ CREATE TABLE medicines (
   barcode               TEXT,
   dispensing_unit       TEXT,
   requires_prescription BOOLEAN DEFAULT false,
+  -- Beauty & Clothing fields (nullable — only used in beauty mode)
+  brand                 TEXT,
+  size                  TEXT,
+  colour                TEXT,
   branch_id             UUID NOT NULL REFERENCES branches(id),
   created_by            UUID REFERENCES users(id),
   created_at            TIMESTAMPTZ DEFAULT now(),

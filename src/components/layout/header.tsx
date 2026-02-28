@@ -32,6 +32,7 @@ import {
   CheckCircle,
   XCircle,
 } from "lucide-react";
+import { ModeToggle } from "@/components/layout/mode-toggle";
 import type { UserRole } from "@/types";
 
 interface HeaderProps {
@@ -125,6 +126,11 @@ export function Header({
             </span>
           </div>
         )}
+
+        {/* Mode toggle — Pharmacy / Beauty */}
+        <div className="hidden sm:block">
+          <ModeToggle />
+        </div>
       </div>
 
       {/* Right: Status + Notifications + Profile */}

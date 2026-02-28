@@ -29,8 +29,7 @@ export function MedicineCategoryBreakdownCard({
       <div className="flex items-start justify-between mb-5">
         <div>
           <h3 className="text-base font-semibold font-[family-name:var(--font-sans)] text-white">
-            Stock & Sales{" "}
-            <span className="text-primary">by Category</span>
+            Stock & Sales <span className="text-primary">by Category</span>
           </h3>
           <p className="text-xs text-muted-foreground mt-0.5">
             {data.length} categories · {totalStock.toLocaleString()} units
