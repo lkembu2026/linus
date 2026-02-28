@@ -6,7 +6,11 @@ import { revalidatePath } from "next/cache";
 import { sendAuditEmail, sendLowStockEmail } from "@/lib/email";
 import type { Medicine } from "@/types/database";
 
-export async function getMedicines(search?: string, category?: string) {
+export async function getMedicines(
+  search?: string,
+  category?: string,
+  categories?: string[],
+) {
   const supabase = await createClient();
   const user = await getCurrentUser();
   if (!user) return [] as Medicine[];
@@ -26,8 +30,11 @@ export async function getMedicines(search?: string, category?: string) {
     );
   }
 
+  // Filter to a specific category OR a set of mode-appropriate categories
   if (category) {
     query = query.eq("category", category);
+  } else if (categories && categories.length > 0) {
+    query = query.in("category", categories);
   }
 
   const { data, error } = await query;

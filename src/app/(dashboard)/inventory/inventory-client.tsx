@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -83,11 +83,25 @@ export function InventoryClient({
     page * PAGE_SIZE,
   );
 
+  // Re-fetch the correct product list whenever mode changes
+  useEffect(() => {
+    setCategory("");
+    setPage(1);
+    const cats =
+      mode === "beauty" ? [...BEAUTY_CATEGORIES] : [...MEDICINE_CATEGORIES];
+    startTransition(async () => {
+      const data = await getMedicines(undefined, undefined, cats);
+      setMedicines(data);
+    });
+  }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
+
   function handleSearch(searchTerm: string, cat: string) {
     startTransition(async () => {
       const data = await getMedicines(
         searchTerm || undefined,
         cat || undefined,
+        // When no specific category is selected, limit to the current mode's categories
+        cat ? undefined : [...modeCategories],
       );
       setMedicines(data);
     });

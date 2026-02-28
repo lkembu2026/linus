@@ -9,6 +9,7 @@ import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { BarcodeScanner } from "./barcode-scanner";
 import { searchCachedMedicines } from "@/lib/offline/db";
+import { MEDICINE_CATEGORIES, BEAUTY_CATEGORIES } from "@/lib/constants";
 import type { AppMode } from "@/types";
 
 interface SearchResult {
@@ -54,8 +55,10 @@ export function MedicineSearch({
       startTransition(async () => {
         let data: SearchResult[];
         let fromCache = false;
+        const modeCats =
+          mode === "beauty" ? [...BEAUTY_CATEGORIES] : [...MEDICINE_CATEGORIES];
         try {
-          data = await searchMedicines(value);
+          data = await searchMedicines(value, modeCats);
         } catch {
           // Server unreachable — use IndexedDB cache
           const cached = await searchCachedMedicines(value);

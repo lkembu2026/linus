@@ -215,13 +215,13 @@ export async function createSale(
   }
 }
 
-export async function searchMedicines(query: string) {
+export async function searchMedicines(query: string, categories?: string[]) {
   const supabase = await createClient();
   const user = await getCurrentUser();
 
   if (!user || !user.branch_id) return [];
 
-  const { data } = await supabase
+  let q = supabase
     .from("medicines")
     .select(
       "id, name, generic_name, category, barcode, unit_price, quantity_in_stock, dispensing_unit",
@@ -230,8 +230,13 @@ export async function searchMedicines(query: string) {
     .gt("quantity_in_stock", 0)
     .or(
       `name.ilike.%${query}%,generic_name.ilike.%${query}%,barcode.eq.${query}`,
-    )
-    .limit(20);
+    );
+
+  if (categories && categories.length > 0) {
+    q = q.in("category", categories);
+  }
+
+  const { data } = await q.limit(20);
 
   type MedResult = {
     id: string;
