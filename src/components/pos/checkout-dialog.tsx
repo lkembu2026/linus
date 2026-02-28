@@ -16,6 +16,7 @@ import { createSale } from "@/actions/sales";
 import { createCredit } from "@/actions/credits";
 import { formatCurrency, generateReceiptNumber } from "@/lib/utils";
 import { saveOfflineSale } from "@/lib/offline/db";
+import { isActuallyOnline } from "@/lib/offline/connectivity";
 import {
   CheckCircle,
   Loader2,
@@ -80,38 +81,14 @@ export function CheckoutDialog({
     }
 
     startTransition(async () => {
-      const isOnline = navigator.onLine;
+      // Use a real connectivity probe — navigator.onLine lies when on WiFi
+      // with no data bundles (returns true even though internet is unavailable)
+      const online = await isActuallyOnline();
 
-      if (isOnline) {
-        const result = await createSale(items, paymentMethod, total);
-        if (result.error) {
-          toast.error(result.error);
-          return;
-        }
-        if (result.receiptNumber) {
-          setReceiptNo(result.receiptNumber);
-        }
-        if (result.receiptHtml) {
-          setReceiptHtml(result.receiptHtml);
-        }
-        // If credit sale, create credit record
-        if (paymentMethod === "credit" && result.saleId) {
-          const medicineDetails = items
-            .map((i) => `${i.name} ×${i.quantity}`)
-            .join(", ");
-          await createCredit({
-            saleId: result.saleId,
-            receiptNo: result.receiptNumber ?? "",
-            customerName: creditName.trim(),
-            customerPhone: creditPhone.trim() || undefined,
-            amount: total,
-            medicineDetails,
-            notes: creditNotes.trim() || undefined,
-          });
-        }
-      } else {
-        // Save offline
-        const offlineId = `OFF-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      async function saveOffline() {
+        const offlineId = `OFF-${Date.now()}-${Math.random()
+          .toString(36)
+          .slice(2, 7)}`;
         await saveOfflineSale({
           id: offlineId,
           items: items.map((i) => ({
@@ -126,21 +103,53 @@ export function CheckoutDialog({
           created_at: new Date().toISOString(),
           synced: false,
         });
+        const receipt = generateReceiptNumber();
+        setReceiptNo(receipt);
         setIsOfflineSale(true);
       }
 
-      // For offline sales, generate a local receipt number
-      if (!navigator.onLine) {
-        const receipt = generateReceiptNumber();
-        setReceiptNo(receipt);
+      if (online) {
+        try {
+          const result = await createSale(items, paymentMethod, total);
+          if (result.error) {
+            // Business-logic error (e.g. insufficient stock) — do NOT save offline
+            toast.error(result.error);
+            return;
+          }
+          if (result.receiptNumber) setReceiptNo(result.receiptNumber);
+          if (result.receiptHtml) setReceiptHtml(result.receiptHtml);
+
+          // If credit sale, create credit record
+          if (paymentMethod === "credit" && result.saleId) {
+            const medicineDetails = items
+              .map((i) => `${i.name} ×${i.quantity}`)
+              .join(", ");
+            await createCredit({
+              saleId: result.saleId,
+              receiptNo: result.receiptNumber ?? "",
+              customerName: creditName.trim(),
+              customerPhone: creditPhone.trim() || undefined,
+              amount: total,
+              medicineDetails,
+              notes: creditNotes.trim() || undefined,
+            });
+          }
+        } catch {
+          // Network request failed mid-flight (connection dropped) — save offline
+          console.warn("createSale network failure — saving offline");
+          await saveOffline();
+        }
+      } else {
+        await saveOffline();
       }
+
       setCompleted(true);
       toast.success(
         paymentMethod === "credit"
           ? `Credit recorded for ${creditName}`
-          : isOnline
-            ? "Sale completed successfully!"
-            : "Sale saved offline — will sync when back online",
+          : isOfflineSale || !online
+            ? "Sale saved offline — will sync when back online"
+            : "Sale completed successfully!",
       );
     });
   }

@@ -30,6 +30,8 @@ interface LKPharmaCareDB {
       quantity_in_stock: number;
       barcode: string | null;
       branch_id: string;
+      dispensing_unit: string | null;
+      brand: string | null;
       updated_at: string;
     };
   };
@@ -140,4 +142,28 @@ export async function clearSyncQueue() {
   const tx = db.transaction("sync-queue", "readwrite");
   await tx.store.clear();
   await tx.done;
+}
+
+/**
+ * Search cached medicines locally (used when server is unreachable).
+ * Matches against name, generic_name, brand, and barcode.
+ */
+export async function searchCachedMedicines(query: string) {
+  const db = await getDB();
+  const all = await db.getAll("cached-medicines");
+  const q = query.toLowerCase().trim();
+  if (!q) return all.slice(0, 40);
+  return all.filter(
+    (m) =>
+      m.name.toLowerCase().includes(q) ||
+      (m.generic_name ?? "").toLowerCase().includes(q) ||
+      (m.brand ?? "").toLowerCase().includes(q) ||
+      (m.barcode ?? "").toLowerCase().includes(q),
+  );
+}
+
+/** Count how many medicines are in the local cache. */
+export async function getCachedMedicineCount(): Promise<number> {
+  const db = await getDB();
+  return db.count("cached-medicines");
 }

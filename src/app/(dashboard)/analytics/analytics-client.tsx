@@ -332,7 +332,11 @@ export function AnalyticsClient({ user, branches }: AnalyticsClientProps) {
             { value: "overview", label: "Overview", icon: Activity },
             { value: "sales", label: "Sales", icon: ShoppingCart },
             { value: "inventory", label: "Inventory", icon: Package },
-            { value: "medicines", label: mode === "beauty" ? "Products" : "Medicines", icon: Pill },
+            {
+              value: "medicines",
+              label: mode === "beauty" ? "Products" : "Medicines",
+              icon: Pill,
+            },
           ].map(({ value, label, icon: Icon }) => (
             <TabsTrigger
               key={value}

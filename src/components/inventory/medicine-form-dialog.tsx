@@ -20,7 +20,13 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { createMedicine, updateMedicine } from "@/actions/inventory";
-import { MEDICINE_CATEGORIES, DISPENSING_UNITS, BEAUTY_CATEGORIES, BEAUTY_SIZE_OPTIONS, BEAUTY_COLOUR_OPTIONS } from "@/lib/constants";
+import {
+  MEDICINE_CATEGORIES,
+  DISPENSING_UNITS,
+  BEAUTY_CATEGORIES,
+  BEAUTY_SIZE_OPTIONS,
+  BEAUTY_COLOUR_OPTIONS,
+} from "@/lib/constants";
 import { Loader2, ScanBarcode, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import type { Medicine } from "@/types/database";
@@ -122,7 +128,9 @@ export function MedicineFormDialog({
         reorder_level: parseInt(form.reorder_level) || 10,
         expiry_date: form.expiry_date || undefined,
         barcode: form.barcode || undefined,
-        dispensing_unit: isBeauty ? undefined : (form.dispensing_unit || undefined),
+        dispensing_unit: isBeauty
+          ? undefined
+          : form.dispensing_unit || undefined,
         requires_prescription: isBeauty ? false : form.requires_prescription,
         brand: form.brand || undefined,
         size: form.size || undefined,
@@ -148,9 +156,9 @@ export function MedicineFormDialog({
       <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-white font-[family-name:var(--font-sans)]">
-          {isEdit
-            ? `Edit ${isBeauty ? "Product" : "Medicine"}`
-            : `Add New ${isBeauty ? "Product" : "Medicine"}`}
+            {isEdit
+              ? `Edit ${isBeauty ? "Product" : "Medicine"}`
+              : `Add New ${isBeauty ? "Product" : "Medicine"}`}
           </DialogTitle>
         </DialogHeader>
 

@@ -62,7 +62,8 @@ export function InventoryClient({
 }: InventoryClientProps) {
   const { can } = usePermissions(user.role);
   const { mode } = useMode();
-  const modeCategories = mode === "beauty" ? BEAUTY_CATEGORIES : MEDICINE_CATEGORIES;
+  const modeCategories =
+    mode === "beauty" ? BEAUTY_CATEGORIES : MEDICINE_CATEGORIES;
   const itemLabel = mode === "beauty" ? "Product" : "Medicine";
   const [medicines, setMedicines] = useState(initialMedicines);
   const [search, setSearch] = useState("");
@@ -137,7 +138,8 @@ export function InventoryClient({
             {mode === "beauty" ? "Beauty & Clothing" : "Inventory"}
           </h1>
           <p className="text-muted-foreground text-sm">
-            {medicines.length} {itemLabel.toLowerCase()}s • {user.branch?.name ?? "All Branches"}
+            {medicines.length} {itemLabel.toLowerCase()}s •{" "}
+            {user.branch?.name ?? "All Branches"}
           </p>
         </div>
         {can("add_medicine") && (
@@ -308,27 +310,34 @@ export function InventoryClient({
                                 {med.generic_name}
                               </p>
                             )}
-                            {med.requires_prescription && mode === "pharmacy" && (
-                              <Badge
-                                variant="outline"
-                                className="border-amber-500 text-amber-500 text-xs mt-1"
-                              >
-                                Rx
-                              </Badge>
-                            )}
+                            {med.requires_prescription &&
+                              mode === "pharmacy" && (
+                                <Badge
+                                  variant="outline"
+                                  className="border-amber-500 text-amber-500 text-xs mt-1"
+                                >
+                                  Rx
+                                </Badge>
+                              )}
                           </div>
                         </TableCell>
                         {mode === "beauty" && (
                           <TableCell>
                             <div className="text-xs">
                               {(med as any).brand && (
-                                <p className="text-white">{(med as any).brand}</p>
+                                <p className="text-white">
+                                  {(med as any).brand}
+                                </p>
                               )}
                               {(med as any).size && (
-                                <p className="text-muted-foreground">{(med as any).size}</p>
+                                <p className="text-muted-foreground">
+                                  {(med as any).size}
+                                </p>
                               )}
                               {(med as any).colour && (
-                                <p className="text-primary/70">{(med as any).colour}</p>
+                                <p className="text-primary/70">
+                                  {(med as any).colour}
+                                </p>
                               )}
                             </div>
                           </TableCell>

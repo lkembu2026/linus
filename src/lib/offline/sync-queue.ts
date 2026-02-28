@@ -4,10 +4,12 @@ import {
   getSyncQueue,
   removeFromSyncQueue,
 } from "./db";
+import { isActuallyOnline, invalidateConnectivityCache } from "./connectivity";
 import { createClient } from "@/lib/supabase/client";
 
 export async function syncOfflineData() {
-  if (!navigator.onLine) return { synced: 0, failed: 0 };
+  const online = await isActuallyOnline();
+  if (!online) return { synced: 0, failed: 0 };
 
   let synced = 0;
   let failed = 0;
@@ -106,18 +108,32 @@ export async function syncOfflineData() {
   return { synced, failed };
 }
 
-// Auto-sync when coming back online
+// Auto-sync when coming back online AND on a periodic timer
 export function startAutoSync(
   onSync?: (result: { synced: number; failed: number }) => void,
 ) {
-  const handleOnline = async () => {
+  let syncTimer: ReturnType<typeof setInterval> | null = null;
+
+  const trySync = async () => {
+    // Wait a moment for the connection to stabilise, then verify it's real
+    await new Promise((r) => setTimeout(r, 1500));
+    invalidateConnectivityCache();
+    const online = await isActuallyOnline();
+    if (!online) return;
     const result = await syncOfflineData();
-    if (onSync) onSync(result);
+    if (onSync && (result.synced > 0 || result.failed > 0)) onSync(result);
   };
+
+  const handleOnline = () => trySync();
 
   window.addEventListener("online", handleOnline);
 
+  // Also poll every 60 s — catches the case where internet comes back
+  // without the browser firing the "online" event
+  syncTimer = setInterval(trySync, 60_000);
+
   return () => {
     window.removeEventListener("online", handleOnline);
+    if (syncTimer) clearInterval(syncTimer);
   };
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MedicineSearch } from "@/components/pos/medicine-search";
@@ -10,6 +10,9 @@ import { useCart } from "@/hooks/use-cart";
 import { useHardwareScanner } from "@/hooks/use-hardware-scanner";
 import { useMode } from "@/contexts/mode-context";
 import { searchMedicines } from "@/actions/sales";
+import { getMedicines } from "@/actions/inventory";
+import { cacheMedicines, searchCachedMedicines } from "@/lib/offline/db";
+import { isActuallyOnline } from "@/lib/offline/connectivity";
 import {
   ShoppingCart,
   ScanBarcode,
@@ -33,6 +36,33 @@ export function POSClient({ user }: POSClientProps) {
   } | null>(null);
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // ── Seed the local medicine cache whenever we load the POS online ──────────
+  useEffect(() => {
+    isActuallyOnline().then(async (online) => {
+      if (!online) return;
+      try {
+        const medicines = await getMedicines();
+        await cacheMedicines(
+          medicines.map((m) => ({
+            id: m.id,
+            name: m.name,
+            generic_name: m.generic_name ?? null,
+            category: m.category,
+            unit_price: m.unit_price,
+            quantity_in_stock: m.quantity_in_stock,
+            barcode: m.barcode ?? null,
+            branch_id: m.branch_id,
+            dispensing_unit: (m as any).dispensing_unit ?? null,
+            brand: (m as any).brand ?? null,
+            updated_at: (m as any).updated_at ?? new Date().toISOString(),
+          })),
+        );
+      } catch {
+        // silent — cache refresh is best-effort
+      }
+    });
+  }, []);
+
   function showFeedback(type: "success" | "error" | "multi", message: string) {
     if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
     setScanFeedback({ type, message });
@@ -41,7 +71,23 @@ export function POSClient({ user }: POSClientProps) {
 
   const handleHardwareScan = useCallback(
     async (barcode: string) => {
-      const results = await searchMedicines(barcode);
+      let results: Awaited<ReturnType<typeof searchMedicines>>;
+      try {
+        results = await searchMedicines(barcode);
+      } catch {
+        // Network unavailable — fall back to IndexedDB cache
+        const cached = await searchCachedMedicines(barcode);
+        results = cached.map((m) => ({
+          medicine_id: m.id,
+          name: m.name,
+          generic_name: m.generic_name,
+          category: m.category,
+          barcode: m.barcode,
+          unit_price: m.unit_price,
+          max_quantity: m.quantity_in_stock,
+          dispensing_unit: m.dispensing_unit,
+        })) as Awaited<ReturnType<typeof searchMedicines>>;
+      }
       if (results.length === 0) {
         showFeedback("error", `No medicine found for: ${barcode}`);
         toast.error(`Barcode not found: ${barcode}`);
@@ -135,7 +181,9 @@ export function POSClient({ user }: POSClientProps) {
           <Card className="glass-card">
             <CardHeader>
               <CardTitle className="text-base text-white flex items-center justify-between">
-                <span>{mode === "beauty" ? "Search Products" : "Search Medicine"}</span>
+                <span>
+                  {mode === "beauty" ? "Search Products" : "Search Medicine"}
+                </span>
                 <span className="text-xs text-primary/70 font-normal flex items-center gap-1">
                   <ScanBarcode className="h-3.5 w-3.5" />
                   Hardware scanner supported

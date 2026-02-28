@@ -4,10 +4,11 @@ import { useState, useTransition, useRef, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { searchMedicines } from "@/actions/sales";
-import { Search, Loader2, Plus, ScanBarcode } from "lucide-react";
+import { Search, Loader2, Plus, ScanBarcode, WifiOff } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { BarcodeScanner } from "./barcode-scanner";
+import { searchCachedMedicines } from "@/lib/offline/db";
 import type { AppMode } from "@/types";
 
 interface SearchResult {
@@ -30,12 +31,16 @@ interface MedicineSearchProps {
   mode?: AppMode;
 }
 
-export function MedicineSearch({ onSelect, mode = "pharmacy" }: MedicineSearchProps) {
+export function MedicineSearch({
+  onSelect,
+  mode = "pharmacy",
+}: MedicineSearchProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isPending, startTransition] = useTransition();
   const [showResults, setShowResults] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [isOfflineResults, setIsOfflineResults] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -47,7 +52,26 @@ export function MedicineSearch({ onSelect, mode = "pharmacy" }: MedicineSearchPr
         return;
       }
       startTransition(async () => {
-        const data = await searchMedicines(value);
+        let data: SearchResult[];
+        let fromCache = false;
+        try {
+          data = await searchMedicines(value);
+        } catch {
+          // Server unreachable — use IndexedDB cache
+          const cached = await searchCachedMedicines(value);
+          data = cached.map((m) => ({
+            medicine_id: m.id,
+            name: m.name,
+            generic_name: m.generic_name,
+            category: m.category,
+            barcode: m.barcode,
+            unit_price: m.unit_price,
+            max_quantity: m.quantity_in_stock,
+          })) as SearchResult[];
+          fromCache = true;
+        }
+
+        setIsOfflineResults(fromCache);
         setResults(data);
         setShowResults(true);
 
@@ -113,7 +137,11 @@ export function MedicineSearch({ onSelect, mode = "pharmacy" }: MedicineSearchPr
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             ref={inputRef}
-            placeholder={mode === "beauty" ? "Search product by name, brand, or barcode..." : "Search medicine by name, generic name, or barcode..."}
+            placeholder={
+              mode === "beauty"
+                ? "Search product by name, brand, or barcode..."
+                : "Search medicine by name, generic name, or barcode..."
+            }
             value={query}
             onChange={(e) => handleSearch(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -138,6 +166,14 @@ export function MedicineSearch({ onSelect, mode = "pharmacy" }: MedicineSearchPr
       {/* Search Results Dropdown */}
       {showResults && results.length > 0 && (
         <div className="absolute top-full left-0 right-0 z-50 mt-1 max-h-80 overflow-y-auto rounded-lg border border-border bg-card shadow-xl">
+          {isOfflineResults && (
+            <div className="flex items-center gap-2 px-3 py-2 border-b border-amber-500/20 bg-amber-500/5">
+              <WifiOff className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+              <p className="text-xs text-amber-400">
+                Offline — showing cached results. Stock levels may be outdated.
+              </p>
+            </div>
+          )}
           {results.map((item) => (
             <button
               key={item.medicine_id}
@@ -150,15 +186,22 @@ export function MedicineSearch({ onSelect, mode = "pharmacy" }: MedicineSearchPr
                   {mode === "beauty" ? (
                     <>
                       {(item as any).brand && (
-                        <span className="text-xs text-muted-foreground">{(item as any).brand}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {(item as any).brand}
+                        </span>
                       )}
                       {(item as any).size && (
-                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                        <Badge
+                          variant="secondary"
+                          className="text-[10px] px-1.5 py-0"
+                        >
                           {(item as any).size}
                         </Badge>
                       )}
                       {(item as any).colour && (
-                        <span className="text-[10px] text-primary/70">{(item as any).colour}</span>
+                        <span className="text-[10px] text-primary/70">
+                          {(item as any).colour}
+                        </span>
                       )}
                     </>
                   ) : (
@@ -206,7 +249,9 @@ export function MedicineSearch({ onSelect, mode = "pharmacy" }: MedicineSearchPr
         results.length === 0 &&
         !isPending && (
           <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-lg border border-border bg-card p-4 text-center">
-            <p className="text-sm text-muted-foreground">No {mode === "beauty" ? "products" : "medicines"} found</p>
+            <p className="text-sm text-muted-foreground">
+              No {mode === "beauty" ? "products" : "medicines"} found
+            </p>
           </div>
         )}
 
