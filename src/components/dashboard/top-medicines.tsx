@@ -1,15 +1,22 @@
 import { formatCurrency } from "@/lib/utils";
 import type { TopMedicine } from "@/types";
+import type { AppMode } from "@/types";
 
 interface TopMedicinesProps {
   medicines: TopMedicine[];
+  mode?: AppMode;
 }
 
-export function TopMedicines({ medicines }: TopMedicinesProps) {
+export function TopMedicines({
+  medicines,
+  mode = "pharmacy",
+}: TopMedicinesProps) {
+  const itemLabel = mode === "beauty" ? "Products" : "Medicines";
+
   return (
     <div className="glass-card p-6">
       <h3 className="text-base font-semibold font-[family-name:var(--font-sans)] text-white mb-4">
-        Top Selling <span className="text-primary">Medicines</span>
+        Top Selling <span className="text-primary">{itemLabel}</span>
       </h3>
 
       {medicines.length === 0 ? (

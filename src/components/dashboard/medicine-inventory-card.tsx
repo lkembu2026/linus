@@ -2,13 +2,20 @@
 
 import { CheckCircle2, AlertTriangle, XCircle, PlusCircle } from "lucide-react";
 import type { InventoryOverview } from "@/types";
+import type { AppMode } from "@/types";
 
 interface MedicineInventoryCardProps {
   data: InventoryOverview;
+  mode?: AppMode;
 }
 
-export function MedicineInventoryCard({ data }: MedicineInventoryCardProps) {
+export function MedicineInventoryCard({
+  data,
+  mode = "pharmacy",
+}: MedicineInventoryCardProps) {
   const { total, in_stock, low_stock, out_of_stock, recently_added } = data;
+  const itemLabel = mode === "beauty" ? "products" : "medicines";
+  const titleLabel = mode === "beauty" ? "Product" : "Medicine";
 
   const statusItems = [
     {
@@ -39,12 +46,12 @@ export function MedicineInventoryCard({ data }: MedicineInventoryCardProps) {
       {/* Header */}
       <div>
         <h3 className="text-base font-semibold font-[family-name:var(--font-sans)] text-white">
-          Medicine <span className="text-primary">Inventory</span>
+          {titleLabel} <span className="text-primary">Inventory</span>
         </h3>
         <p className="text-3xl font-bold text-primary mt-1">
           {total.toLocaleString()}
           <span className="text-sm font-normal text-muted-foreground ml-2">
-            medicines total
+            {itemLabel} total
           </span>
         </p>
       </div>
@@ -70,12 +77,12 @@ export function MedicineInventoryCard({ data }: MedicineInventoryCardProps) {
         <div className="flex items-center gap-2 mb-3">
           <PlusCircle className="h-3.5 w-3.5 text-primary" />
           <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-            Medicines Added (Last 30 Days)
+            {titleLabel}s Added (Last 30 Days)
           </span>
         </div>
         {recently_added.length === 0 ? (
           <p className="text-xs text-muted-foreground text-center py-4">
-            No medicines added in the last 30 days
+            No {itemLabel} added in the last 30 days
           </p>
         ) : (
           <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">

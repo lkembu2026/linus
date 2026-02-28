@@ -8,9 +8,11 @@ import {
   Pill,
 } from "lucide-react";
 import type { DashboardStats } from "@/types";
+import type { AppMode } from "@/types";
 
 interface StatsCardsProps {
   stats: DashboardStats;
+  mode?: AppMode;
 }
 
 const cards = [
@@ -59,10 +61,19 @@ const cards = [
   },
 ];
 
-export function StatsCards({ stats }: StatsCardsProps) {
+export function StatsCards({ stats, mode = "pharmacy" }: StatsCardsProps) {
+  const cardsWithMode = cards.map((card) =>
+    card.key === "totalMedicines"
+      ? {
+          ...card,
+          label: mode === "beauty" ? "Total Products" : "Total Medicines",
+        }
+      : card,
+  );
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-      {cards.map((card) => {
+      {cardsWithMode.map((card) => {
         const Icon = card.icon;
         const value = stats[card.key];
         const displayValue =

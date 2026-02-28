@@ -32,6 +32,7 @@ export function DashboardClient() {
   const { mode } = useMode();
   const [data, setData] = useState<any>(null);
   const requestIdRef = useRef(0);
+  const itemLabel = mode === "beauty" ? "products" : "medicines";
 
   useEffect(() => {
     // Mode-aware fetching. Note: DO NOT use startTransition around this await block
@@ -112,10 +113,22 @@ export function DashboardClient() {
 
   return (
     <>
-      <StatsCards stats={data.stats} />
+      <div>
+        <h1 className="text-xl md:text-2xl font-bold font-[family-name:var(--font-sans)] text-white">
+          Dashboard
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Overview of your {mode === "beauty" ? "beauty" : "pharmacy"} operations
+        </p>
+        <p className="text-xs text-primary mt-1 uppercase tracking-wide">
+          {mode === "beauty" ? "Beauty Mode" : "Pharmacy Mode"} · Showing {itemLabel}
+        </p>
+      </div>
+
+      <StatsCards stats={data.stats} mode={mode} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-        <MedicineInventoryCard data={data.overview} />
+        <MedicineInventoryCard data={data.overview} mode={mode} />
         <div className="lg:col-span-2">
           <DailySalesChart data={data.dailySales} />
         </div>
@@ -123,7 +136,7 @@ export function DashboardClient() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
         <RevenueChart data={data.revenueData} />
-        <TopMedicines medicines={data.topMedicines} />
+        <TopMedicines medicines={data.topMedicines} mode={mode} />
       </div>
 
       <div className="mt-6">
