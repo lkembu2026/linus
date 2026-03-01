@@ -592,3 +592,105 @@ export async function syncCatalogAcrossBranches() {
     productsTracked: canonicalByKey.size,
   };
 }
+
+export async function getCatalogSyncStatus() {
+  const supabase = await createClient();
+  const user = await getCurrentUser();
+
+  if (!user || user.role !== "admin") {
+    return { error: "Admin access required" };
+  }
+
+  const { data: branchesData, error: branchError } = await supabase
+    .from("branches")
+    .select("id");
+
+  if (branchError) {
+    return { error: branchError.message };
+  }
+
+  const branchIds = ((branchesData ?? []) as unknown as { id: string }[]).map(
+    (branch) => branch.id,
+  );
+
+  if (branchIds.length === 0) {
+    return {
+      success: true,
+      totalUniqueProducts: 0,
+      branchCount: 0,
+      expectedCopies: 0,
+      actualCopies: 0,
+      missingBranchCopies: 0,
+      coveragePercent: 100,
+      synced: true,
+    };
+  }
+
+  type StatusRow = {
+    name: string;
+    generic_name: string | null;
+    category: string;
+    barcode: string | null;
+    dispensing_unit: string | null;
+    requires_prescription: boolean;
+    brand: string | null;
+    size: string | null;
+    colour: string | null;
+    branch_id: string;
+  };
+
+  const { data: medicinesData, error: medicinesError } = await supabase
+    .from("medicines")
+    .select(
+      "name, generic_name, category, barcode, dispensing_unit, requires_prescription, brand, size, colour, branch_id",
+    );
+
+  if (medicinesError) {
+    return { error: medicinesError.message };
+  }
+
+  const medicines = (medicinesData ?? []) as unknown as StatusRow[];
+
+  if (medicines.length === 0) {
+    return {
+      success: true,
+      totalUniqueProducts: 0,
+      branchCount: branchIds.length,
+      expectedCopies: 0,
+      actualCopies: 0,
+      missingBranchCopies: 0,
+      coveragePercent: 100,
+      synced: true,
+    };
+  }
+
+  const branchesByKey = new Map<string, Set<string>>();
+
+  for (const medicine of medicines) {
+    const key = buildMedicineIdentityKey(medicine);
+    if (!branchesByKey.has(key)) {
+      branchesByKey.set(key, new Set<string>());
+    }
+    branchesByKey.get(key)!.add(medicine.branch_id);
+  }
+
+  const totalUniqueProducts = branchesByKey.size;
+  const expectedCopies = totalUniqueProducts * branchIds.length;
+  const actualCopies = medicines.length;
+  const missingBranchCopies = Math.max(0, expectedCopies - actualCopies);
+  const coveragePercent =
+    expectedCopies === 0
+      ? 100
+      : Math.round((actualCopies / expectedCopies) * 10000) / 100;
+
+  return {
+    success: true,
+    totalUniqueProducts,
+    branchCount: branchIds.length,
+    expectedCopies,
+    actualCopies,
+    missingBranchCopies,
+    coveragePercent,
+    synced: missingBranchCopies === 0,
+  };
+}

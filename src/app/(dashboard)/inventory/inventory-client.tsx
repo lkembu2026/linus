@@ -34,6 +34,7 @@ import {
   getMedicines,
   deleteMedicine,
   syncCatalogAcrossBranches,
+  getCatalogSyncStatus,
 } from "@/actions/inventory";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useMode } from "@/contexts/mode-context";
@@ -95,6 +96,16 @@ export function InventoryClient({
   const [labelMedicine, setLabelMedicine] = useState<Medicine | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [isSyncingCatalog, setIsSyncingCatalog] = useState(false);
+  const [isLoadingSyncStatus, setIsLoadingSyncStatus] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<{
+    totalUniqueProducts: number;
+    branchCount: number;
+    expectedCopies: number;
+    actualCopies: number;
+    missingBranchCopies: number;
+    coveragePercent: number;
+    synced: boolean;
+  } | null>(null);
   const [isPending, startTransition] = useTransition();
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 20;
@@ -201,6 +212,33 @@ export function InventoryClient({
     handleSearch(search, category);
   }
 
+  async function loadSyncStatus() {
+    if (user.role !== "admin") return;
+    setIsLoadingSyncStatus(true);
+    const result = await getCatalogSyncStatus();
+    setIsLoadingSyncStatus(false);
+
+    if (result.error) {
+      toast.error(result.error);
+      return;
+    }
+
+    setSyncStatus({
+      totalUniqueProducts: result.totalUniqueProducts,
+      branchCount: result.branchCount,
+      expectedCopies: result.expectedCopies,
+      actualCopies: result.actualCopies,
+      missingBranchCopies: result.missingBranchCopies,
+      coveragePercent: result.coveragePercent,
+      synced: result.synced,
+    });
+  }
+
+  useEffect(() => {
+    loadSyncStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user.role]);
+
   async function handleSyncCatalog() {
     if (
       !confirm(
@@ -235,6 +273,7 @@ export function InventoryClient({
     );
     cachedByModeRef.current[mode] = refreshed;
     setMedicines(refreshed);
+    await loadSyncStatus();
   }
 
   return (
@@ -317,6 +356,63 @@ export function InventoryClient({
           </div>
         )}
       </div>
+
+      {user.role === "admin" && (
+        <Card className="glass-card">
+          <CardContent className="pt-6">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div>
+                <p className="text-sm text-muted-foreground">Catalog Sync Status</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Checks if each product exists in every branch (stock remains branch-specific).
+                </p>
+              </div>
+
+              <Badge
+                variant="outline"
+                className={
+                  syncStatus?.synced
+                    ? "border-green-500 text-green-400"
+                    : "border-amber-500 text-amber-400"
+                }
+              >
+                {isLoadingSyncStatus
+                  ? "Checking..."
+                  : syncStatus?.synced
+                    ? "Fully Synced"
+                    : "Needs Sync"}
+              </Badge>
+            </div>
+
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-4 gap-3 text-sm">
+              <div className="rounded-lg border border-border p-3">
+                <p className="text-muted-foreground text-xs">Unique Products</p>
+                <p className="text-white text-lg font-semibold">
+                  {syncStatus?.totalUniqueProducts ?? 0}
+                </p>
+              </div>
+              <div className="rounded-lg border border-border p-3">
+                <p className="text-muted-foreground text-xs">Branches</p>
+                <p className="text-white text-lg font-semibold">
+                  {syncStatus?.branchCount ?? 0}
+                </p>
+              </div>
+              <div className="rounded-lg border border-border p-3">
+                <p className="text-muted-foreground text-xs">Missing Copies</p>
+                <p className="text-white text-lg font-semibold">
+                  {syncStatus?.missingBranchCopies ?? 0}
+                </p>
+              </div>
+              <div className="rounded-lg border border-border p-3">
+                <p className="text-muted-foreground text-xs">Coverage</p>
+                <p className="text-white text-lg font-semibold">
+                  {syncStatus?.coveragePercent ?? 0}%
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Filters */}
       <Card className="glass-card">

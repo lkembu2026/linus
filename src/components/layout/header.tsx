@@ -116,7 +116,7 @@ export function Header({
   function handleBranchChange(nextBranchId: string) {
     setActiveBranchId(nextBranchId);
     document.cookie = `${ACTIVE_BRANCH_COOKIE}=${nextBranchId}; path=/; max-age=31536000; samesite=lax`;
-    router.refresh();
+    window.location.reload();
   }
 
   async function handleMarkRead(id: string) {
