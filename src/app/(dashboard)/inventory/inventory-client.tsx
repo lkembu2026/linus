@@ -129,7 +129,7 @@ export function InventoryClient({
       toast.error(result.error);
       return;
     }
-    toast.success("Medicine deleted");
+    toast.success(`${itemLabel} deleted`);
     setMedicines((prev) => prev.filter((m) => m.id !== id));
   }
 
@@ -530,6 +530,7 @@ export function InventoryClient({
           const data = await getMedicines(
             search || undefined,
             category || undefined,
+            category ? undefined : [...modeCategories],
           );
           setMedicines(data);
         }}

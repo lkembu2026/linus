@@ -65,6 +65,7 @@ export function MedicineFormDialog({
   mode = "pharmacy",
 }: MedicineFormDialogProps) {
   const isBeauty = mode === "beauty";
+  const singularLabel = isBeauty ? "Product" : "Medicine";
   const categories = isBeauty ? BEAUTY_CATEGORIES : MEDICINE_CATEGORIES;
   const isEdit = !!medicine;
   const [isPending, startTransition] = useTransition();
@@ -74,12 +75,13 @@ export function MedicineFormDialog({
   const barcodeInputRef = useRef<HTMLInputElement>(null);
   const scanTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Reset form when medicine prop changes (e.g. editing a different medicine)
+  // Reset form when dialog context changes (open/edit mode/type mode)
   React.useEffect(() => {
+    if (!open) return;
     setForm(getInitialForm(medicine));
     setScanMode(false);
     setJustScanned(false);
-  }, [medicine]);
+  }, [medicine, open, mode]);
 
   function update(key: string, value: string | boolean) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -146,7 +148,7 @@ export function MedicineFormDialog({
         return;
       }
 
-      toast.success(isEdit ? "Medicine updated" : "Medicine added");
+      toast.success(isEdit ? `${singularLabel} updated` : `${singularLabel} added`);
       onClose();
     });
   }
@@ -170,7 +172,7 @@ export function MedicineFormDialog({
               value={form.name}
               onChange={(e) => update("name", e.target.value)}
               className="bg-background border-border text-white mt-1"
-              placeholder="Medicine name"
+              placeholder={`${singularLabel} name`}
             />
           </div>
 
@@ -286,7 +288,7 @@ export function MedicineFormDialog({
                     .toString(36)
                     .slice(2, 6)
                     .toUpperCase();
-                  const generated = `MED${ts}${rand}`;
+                  const generated = `${isBeauty ? "PRD" : "MED"}${ts}${rand}`;
                   update("barcode", generated);
                   setJustScanned(true);
                   setTimeout(() => setJustScanned(false), 3000);
@@ -490,9 +492,9 @@ export function MedicineFormDialog({
                 Saving...
               </>
             ) : isEdit ? (
-              "Update Medicine"
+              `Update ${singularLabel}`
             ) : (
-              "Add Medicine"
+              `Add ${singularLabel}`
             )}
           </Button>
         </DialogFooter>
