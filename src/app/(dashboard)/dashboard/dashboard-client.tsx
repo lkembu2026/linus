@@ -16,6 +16,7 @@ import {
   getMedicineDailySales,
   getMedicineCategoryBreakdown,
 } from "@/actions/dashboard";
+import { getMedicines } from "@/actions/inventory";
 import { getRecentSales } from "@/actions/sales";
 import { getCurrentUser } from "@/actions/auth";
 
@@ -46,7 +47,15 @@ interface DashboardClientProps {
   initialMode?: AppMode;
 }
 
-async function fetchDashboardData(categories?: string[]): Promise<DashboardData> {
+async function getLegacyBeautyCategories(): Promise<string[]> {
+  const all = await getMedicines();
+  const medSet = new Set<string>(MEDICINE_CATEGORIES as readonly string[]);
+  return [...new Set(all.map((m) => m.category).filter((c) => !!c && !medSet.has(c)))];
+}
+
+async function fetchDashboardData(
+  categories?: string[],
+): Promise<DashboardData> {
   const [
     stats,
     topMedicines,
@@ -113,8 +122,20 @@ export function DashboardClient({
     fetchDashboardData(categories)
       .then(async (nextData) => {
         // Pharmacy fallback: if strict categories return empty, fallback to legacy/unfiltered dataset
-        if (mode === "pharmacy" && (nextData.stats?.totalMedicines ?? 0) === 0) {
+        if (
+          mode === "pharmacy" &&
+          (nextData.stats?.totalMedicines ?? 0) === 0
+        ) {
           nextData = await fetchDashboardData(undefined);
+        }
+
+        // Beauty fallback: if strict beauty categories return empty,
+        // derive all non-pharmacy categories from DB and retry.
+        if (mode === "beauty" && (nextData.stats?.totalMedicines ?? 0) === 0) {
+          const fallbackCategories = await getLegacyBeautyCategories();
+          if (fallbackCategories.length > 0) {
+            nextData = await fetchDashboardData(fallbackCategories);
+          }
         }
 
         if (requestId !== requestIdRef.current) {

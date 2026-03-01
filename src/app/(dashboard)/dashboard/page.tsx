@@ -14,8 +14,10 @@ import {
   getMedicineDailySales,
   getMedicineCategoryBreakdown,
 } from "@/actions/dashboard";
+import { getMedicines } from "@/actions/inventory";
 import { getRecentSales } from "@/actions/sales";
 import { getCurrentUser } from "@/actions/auth";
+import { MEDICINE_CATEGORIES } from "@/lib/constants";
 
 async function fetchDashboardData(categories?: string[]) {
   const [
@@ -53,6 +55,12 @@ async function fetchDashboardData(categories?: string[]) {
   };
 }
 
+async function getLegacyBeautyCategories(): Promise<string[]> {
+  const all = await getMedicines();
+  const medSet = new Set<string>(MEDICINE_CATEGORIES as readonly string[]);
+  return [...new Set(all.map((m) => m.category).filter((c) => !!c && !medSet.has(c)))];
+}
+
 export default async function DashboardPage() {
   const cookieStore = await cookies();
   const mode = normalizeMode(cookieStore.get(MODE_STORAGE_KEY)?.value);
@@ -62,6 +70,13 @@ export default async function DashboardPage() {
 
   if (mode === "pharmacy" && (initialData.stats?.totalMedicines ?? 0) === 0) {
     initialData = await fetchDashboardData(undefined);
+  }
+
+  if (mode === "beauty" && (initialData.stats?.totalMedicines ?? 0) === 0) {
+    const fallbackCategories = await getLegacyBeautyCategories();
+    if (fallbackCategories.length > 0) {
+      initialData = await fetchDashboardData(fallbackCategories);
+    }
   }
 
   return (
