@@ -30,7 +30,11 @@ import { MedicineFormDialog } from "@/components/inventory/medicine-form-dialog"
 import { StockAdjustDialog } from "@/components/inventory/stock-adjust-dialog";
 import { BarcodeLabelDialog } from "@/components/inventory/barcode-label-dialog";
 import { ImportMedicinesDialog } from "@/components/inventory/import-medicines-dialog";
-import { getMedicines, deleteMedicine } from "@/actions/inventory";
+import {
+  getMedicines,
+  deleteMedicine,
+  syncCatalogAcrossBranches,
+} from "@/actions/inventory";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useMode } from "@/contexts/mode-context";
 import { formatCurrency, formatDate, exportToCSV } from "@/lib/utils";
@@ -47,6 +51,8 @@ import {
   Download,
   ScanBarcode,
   FileSpreadsheet,
+  Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { AppMode } from "@/types";
@@ -71,7 +77,10 @@ export function InventoryClient({
   const modeCategories = modeCategoriesMap[mode];
   const itemLabel = mode === "beauty" ? "Product" : "Medicine";
   const cachedByModeRef = useRef<
-    Record<AppMode, (Medicine & { branch?: { name: string } | null })[] | undefined>
+    Record<
+      AppMode,
+      (Medicine & { branch?: { name: string } | null })[] | undefined
+    >
   >({
     pharmacy: mode === "pharmacy" ? initialMedicines : undefined,
     beauty: mode === "beauty" ? initialMedicines : undefined,
@@ -85,6 +94,7 @@ export function InventoryClient({
   const [adjustMedicine, setAdjustMedicine] = useState<Medicine | null>(null);
   const [labelMedicine, setLabelMedicine] = useState<Medicine | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [isSyncingCatalog, setIsSyncingCatalog] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 20;
@@ -96,7 +106,9 @@ export function InventoryClient({
   );
 
   async function loadModeMedicines(targetMode: AppMode) {
-    return getMedicines(undefined, undefined, [...modeCategoriesMap[targetMode]]);
+    return getMedicines(undefined, undefined, [
+      ...modeCategoriesMap[targetMode],
+    ]);
   }
 
   // Re-fetch the correct product list whenever mode changes
@@ -122,7 +134,8 @@ export function InventoryClient({
         cachedByModeRef.current[mode] = data;
         setMedicines(data);
 
-        const oppositeMode: AppMode = mode === "pharmacy" ? "beauty" : "pharmacy";
+        const oppositeMode: AppMode =
+          mode === "pharmacy" ? "beauty" : "pharmacy";
         if (!cachedByModeRef.current[oppositeMode]) {
           loadModeMedicines(oppositeMode)
             .then((prefetched) => {
@@ -188,6 +201,42 @@ export function InventoryClient({
     handleSearch(search, category);
   }
 
+  async function handleSyncCatalog() {
+    if (
+      !confirm(
+        "Sync all existing medicines/products to every branch? Missing branch copies will be created with stock 0.",
+      )
+    ) {
+      return;
+    }
+
+    setIsSyncingCatalog(true);
+    const result = await syncCatalogAcrossBranches();
+    setIsSyncingCatalog(false);
+
+    if (result.error) {
+      toast.error(result.error);
+      return;
+    }
+
+    toast.success(
+      result.created > 0
+        ? `Catalog sync complete: ${result.created} branch item(s) added.`
+        : "Catalog already synced across branches.",
+    );
+
+    cachedByModeRef.current.pharmacy = undefined;
+    cachedByModeRef.current.beauty = undefined;
+
+    const refreshed = await getMedicines(
+      search || undefined,
+      category || undefined,
+      category ? undefined : [...modeCategories],
+    );
+    cachedByModeRef.current[mode] = refreshed;
+    setMedicines(refreshed);
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -243,6 +292,21 @@ export function InventoryClient({
               <FileSpreadsheet className="h-4 w-4 mr-2" />
               Import
             </Button>
+            {user.role === "admin" && (
+              <Button
+                variant="outline"
+                onClick={handleSyncCatalog}
+                disabled={isSyncingCatalog}
+                className="border-primary/40 text-primary hover:bg-primary/10"
+              >
+                {isSyncingCatalog ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
+                Sync All Branches
+              </Button>
+            )}
             <Button
               onClick={() => setFormOpen(true)}
               className="bg-primary text-primary-foreground hover:bg-[#00B8A9]"

@@ -12,6 +12,38 @@ function normalizeText(value?: string) {
   return trimmed && trimmed.length > 0 ? trimmed : null;
 }
 
+function normalizeKeyText(value?: string | null) {
+  return normalizeText(value ?? undefined)?.toLowerCase() ?? "";
+}
+
+function buildMedicineIdentityKey(item: {
+  name: string;
+  generic_name?: string | null;
+  category: string;
+  barcode?: string | null;
+  dispensing_unit?: string | null;
+  requires_prescription: boolean;
+  brand?: string | null;
+  size?: string | null;
+  colour?: string | null;
+}) {
+  const barcode = normalizeKeyText(item.barcode);
+  if (barcode) {
+    return `barcode:${barcode}`;
+  }
+
+  return [
+    normalizeKeyText(item.name),
+    normalizeKeyText(item.category),
+    normalizeKeyText(item.generic_name),
+    normalizeKeyText(item.dispensing_unit),
+    normalizeKeyText(item.brand),
+    normalizeKeyText(item.size),
+    normalizeKeyText(item.colour),
+    item.requires_prescription ? "1" : "0",
+  ].join("|");
+}
+
 async function findExistingBranchesForItem(
   supabase: Awaited<ReturnType<typeof createClient>>,
   branchIds: string[],
@@ -413,4 +445,150 @@ export async function bulkCreateMedicines(
 
   revalidatePath("/inventory");
   return { success: true, count: rows.length };
+}
+
+export async function syncCatalogAcrossBranches() {
+  const supabase = await createClient();
+  const user = await getCurrentUser();
+
+  if (!user || user.role !== "admin") {
+    return { error: "Admin access required" };
+  }
+
+  const { data: branchesData, error: branchError } = await supabase
+    .from("branches")
+    .select("id");
+
+  if (branchError) {
+    return { error: branchError.message };
+  }
+
+  const branchIds = ((branchesData ?? []) as unknown as { id: string }[]).map(
+    (branch) => branch.id,
+  );
+
+  if (branchIds.length <= 1) {
+    return {
+      success: true,
+      created: 0,
+      productsTracked: 0,
+      message: "Nothing to sync. Only one branch exists.",
+    };
+  }
+
+  type SeedRow = {
+    id: string;
+    name: string;
+    generic_name: string | null;
+    category: string;
+    unit_price: number;
+    cost_price: number;
+    reorder_level: number;
+    expiry_date: string | null;
+    barcode: string | null;
+    dispensing_unit: string | null;
+    requires_prescription: boolean;
+    brand: string | null;
+    size: string | null;
+    colour: string | null;
+    branch_id: string;
+    created_at: string;
+  };
+
+  const { data: allMedicinesData, error: medicinesError } = await supabase
+    .from("medicines")
+    .select(
+      "id, name, generic_name, category, unit_price, cost_price, reorder_level, expiry_date, barcode, dispensing_unit, requires_prescription, brand, size, colour, branch_id, created_at",
+    )
+    .order("created_at", { ascending: true });
+
+  if (medicinesError) {
+    return { error: medicinesError.message };
+  }
+
+  const allMedicines = (allMedicinesData ?? []) as unknown as SeedRow[];
+
+  if (allMedicines.length === 0) {
+    return {
+      success: true,
+      created: 0,
+      productsTracked: 0,
+      message: "No products found to sync.",
+    };
+  }
+
+  const canonicalByKey = new Map<string, SeedRow>();
+  const branchesByKey = new Map<string, Set<string>>();
+
+  for (const medicine of allMedicines) {
+    const key = buildMedicineIdentityKey(medicine);
+    if (!canonicalByKey.has(key)) {
+      canonicalByKey.set(key, medicine);
+    }
+    if (!branchesByKey.has(key)) {
+      branchesByKey.set(key, new Set<string>());
+    }
+    branchesByKey.get(key)!.add(medicine.branch_id);
+  }
+
+  const rowsToInsert: Array<Record<string, unknown>> = [];
+
+  for (const [key, canonical] of canonicalByKey.entries()) {
+    const existingBranches = branchesByKey.get(key) ?? new Set<string>();
+
+    for (const branchId of branchIds) {
+      if (existingBranches.has(branchId)) continue;
+
+      rowsToInsert.push({
+        name: canonical.name,
+        generic_name: canonical.generic_name,
+        category: canonical.category,
+        unit_price: canonical.unit_price,
+        cost_price: canonical.cost_price,
+        quantity_in_stock: 0,
+        reorder_level: canonical.reorder_level,
+        expiry_date: canonical.expiry_date,
+        barcode: canonical.barcode,
+        dispensing_unit: canonical.dispensing_unit,
+        requires_prescription: canonical.requires_prescription,
+        brand: canonical.brand,
+        size: canonical.size,
+        colour: canonical.colour,
+        branch_id: branchId,
+        created_by: user.id,
+      });
+    }
+  }
+
+  if (rowsToInsert.length > 0) {
+    const chunkSize = 500;
+    for (let index = 0; index < rowsToInsert.length; index += chunkSize) {
+      const chunk = rowsToInsert.slice(index, index + chunkSize);
+      const { error } = await supabase.from("medicines").insert(chunk as any);
+      if (error) {
+        return { error: error.message };
+      }
+    }
+  }
+
+  await supabase.from("audit_logs").insert({
+    user_id: user.id,
+    action: "sync_catalog_all_branches",
+    details: {
+      products_tracked: canonicalByKey.size,
+      rows_created: rowsToInsert.length,
+      branch_count: branchIds.length,
+    },
+  });
+
+  revalidatePath("/inventory");
+  revalidatePath("/dashboard");
+  revalidatePath("/sales");
+  revalidatePath("/transfers");
+
+  return {
+    success: true,
+    created: rowsToInsert.length,
+    productsTracked: canonicalByKey.size,
+  };
 }
