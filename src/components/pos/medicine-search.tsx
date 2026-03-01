@@ -43,6 +43,7 @@ export function MedicineSearch({
   const [scannerOpen, setScannerOpen] = useState(false);
   const [isOfflineResults, setIsOfflineResults] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const requestIdRef = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Clear stale results whenever mode switches
@@ -60,6 +61,10 @@ export function MedicineSearch({
         setShowResults(false);
         return;
       }
+
+      requestIdRef.current += 1;
+      const requestId = requestIdRef.current;
+
       startTransition(async () => {
         let data: SearchResult[];
         let fromCache = false;
@@ -82,6 +87,8 @@ export function MedicineSearch({
           fromCache = true;
         }
 
+        if (requestId !== requestIdRef.current) return;
+
         setIsOfflineResults(fromCache);
         setResults(data);
         setShowResults(true);
@@ -100,8 +107,7 @@ export function MedicineSearch({
         }
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
+    [mode, onSelect],
   );
 
   function handleSearch(value: string) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,7 +38,15 @@ import { getCreditStats } from "@/actions/credits";
 import { useMode } from "@/contexts/mode-context";
 import { MEDICINE_CATEGORIES, BEAUTY_CATEGORIES } from "@/lib/constants";
 import type { CreditWithBalance } from "@/actions/credits";
+import type { AppMode } from "@/types";
 import { toast } from "sonner";
+
+type CreditFilter = "outstanding" | "settled" | "all";
+
+const modeCategoriesMap = {
+  pharmacy: [...MEDICINE_CATEGORIES],
+  beauty: [...BEAUTY_CATEGORIES],
+} as const;
 
 interface CreditsClientProps {
   credits: CreditWithBalance[];
@@ -56,32 +64,113 @@ export function CreditsClient({
   userRole,
 }: CreditsClientProps) {
   const { mode } = useMode();
-  const modeCategories =
-    mode === "beauty" ? [...BEAUTY_CATEGORIES] : [...MEDICINE_CATEGORIES];
+  const modeCategories = [...modeCategoriesMap[mode]];
+  const cacheRef = useRef<
+    Record<
+      string,
+      {
+        credits: CreditWithBalance[];
+        stats: {
+          totalOutstanding: number;
+          totalClients: number;
+          totalSettled: number;
+        };
+      }
+    >
+  >({
+    [`${mode}:outstanding`]: { credits: initial, stats },
+  });
+  const requestIdRef = useRef(0);
   const [credits, setCredits] = useState<CreditWithBalance[]>(initial);
   const [statsState, setStatsState] = useState(stats);
-  const [filter, setFilter] = useState<"outstanding" | "settled" | "all">(
-    "outstanding",
-  );
+  const [filter, setFilter] = useState<CreditFilter>("outstanding");
   const [search, setSearch] = useState("");
   const [payDialog, setPayDialog] = useState<CreditWithBalance | null>(null);
   const [payAmount, setPayAmount] = useState("");
   const [paying, setPaying] = useState(false);
 
-  async function loadCredits(f: "outstanding" | "settled" | "all") {
+  function getCacheKey(targetMode: AppMode, targetFilter: CreditFilter) {
+    return `${targetMode}:${targetFilter}`;
+  }
+
+  async function loadCredits(f: CreditFilter) {
     setFilter(f);
-    const updated = await getCredits(f, modeCategories);
-    setCredits(updated);
+
+    const cacheKey = getCacheKey(mode, f);
+    const cached = cacheRef.current[cacheKey];
+    if (cached) {
+      setCredits(cached.credits);
+      setStatsState(cached.stats);
+    } else {
+      setCredits([]);
+      setStatsState({ totalOutstanding: 0, totalClients: 0, totalSettled: 0 });
+    }
+
+    requestIdRef.current += 1;
+    const requestId = requestIdRef.current;
+
+    const [updatedCredits, updatedStats] = await Promise.all([
+      getCredits(f, modeCategories),
+      getCreditStats(modeCategories),
+    ]);
+
+    if (requestId !== requestIdRef.current) return;
+
+    cacheRef.current[cacheKey] = {
+      credits: updatedCredits,
+      stats: updatedStats,
+    };
+    setCredits(updatedCredits);
+    setStatsState(updatedStats);
   }
 
   useEffect(() => {
+    const cacheKey = getCacheKey(mode, filter);
+    const cached = cacheRef.current[cacheKey];
+    if (cached) {
+      setCredits(cached.credits);
+      setStatsState(cached.stats);
+    } else {
+      setCredits([]);
+      setStatsState({ totalOutstanding: 0, totalClients: 0, totalSettled: 0 });
+    }
+
+    requestIdRef.current += 1;
+    const requestId = requestIdRef.current;
+
     Promise.all([
       getCredits(filter, modeCategories),
       getCreditStats(modeCategories),
-    ]).then(([updatedCredits, updatedStats]) => {
-      setCredits(updatedCredits);
-      setStatsState(updatedStats);
-    });
+    ])
+      .then(([updatedCredits, updatedStats]) => {
+        if (requestId !== requestIdRef.current) return;
+
+        cacheRef.current[cacheKey] = {
+          credits: updatedCredits,
+          stats: updatedStats,
+        };
+        setCredits(updatedCredits);
+        setStatsState(updatedStats);
+
+        const oppositeMode: AppMode = mode === "pharmacy" ? "beauty" : "pharmacy";
+        const oppositeKey = getCacheKey(oppositeMode, filter);
+        if (!cacheRef.current[oppositeKey]) {
+          Promise.all([
+            getCredits(filter, [...modeCategoriesMap[oppositeMode]]),
+            getCreditStats([...modeCategoriesMap[oppositeMode]]),
+          ])
+            .then(([prefetchCredits, prefetchStats]) => {
+              cacheRef.current[oppositeKey] = {
+                credits: prefetchCredits,
+                stats: prefetchStats,
+              };
+            })
+            .catch(() => {});
+        }
+      })
+      .catch(() => {
+        if (requestId !== requestIdRef.current) return;
+      });
   }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handlePayment() {
@@ -113,6 +202,10 @@ export function CreditsClient({
       getCredits(filter, modeCategories),
       getCreditStats(modeCategories),
     ]);
+    cacheRef.current[getCacheKey(mode, filter)] = {
+      credits: updatedCredits,
+      stats: updatedStats,
+    };
     setCredits(updatedCredits);
     setStatsState(updatedStats);
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,6 +49,7 @@ import {
   FileSpreadsheet,
 } from "lucide-react";
 import { toast } from "sonner";
+import type { AppMode } from "@/types";
 import type { User, Medicine } from "@/types/database";
 
 interface InventoryClientProps {
@@ -56,15 +57,26 @@ interface InventoryClientProps {
   initialMedicines: (Medicine & { branch?: { name: string } | null })[];
 }
 
+const modeCategoriesMap = {
+  pharmacy: [...MEDICINE_CATEGORIES],
+  beauty: [...BEAUTY_CATEGORIES],
+} as const;
+
 export function InventoryClient({
   user,
   initialMedicines,
 }: InventoryClientProps) {
   const { can } = usePermissions(user.role);
   const { mode } = useMode();
-  const modeCategories =
-    mode === "beauty" ? BEAUTY_CATEGORIES : MEDICINE_CATEGORIES;
+  const modeCategories = modeCategoriesMap[mode];
   const itemLabel = mode === "beauty" ? "Product" : "Medicine";
+  const cachedByModeRef = useRef<
+    Record<AppMode, (Medicine & { branch?: { name: string } | null })[] | undefined>
+  >({
+    pharmacy: mode === "pharmacy" ? initialMedicines : undefined,
+    beauty: mode === "beauty" ? initialMedicines : undefined,
+  });
+  const requestIdRef = useRef(0);
   const [medicines, setMedicines] = useState(initialMedicines);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
@@ -83,18 +95,45 @@ export function InventoryClient({
     page * PAGE_SIZE,
   );
 
+  async function loadModeMedicines(targetMode: AppMode) {
+    return getMedicines(undefined, undefined, [...modeCategoriesMap[targetMode]]);
+  }
+
   // Re-fetch the correct product list whenever mode changes
   useEffect(() => {
     setSearch("");
     setCategory("");
     setPage(1);
-    const cats =
-      mode === "beauty" ? [...BEAUTY_CATEGORIES] : [...MEDICINE_CATEGORIES];
+    const cached = cachedByModeRef.current[mode];
+    if (cached) {
+      setMedicines(cached);
+    } else {
+      setMedicines([]);
+    }
+
+    requestIdRef.current += 1;
+    const requestId = requestIdRef.current;
+
     // NOTE: do NOT wrap in startTransition here — async state updates
     // after await inside startTransition are silently dropped in React 19.
-    getMedicines(undefined, undefined, cats).then((data) => {
-      setMedicines(data);
-    });
+    loadModeMedicines(mode)
+      .then((data) => {
+        if (requestId !== requestIdRef.current) return;
+        cachedByModeRef.current[mode] = data;
+        setMedicines(data);
+
+        const oppositeMode: AppMode = mode === "pharmacy" ? "beauty" : "pharmacy";
+        if (!cachedByModeRef.current[oppositeMode]) {
+          loadModeMedicines(oppositeMode)
+            .then((prefetched) => {
+              cachedByModeRef.current[oppositeMode] = prefetched;
+            })
+            .catch(() => {});
+        }
+      })
+      .catch(() => {
+        if (requestId !== requestIdRef.current) return;
+      });
   }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleSearch(searchTerm: string, cat: string) {
@@ -130,7 +169,11 @@ export function InventoryClient({
       return;
     }
     toast.success(`${itemLabel} deleted`);
-    setMedicines((prev) => prev.filter((m) => m.id !== id));
+    setMedicines((prev) => {
+      const next = prev.filter((m) => m.id !== id);
+      cachedByModeRef.current[mode] = next;
+      return next;
+    });
   }
 
   function handleFormClose() {

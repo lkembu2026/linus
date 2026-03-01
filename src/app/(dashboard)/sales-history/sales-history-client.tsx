@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,13 @@ import { voidSale, getRecentSales } from "@/actions/sales";
 import { useMode } from "@/contexts/mode-context";
 import { MEDICINE_CATEGORIES, BEAUTY_CATEGORIES } from "@/lib/constants";
 import type { RecentSale } from "@/actions/sales";
+import type { AppMode } from "@/types";
 import { toast } from "sonner";
+
+const modeCategoriesMap = {
+  pharmacy: [...MEDICINE_CATEGORIES],
+  beauty: [...BEAUTY_CATEGORIES],
+} as const;
 
 interface SalesHistoryClientProps {
   sales: RecentSale[];
@@ -31,14 +37,49 @@ export function SalesHistoryClient({
   userRole,
 }: SalesHistoryClientProps) {
   const { mode } = useMode();
-  const modeCategories =
-    mode === "beauty" ? [...BEAUTY_CATEGORIES] : [...MEDICINE_CATEGORIES];
+  const modeCategories = [...modeCategoriesMap[mode]];
   const itemLabel = mode === "beauty" ? "products" : "items";
+  const cachedByModeRef = useRef<Record<AppMode, RecentSale[] | undefined>>({
+    pharmacy: mode === "pharmacy" ? initialSales : undefined,
+    beauty: mode === "beauty" ? initialSales : undefined,
+  });
+  const requestIdRef = useRef(0);
   const [sales, setSales] = useState<RecentSale[]>(initialSales);
   const [search, setSearch] = useState("");
 
+  async function loadModeSales(targetMode: AppMode) {
+    return getRecentSales(20, [...modeCategoriesMap[targetMode]]);
+  }
+
   useEffect(() => {
-    getRecentSales(20, modeCategories).then((updated) => setSales(updated));
+    const cached = cachedByModeRef.current[mode];
+    if (cached) {
+      setSales(cached);
+    } else {
+      setSales([]);
+    }
+
+    requestIdRef.current += 1;
+    const requestId = requestIdRef.current;
+
+    loadModeSales(mode)
+      .then((updated) => {
+        if (requestId !== requestIdRef.current) return;
+        cachedByModeRef.current[mode] = updated;
+        setSales(updated);
+
+        const oppositeMode: AppMode = mode === "pharmacy" ? "beauty" : "pharmacy";
+        if (!cachedByModeRef.current[oppositeMode]) {
+          loadModeSales(oppositeMode)
+            .then((prefetched) => {
+              cachedByModeRef.current[oppositeMode] = prefetched;
+            })
+            .catch(() => {});
+        }
+      })
+      .catch(() => {
+        if (requestId !== requestIdRef.current) return;
+      });
   }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = sales.filter((s) => {
@@ -59,6 +100,7 @@ export function SalesHistoryClient({
     }
     toast.success("Sale voided successfully");
     const updated = await getRecentSales(20, modeCategories);
+    cachedByModeRef.current[mode] = updated;
     setSales(updated);
   }
 

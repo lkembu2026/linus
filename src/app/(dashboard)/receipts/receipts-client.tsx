@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,12 @@ import { useMode } from "@/contexts/mode-context";
 import { MEDICINE_CATEGORIES, BEAUTY_CATEGORIES } from "@/lib/constants";
 import { getReceipts } from "@/actions/receipts";
 import type { SavedReceipt } from "@/actions/receipts";
+import type { AppMode } from "@/types";
+
+const modeCategoriesMap = {
+  pharmacy: [...MEDICINE_CATEGORIES],
+  beauty: [...BEAUTY_CATEGORIES],
+} as const;
 
 interface ReceiptsClientProps {
   receipts: SavedReceipt[];
@@ -39,16 +45,52 @@ interface ReceiptsClientProps {
 
 export function ReceiptsClient({ receipts }: ReceiptsClientProps) {
   const { mode } = useMode();
-  const modeCategories =
-    mode === "beauty" ? [...BEAUTY_CATEGORIES] : [...MEDICINE_CATEGORIES];
+  const modeCategories = [...modeCategoriesMap[mode]];
+  const cachedByModeRef = useRef<Record<AppMode, SavedReceipt[] | undefined>>({
+    pharmacy: mode === "pharmacy" ? receipts : undefined,
+    beauty: mode === "beauty" ? receipts : undefined,
+  });
+  const requestIdRef = useRef(0);
   const [search, setSearch] = useState("");
   const [allReceipts, setAllReceipts] = useState<SavedReceipt[]>(receipts);
   const [previewReceipt, setPreviewReceipt] = useState<SavedReceipt | null>(
     null,
   );
 
+  async function loadModeReceipts(targetMode: AppMode) {
+    return getReceipts(100, [...modeCategoriesMap[targetMode]]);
+  }
+
   useEffect(() => {
-    getReceipts(100, modeCategories).then((updated) => setAllReceipts(updated));
+    const cached = cachedByModeRef.current[mode];
+    if (cached) {
+      setAllReceipts(cached);
+    } else {
+      setAllReceipts([]);
+    }
+    setPreviewReceipt(null);
+
+    requestIdRef.current += 1;
+    const requestId = requestIdRef.current;
+
+    loadModeReceipts(mode)
+      .then((updated) => {
+        if (requestId !== requestIdRef.current) return;
+        cachedByModeRef.current[mode] = updated;
+        setAllReceipts(updated);
+
+        const oppositeMode: AppMode = mode === "pharmacy" ? "beauty" : "pharmacy";
+        if (!cachedByModeRef.current[oppositeMode]) {
+          loadModeReceipts(oppositeMode)
+            .then((prefetched) => {
+              cachedByModeRef.current[oppositeMode] = prefetched;
+            })
+            .catch(() => {});
+        }
+      })
+      .catch(() => {
+        if (requestId !== requestIdRef.current) return;
+      });
   }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = allReceipts.filter((r) => {

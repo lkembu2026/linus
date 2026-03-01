@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -47,7 +47,13 @@ import {
   Plus,
 } from "lucide-react";
 import { toast } from "sonner";
+import type { AppMode } from "@/types";
 import type { User, Branch, Medicine } from "@/types/database";
+
+const modeCategoriesMap = {
+  pharmacy: [...MEDICINE_CATEGORIES],
+  beauty: [...BEAUTY_CATEGORIES],
+} as const;
 
 interface TransfersClientProps {
   user: User & { branch?: { name: string } | null };
@@ -61,9 +67,13 @@ export function TransfersClient({
   branches,
 }: TransfersClientProps) {
   const { mode } = useMode();
-  const modeCategories =
-    mode === "beauty" ? [...BEAUTY_CATEGORIES] : [...MEDICINE_CATEGORIES];
+  const modeCategories = [...modeCategoriesMap[mode]];
   const itemLabel = mode === "beauty" ? "Product" : "Medicine";
+  const cachedByModeRef = useRef<Record<AppMode, any[] | undefined>>({
+    pharmacy: mode === "pharmacy" ? initialTransfers : undefined,
+    beauty: mode === "beauty" ? initialTransfers : undefined,
+  });
+  const requestIdRef = useRef(0);
   const [transfers, setTransfers] = useState(initialTransfers);
   const [isPending, startTransition] = useTransition();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -73,13 +83,41 @@ export function TransfersClient({
   const [toBranch, setToBranch] = useState("");
   const [quantity, setQuantity] = useState("");
 
-  async function refresh() {
-    const updated = await getTransfers(modeCategories);
+  async function refresh(targetMode: AppMode = mode) {
+    const updated = await getTransfers([...modeCategoriesMap[targetMode]]);
+    cachedByModeRef.current[targetMode] = updated;
     setTransfers(updated);
   }
 
   useEffect(() => {
-    refresh();
+    const cached = cachedByModeRef.current[mode];
+    if (cached) {
+      setTransfers(cached);
+    } else {
+      setTransfers([]);
+    }
+
+    requestIdRef.current += 1;
+    const requestId = requestIdRef.current;
+
+    getTransfers(modeCategories)
+      .then((updated) => {
+        if (requestId !== requestIdRef.current) return;
+        cachedByModeRef.current[mode] = updated;
+        setTransfers(updated);
+
+        const oppositeMode: AppMode = mode === "pharmacy" ? "beauty" : "pharmacy";
+        if (!cachedByModeRef.current[oppositeMode]) {
+          getTransfers([...modeCategoriesMap[oppositeMode]])
+            .then((prefetched) => {
+              cachedByModeRef.current[oppositeMode] = prefetched;
+            })
+            .catch(() => {});
+        }
+      })
+      .catch(() => {
+        if (requestId !== requestIdRef.current) return;
+      });
   }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleOpenDialog() {
