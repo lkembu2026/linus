@@ -7,6 +7,63 @@ import { sendAuditEmail, sendLowStockEmail } from "@/lib/email";
 import { getEffectiveBranchId } from "@/lib/branch-server";
 import type { Medicine } from "@/types/database";
 
+function normalizeText(value?: string) {
+  const trimmed = value?.trim();
+  return trimmed && trimmed.length > 0 ? trimmed : null;
+}
+
+async function findExistingBranchesForItem(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  branchIds: string[],
+  item: {
+    name: string;
+    generic_name?: string;
+    category: string;
+    barcode?: string;
+    dispensing_unit?: string;
+    requires_prescription: boolean;
+    brand?: string;
+    size?: string;
+    colour?: string;
+  },
+) {
+  if (branchIds.length === 0) return new Set<string>();
+
+  let query = supabase
+    .from("medicines")
+    .select("branch_id")
+    .in("branch_id", branchIds)
+    .eq("name", item.name)
+    .eq("category", item.category)
+    .eq("requires_prescription", item.requires_prescription);
+
+  const barcode = normalizeText(item.barcode);
+
+  if (barcode) {
+    query = query.eq("barcode", barcode);
+  } else {
+    const genericName = normalizeText(item.generic_name);
+    const dispensingUnit = normalizeText(item.dispensing_unit);
+    const brand = normalizeText(item.brand);
+    const size = normalizeText(item.size);
+    const colour = normalizeText(item.colour);
+
+    query = genericName
+      ? query.eq("generic_name", genericName)
+      : query.is("generic_name", null);
+    query = dispensingUnit
+      ? query.eq("dispensing_unit", dispensingUnit)
+      : query.is("dispensing_unit", null);
+    query = brand ? query.eq("brand", brand) : query.is("brand", null);
+    query = size ? query.eq("size", size) : query.is("size", null);
+    query = colour ? query.eq("colour", colour) : query.is("colour", null);
+  }
+
+  const { data } = await query;
+  const rows = (data ?? []) as unknown as { branch_id: string }[];
+  return new Set(rows.map((row) => row.branch_id));
+}
+
 export async function getMedicines(
   search?: string,
   category?: string,
@@ -97,11 +154,50 @@ export async function createMedicine(formData: {
     return { error: error.message };
   }
 
+  // Admin quick-sync: create same item in all other branches with 0 stock
+  // so staff only define an item once, then adjust quantities per branch.
+  if (user.role === "admin") {
+    const { data: branchData } = await supabase.from("branches").select("id");
+    const otherBranchIds = ((branchData ?? []) as unknown as { id: string }[])
+      .map((branch) => branch.id)
+      .filter((id) => id !== branchId);
+
+    if (otherBranchIds.length > 0) {
+      const existingBranchIds = await findExistingBranchesForItem(
+        supabase,
+        otherBranchIds,
+        formData,
+      );
+
+      const cloneRows = otherBranchIds
+        .filter((id) => !existingBranchIds.has(id))
+        .map((id) => ({
+          ...formData,
+          quantity_in_stock: 0,
+          branch_id: id,
+          created_by: user.id,
+        }));
+
+      if (cloneRows.length > 0) {
+        const { error: cloneError } = await supabase
+          .from("medicines")
+          .insert(cloneRows as any);
+
+        if (cloneError) {
+          console.error("createMedicine branch clone error:", cloneError);
+        }
+      }
+    }
+  }
+
   // Log audit
   await supabase.from("audit_logs").insert({
     user_id: user.id,
     action: "create_medicine",
-    details: { medicine_name: formData.name },
+    details: {
+      medicine_name: formData.name,
+      propagated_to_all_branches: user.role === "admin",
+    },
   });
 
   // Send audit email for new medicine
