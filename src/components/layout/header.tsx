@@ -126,7 +126,9 @@ export function Header({
       params.set("branch", nextBranchId);
     }
 
-    const nextUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
+    const nextUrl = params.toString()
+      ? `${pathname}?${params.toString()}`
+      : pathname;
     router.replace(nextUrl, { scroll: false });
     router.refresh();
   }
