@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/actions/auth";
 import { revalidatePath } from "next/cache";
 import { sendTransferEmail } from "@/lib/email";
-import { getEffectiveBranchId } from "@/lib/branch";
+import { getEffectiveBranchId } from "@/lib/branch-server";
 import type { StockTransfer } from "@/types/database";
 
 export async function getTransfers(categories?: string[]) {

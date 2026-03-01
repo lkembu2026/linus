@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/actions/auth";
-import { getEffectiveBranchId } from "@/lib/branch";
+import { getEffectiveBranchId } from "@/lib/branch-server";
 import type {
   DashboardStats,
   TopMedicine,

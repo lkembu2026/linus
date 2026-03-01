@@ -11,7 +11,7 @@ import {
 } from "@/lib/email";
 import { generateReceiptHtml } from "@/lib/receipt-html";
 import { saveReceipt } from "@/actions/receipts";
-import { getEffectiveBranchId } from "@/lib/branch";
+import { getEffectiveBranchId } from "@/lib/branch-server";
 import type { CartItem } from "@/types";
 import type { Sale } from "@/types/database";
 
@@ -136,7 +136,9 @@ export async function createSale(
       .eq("id", branchId)
       .single();
     const branchName =
-      (branchData as { name: string } | null)?.name ?? user.branch?.name ?? "Branch";
+      (branchData as { name: string } | null)?.name ??
+      user.branch?.name ??
+      "Branch";
     const itemsSummary = items
       .map((i) => `${i.name} \u00d7${i.quantity}`)
       .join(", ");

@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/actions/auth";
 import { revalidatePath } from "next/cache";
 import { sendAuditEmail, sendLowStockEmail } from "@/lib/email";
-import { getEffectiveBranchId } from "@/lib/branch";
+import { getEffectiveBranchId } from "@/lib/branch-server";
 import type { Medicine } from "@/types/database";
 
 export async function getMedicines(
