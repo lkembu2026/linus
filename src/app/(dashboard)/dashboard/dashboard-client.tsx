@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useMode } from "@/contexts/mode-context";
 import { MEDICINE_CATEGORIES, BEAUTY_CATEGORIES } from "@/lib/constants";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { AppMode } from "@/types";
 
 // Actions
 import {
@@ -28,9 +29,35 @@ import { MedicineInventoryCard } from "@/components/dashboard/medicine-inventory
 import { DailySalesChart } from "@/components/dashboard/daily-sales-chart";
 import { MedicineCategoryBreakdownCard } from "@/components/dashboard/medicine-category-breakdown";
 
-export function DashboardClient() {
+type DashboardData = {
+  stats: any;
+  topMedicines: any[];
+  revenueData: any[];
+  lowStock: any[];
+  overview: any;
+  dailySales: any[];
+  categoryBreakdown: any[];
+  recentSales: any[];
+  role: string;
+};
+
+interface DashboardClientProps {
+  initialData?: DashboardData;
+  initialMode?: AppMode;
+}
+
+export function DashboardClient({
+  initialData,
+  initialMode = "pharmacy",
+}: DashboardClientProps) {
   const { mode } = useMode();
-  const [data, setData] = useState<any>(null);
+  const cachedByModeRef = useRef<Record<AppMode, DashboardData | undefined>>({
+    pharmacy: initialMode === "pharmacy" ? initialData : undefined,
+    beauty: initialMode === "beauty" ? initialData : undefined,
+  });
+  const [data, setData] = useState<DashboardData | null>(
+    cachedByModeRef.current[mode] ?? initialData ?? null,
+  );
   const requestIdRef = useRef(0);
   const itemLabel = mode === "beauty" ? "products" : "medicines";
 
@@ -39,9 +66,13 @@ export function DashboardClient() {
     // as React 19 drops state updates following an await in startTransition.
     const categories =
       mode === "beauty" ? [...BEAUTY_CATEGORIES] : [...MEDICINE_CATEGORIES];
+    const cached = cachedByModeRef.current[mode];
+    if (cached) {
+      setData(cached);
+    }
+
     requestIdRef.current += 1;
     const requestId = requestIdRef.current;
-    console.log("[Dashboard] Fetch start", { mode, categories, requestId });
 
     Promise.all([
       getDashboardStats(categories),
@@ -67,27 +98,10 @@ export function DashboardClient() {
           user,
         ]) => {
           if (requestId !== requestIdRef.current) {
-            console.log("[Dashboard] Ignored stale response", {
-              requestId,
-              latest: requestIdRef.current,
-              mode,
-            });
             return;
           }
 
-          console.log("[Dashboard] Fetch success", {
-            mode,
-            requestId,
-            totalMedicines: stats?.totalMedicines,
-            lowStock: stats?.lowStockCount,
-            topCount: Array.isArray(topMedicines) ? topMedicines.length : 0,
-            recentSales: Array.isArray(recentSales) ? recentSales.length : 0,
-            categoryRows: Array.isArray(categoryBreakdown)
-              ? categoryBreakdown.length
-              : 0,
-          });
-
-          setData({
+          const nextData: DashboardData = {
             stats,
             topMedicines,
             revenueData,
@@ -97,13 +111,17 @@ export function DashboardClient() {
             categoryBreakdown,
             recentSales,
             role: user?.role ?? "cashier",
-          });
+          };
+
+          cachedByModeRef.current[mode] = nextData;
+          setData(nextData);
         },
-      ).catch((err) => {
+      )
+      .catch((err) => {
         if (requestId !== requestIdRef.current) {
           return;
         }
-        console.error("[Dashboard] Fetch error", { mode, requestId, err });
+        console.error("Dashboard fetch error:", err);
       });
   }, [mode]);
 
@@ -118,10 +136,12 @@ export function DashboardClient() {
           Dashboard
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Overview of your {mode === "beauty" ? "beauty" : "pharmacy"} operations
+          Overview of your {mode === "beauty" ? "beauty" : "pharmacy"}{" "}
+          operations
         </p>
         <p className="text-xs text-primary mt-1 uppercase tracking-wide">
-          {mode === "beauty" ? "Beauty Mode" : "Pharmacy Mode"} · Showing {itemLabel}
+          {mode === "beauty" ? "Beauty Mode" : "Pharmacy Mode"} · Showing{" "}
+          {itemLabel}
         </p>
       </div>
 

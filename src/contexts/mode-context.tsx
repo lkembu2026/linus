@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import type { AppMode } from "@/types";
+import { MODE_STORAGE_KEY, normalizeMode } from "@/lib/mode";
 
 interface ModeContextValue {
   mode: AppMode;
@@ -13,36 +14,46 @@ const ModeContext = createContext<ModeContextValue>({
   setMode: () => {},
 });
 
-const STORAGE_KEY = "lk-pharmacare-mode";
+export function ModeProvider({
+  children,
+  initialMode = "pharmacy",
+}: {
+  children: React.ReactNode;
+  initialMode?: AppMode;
+}) {
+  const [mode, setModeState] = useState<AppMode>(initialMode);
 
-export function ModeProvider({ children }: { children: React.ReactNode }) {
-  const [mode, setModeState] = useState<AppMode>("pharmacy");
+  function persistMode(newMode: AppMode) {
+    try {
+      localStorage.setItem(MODE_STORAGE_KEY, newMode);
+    } catch {
+      // ignore
+    }
+    if (typeof document !== "undefined") {
+      document.cookie = `${MODE_STORAGE_KEY}=${newMode}; path=/; max-age=31536000; samesite=lax`;
+    }
+  }
 
   // Hydrate from localStorage on mount
   useEffect(() => {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored === "pharmacy" || stored === "beauty") {
-        console.log("[Mode] Hydrated from localStorage:", stored);
-        setModeState(stored);
+      const stored = localStorage.getItem(MODE_STORAGE_KEY);
+      const localMode = normalizeMode(stored);
+      if (localMode !== mode) {
+        setModeState(localMode);
+        persistMode(localMode);
+      } else {
+        persistMode(mode);
       }
     } catch {
       // ignore
     }
-  }, []);
-
-  useEffect(() => {
-    console.log("[Mode] Current mode:", mode);
-  }, [mode]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function setMode(newMode: AppMode) {
-    console.log("[Mode] setMode called:", { from: mode, to: newMode });
+    if (newMode === mode) return;
     setModeState(newMode);
-    try {
-      localStorage.setItem(STORAGE_KEY, newMode);
-    } catch {
-      // ignore
-    }
+    persistMode(newMode);
   }
 
   return (
