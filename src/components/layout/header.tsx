@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { logout } from "@/actions/auth";
 import { getBranches } from "@/actions/branches";
@@ -63,6 +63,8 @@ export function Header({
   onMenuClick,
 }: HeaderProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const isOnline = useOnlineStatus();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -116,7 +118,17 @@ export function Header({
   function handleBranchChange(nextBranchId: string) {
     setActiveBranchId(nextBranchId);
     document.cookie = `${ACTIVE_BRANCH_COOKIE}=${nextBranchId}; path=/; max-age=31536000; samesite=lax`;
-    window.location.reload();
+
+    const params = new URLSearchParams(searchParams.toString());
+    if (nextBranchId === ALL_BRANCHES_VALUE) {
+      params.delete("branch");
+    } else {
+      params.set("branch", nextBranchId);
+    }
+
+    const nextUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
+    router.replace(nextUrl, { scroll: false });
+    router.refresh();
   }
 
   async function handleMarkRead(id: string) {
