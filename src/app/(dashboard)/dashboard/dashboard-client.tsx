@@ -42,6 +42,11 @@ type DashboardData = {
   role: string;
 };
 
+const modeCategoriesMap = {
+  pharmacy: [...MEDICINE_CATEGORIES],
+  beauty: [...BEAUTY_CATEGORIES],
+} as const;
+
 interface DashboardClientProps {
   initialData?: DashboardData;
   initialMode?: AppMode;
@@ -93,6 +98,26 @@ async function fetchDashboardData(
   };
 }
 
+async function loadModeData(targetMode: AppMode): Promise<DashboardData> {
+  let nextData = await fetchDashboardData([...modeCategoriesMap[targetMode]]);
+
+  if (
+    targetMode === "pharmacy" &&
+    (nextData.stats?.totalMedicines ?? 0) === 0
+  ) {
+    nextData = await fetchDashboardData(undefined);
+  }
+
+  if (targetMode === "beauty" && (nextData.stats?.totalMedicines ?? 0) === 0) {
+    const fallbackCategories = await getLegacyBeautyCategories();
+    if (fallbackCategories.length > 0) {
+      nextData = await fetchDashboardData(fallbackCategories);
+    }
+  }
+
+  return nextData;
+}
+
 export function DashboardClient({
   initialData,
   initialMode = "pharmacy",
@@ -109,43 +134,39 @@ export function DashboardClient({
   const itemLabel = mode === "beauty" ? "products" : "medicines";
 
   useEffect(() => {
-    // Mode-aware fetching. Note: DO NOT use startTransition around this await block
-    // as React 19 drops state updates following an await in startTransition.
-    const categories =
-      mode === "beauty" ? [...BEAUTY_CATEGORIES] : [...MEDICINE_CATEGORIES];
+    // Mode-aware fetching. Keep rendered data strictly aligned to selected mode.
+    // If the selected mode has no cache yet, clear current data so wrong-mode
+    // values are never shown while loading.
     const cached = cachedByModeRef.current[mode];
     if (cached) {
       setData(cached);
+    } else {
+      setData(null);
     }
 
     requestIdRef.current += 1;
     const requestId = requestIdRef.current;
 
-    fetchDashboardData(categories)
+    loadModeData(mode)
       .then(async (nextData) => {
-        // Pharmacy fallback: if strict categories return empty, fallback to legacy/unfiltered dataset
-        if (
-          mode === "pharmacy" &&
-          (nextData.stats?.totalMedicines ?? 0) === 0
-        ) {
-          nextData = await fetchDashboardData(undefined);
-        }
-
-        // Beauty fallback: if strict beauty categories return empty,
-        // derive all non-pharmacy categories from DB and retry.
-        if (mode === "beauty" && (nextData.stats?.totalMedicines ?? 0) === 0) {
-          const fallbackCategories = await getLegacyBeautyCategories();
-          if (fallbackCategories.length > 0) {
-            nextData = await fetchDashboardData(fallbackCategories);
-          }
-        }
-
         if (requestId !== requestIdRef.current) {
           return;
         }
 
         cachedByModeRef.current[mode] = nextData;
         setData(nextData);
+
+        const oppositeMode: AppMode =
+          mode === "pharmacy" ? "beauty" : "pharmacy";
+        if (!cachedByModeRef.current[oppositeMode]) {
+          loadModeData(oppositeMode)
+            .then((prefetched) => {
+              cachedByModeRef.current[oppositeMode] = prefetched;
+            })
+            .catch(() => {
+              // ignore prefetch failures; active mode data is already rendered
+            });
+        }
       })
       .catch((err) => {
         if (requestId !== requestIdRef.current) {
