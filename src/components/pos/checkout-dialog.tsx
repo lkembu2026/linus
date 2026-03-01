@@ -65,6 +65,7 @@ export function CheckoutDialog({
 
   const cashAmount = parseFloat(cashTendered) || 0;
   const change = cashAmount - total;
+  const totalUnits = items.reduce((sum, item) => sum + item.quantity, 0);
 
   function handleConfirm() {
     if (paymentMethod === "cash" && cashAmount < total) {
@@ -149,7 +150,7 @@ export function CheckoutDialog({
           ? `Credit recorded for ${creditName}`
           : isOfflineSale || !online
             ? "Sale saved offline — will sync when back online"
-            : "Sale completed successfully!",
+            : `Sale completed successfully — 1 receipt for ${items.length} item type${items.length === 1 ? "" : "s"}`,
       );
     });
   }
@@ -286,6 +287,11 @@ export function CheckoutDialog({
             </DialogHeader>
 
             <div className="space-y-4 py-4">
+              <p className="text-xs text-muted-foreground">
+                This checkout will generate one receipt for all selected items
+                ({items.length} item type{items.length === 1 ? "" : "s"}, {totalUnits} total unit{totalUnits === 1 ? "" : "s"}).
+              </p>
+
               {/* Items summary */}
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {items.map((item) => (

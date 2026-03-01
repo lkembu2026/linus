@@ -216,7 +216,9 @@ export function POSClient({ user }: POSClientProps) {
               </span>{" "}
               Plug in your USB or Bluetooth barcode scanner and scan any product
               barcode — it will be added to the cart instantly without clicking
-              anything. Works best when the search box or page is in focus.
+              anything. Add all required items first, then confirm once to
+              generate a single receipt for the whole cart. Works best when the
+              search box or page is in focus.
             </p>
           </div>
         </div>

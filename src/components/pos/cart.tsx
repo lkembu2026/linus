@@ -161,6 +161,10 @@ export function Cart({
             {formatCurrency(total)}
           </span>
         </div>
+        <p className="text-[11px] text-muted-foreground">
+          Add multiple different items to this cart, then confirm once to print a
+          single combined receipt.
+        </p>
         <Button
           onClick={onCheckout}
           disabled={items.length === 0}
