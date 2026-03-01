@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,9 @@ import {
   Download,
   FileText,
 } from "lucide-react";
+import { useMode } from "@/contexts/mode-context";
+import { MEDICINE_CATEGORIES, BEAUTY_CATEGORIES } from "@/lib/constants";
+import { getReceipts } from "@/actions/receipts";
 import type { SavedReceipt } from "@/actions/receipts";
 
 interface ReceiptsClientProps {
@@ -35,12 +38,20 @@ interface ReceiptsClientProps {
 }
 
 export function ReceiptsClient({ receipts }: ReceiptsClientProps) {
+  const { mode } = useMode();
+  const modeCategories =
+    mode === "beauty" ? [...BEAUTY_CATEGORIES] : [...MEDICINE_CATEGORIES];
   const [search, setSearch] = useState("");
+  const [allReceipts, setAllReceipts] = useState<SavedReceipt[]>(receipts);
   const [previewReceipt, setPreviewReceipt] = useState<SavedReceipt | null>(
     null,
   );
 
-  const filtered = receipts.filter((r) => {
+  useEffect(() => {
+    getReceipts(100, modeCategories).then((updated) => setAllReceipts(updated));
+  }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const filtered = allReceipts.filter((r) => {
     const q = search.toLowerCase();
     return (
       r.receipt_number.toLowerCase().includes(q) ||
@@ -79,12 +90,12 @@ export function ReceiptsClient({ receipts }: ReceiptsClientProps) {
             Receipts
           </h1>
           <p className="text-muted-foreground text-sm">
-            View and reprint all saved sale receipts
+            View and reprint {mode === "beauty" ? "beauty" : "pharmacy"} sale receipts
           </p>
         </div>
         <Badge variant="outline" className="border-primary text-primary">
           <Receipt className="h-3 w-3 mr-1" />
-          {receipts.length} receipts
+          {allReceipts.length} receipts
         </Badge>
       </div>
 
@@ -94,7 +105,7 @@ export function ReceiptsClient({ receipts }: ReceiptsClientProps) {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by receipt number, medicine, cashier..."
+              placeholder={`Search by receipt number, ${mode === "beauty" ? "product" : "medicine"}, cashier...`}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10 bg-card border-border focus:border-primary"

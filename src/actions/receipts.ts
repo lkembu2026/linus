@@ -51,17 +51,55 @@ export type SavedReceipt = {
   created_at: string;
 };
 
-export async function getReceipts(limit = 50) {
+export async function getReceipts(limit = 50, categories?: string[]) {
   const supabase = await createClient();
   const user = await getCurrentUser();
 
   if (!user) return [] as SavedReceipt[];
 
-  const { data, error } = await supabase
+  let validSaleIds: string[] | undefined;
+  if (categories && categories.length > 0) {
+    const { data: medsData } = await supabase
+      .from("medicines")
+      .select("id")
+      .in("category", categories);
+    const validMedIds = ((medsData ?? []) as unknown as { id: string }[]).map(
+      (m) => m.id,
+    );
+
+    if (validMedIds.length === 0) {
+      return [] as SavedReceipt[];
+    }
+
+    const { data: saleItemsData } = await supabase
+      .from("sale_items")
+      .select("sale_id")
+      .in("medicine_id", validMedIds);
+
+    validSaleIds = [
+      ...new Set(
+        ((saleItemsData ?? []) as unknown as { sale_id: string }[]).map(
+          (si) => si.sale_id,
+        ),
+      ),
+    ];
+
+    if (validSaleIds.length === 0) {
+      return [] as SavedReceipt[];
+    }
+  }
+
+  let query = supabase
     .from("receipts")
     .select("*")
     .order("created_at", { ascending: false })
     .limit(limit);
+
+  if (validSaleIds !== undefined) {
+    query = query.in("sale_id", validSaleIds);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error("[Receipts] Failed to fetch receipts:", error);

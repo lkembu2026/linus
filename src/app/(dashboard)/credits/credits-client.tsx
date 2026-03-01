@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,9 @@ import {
 } from "lucide-react";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { getCredits, recordPayment } from "@/actions/credits";
+import { getCreditStats } from "@/actions/credits";
+import { useMode } from "@/contexts/mode-context";
+import { MEDICINE_CATEGORIES, BEAUTY_CATEGORIES } from "@/lib/constants";
 import type { CreditWithBalance } from "@/actions/credits";
 import { toast } from "sonner";
 
@@ -52,7 +55,11 @@ export function CreditsClient({
   stats,
   userRole,
 }: CreditsClientProps) {
+  const { mode } = useMode();
+  const modeCategories =
+    mode === "beauty" ? [...BEAUTY_CATEGORIES] : [...MEDICINE_CATEGORIES];
   const [credits, setCredits] = useState<CreditWithBalance[]>(initial);
+  const [statsState, setStatsState] = useState(stats);
   const [filter, setFilter] = useState<"outstanding" | "settled" | "all">(
     "outstanding",
   );
@@ -63,9 +70,19 @@ export function CreditsClient({
 
   async function loadCredits(f: "outstanding" | "settled" | "all") {
     setFilter(f);
-    const updated = await getCredits(f);
+    const updated = await getCredits(f, modeCategories);
     setCredits(updated);
   }
+
+  useEffect(() => {
+    Promise.all([
+      getCredits(filter, modeCategories),
+      getCreditStats(modeCategories),
+    ]).then(([updatedCredits, updatedStats]) => {
+      setCredits(updatedCredits);
+      setStatsState(updatedStats);
+    });
+  }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handlePayment() {
     if (!payDialog) return;
@@ -92,8 +109,12 @@ export function CreditsClient({
     );
     setPayDialog(null);
     setPayAmount("");
-    const updated = await getCredits(filter);
-    setCredits(updated);
+    const [updatedCredits, updatedStats] = await Promise.all([
+      getCredits(filter, modeCategories),
+      getCreditStats(modeCategories),
+    ]);
+    setCredits(updatedCredits);
+    setStatsState(updatedStats);
   }
 
   const filtered = credits.filter((c) => {
@@ -115,12 +136,12 @@ export function CreditsClient({
             Credit Accounts
           </h1>
           <p className="text-muted-foreground text-sm">
-            Track customers who owe payment
+            Track {mode === "beauty" ? "beauty" : "pharmacy"} customers who owe payment
           </p>
         </div>
         <Badge variant="outline" className="border-amber-500 text-amber-400">
           <AlertTriangle className="h-3 w-3 mr-1" />
-          {stats.totalClients} outstanding
+          {statsState.totalClients} outstanding
         </Badge>
       </div>
 
@@ -136,7 +157,7 @@ export function CreditsClient({
             </div>
           </div>
           <p className="text-2xl font-bold text-amber-400">
-            {formatCurrency(stats.totalOutstanding)}
+            {formatCurrency(statsState.totalOutstanding)}
           </p>
           <p className="text-xs text-muted-foreground mt-1">
             Total Outstanding
@@ -151,7 +172,7 @@ export function CreditsClient({
               <Users className="h-5 w-5 text-primary" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-white">{stats.totalClients}</p>
+          <p className="text-2xl font-bold text-white">{statsState.totalClients}</p>
           <p className="text-xs text-muted-foreground mt-1">
             Active Credit Customers
           </p>
@@ -166,7 +187,7 @@ export function CreditsClient({
             </div>
           </div>
           <p className="text-2xl font-bold text-green-400">
-            {formatCurrency(stats.totalSettled)}
+            {formatCurrency(statsState.totalSettled)}
           </p>
           <p className="text-xs text-muted-foreground mt-1">
             Total Settled (All Time)
@@ -202,7 +223,7 @@ export function CreditsClient({
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by name, phone, or medicine..."
+            placeholder={`Search by name, phone, or ${mode === "beauty" ? "product" : "medicine"}...`}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10 bg-background/50 border-border focus:border-primary"
@@ -238,7 +259,7 @@ export function CreditsClient({
                       Customer
                     </TableHead>
                     <TableHead className="text-muted-foreground hidden md:table-cell">
-                      Medicines
+                      {mode === "beauty" ? "Products" : "Medicines"}
                     </TableHead>
                     <TableHead className="text-muted-foreground">
                       Total

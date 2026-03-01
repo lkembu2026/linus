@@ -10,6 +10,7 @@ export type CreditWithBalance = Credit & { balance: number };
 
 export async function getCredits(
   filter: "outstanding" | "settled" | "all" = "outstanding",
+  categories?: string[],
 ): Promise<CreditWithBalance[]> {
   const supabase = await createClient();
   const user = await getCurrentUser();
@@ -32,6 +33,34 @@ export async function getCredits(
     query = query.eq("is_settled", true);
   }
 
+  if (categories && categories.length > 0) {
+    const { data: medsData } = await supabase
+      .from("medicines")
+      .select("id")
+      .in("category", categories);
+
+    const validMedIds = ((medsData ?? []) as unknown as { id: string }[]).map(
+      (m) => m.id,
+    );
+    if (validMedIds.length === 0) return [];
+
+    const { data: saleItemsData } = await supabase
+      .from("sale_items")
+      .select("sale_id")
+      .in("medicine_id", validMedIds);
+
+    const validSaleIds = [
+      ...new Set(
+        ((saleItemsData ?? []) as unknown as { sale_id: string }[]).map(
+          (si) => si.sale_id,
+        ),
+      ),
+    ];
+    if (validSaleIds.length === 0) return [];
+
+    query = query.in("sale_id", validSaleIds);
+  }
+
   const { data } = await query;
   const credits = (data ?? []) as unknown as Credit[];
 
@@ -41,7 +70,7 @@ export async function getCredits(
   }));
 }
 
-export async function getCreditStats() {
+export async function getCreditStats(categories?: string[]) {
   const supabase = await createClient();
   const user = await getCurrentUser();
   if (!user) return { totalOutstanding: 0, totalClients: 0, totalSettled: 0 };
@@ -50,9 +79,41 @@ export async function getCreditStats() {
 
   let query = supabase
     .from("credits")
-    .select("amount, amount_paid, is_settled, branch_id");
+    .select("amount, amount_paid, is_settled, branch_id, sale_id");
   if (!isAdmin && user.branch_id) {
     query = query.eq("branch_id", user.branch_id);
+  }
+
+  if (categories && categories.length > 0) {
+    const { data: medsData } = await supabase
+      .from("medicines")
+      .select("id")
+      .in("category", categories);
+
+    const validMedIds = ((medsData ?? []) as unknown as { id: string }[]).map(
+      (m) => m.id,
+    );
+    if (validMedIds.length === 0) {
+      return { totalOutstanding: 0, totalClients: 0, totalSettled: 0 };
+    }
+
+    const { data: saleItemsData } = await supabase
+      .from("sale_items")
+      .select("sale_id")
+      .in("medicine_id", validMedIds);
+
+    const validSaleIds = [
+      ...new Set(
+        ((saleItemsData ?? []) as unknown as { sale_id: string }[]).map(
+          (si) => si.sale_id,
+        ),
+      ),
+    ];
+    if (validSaleIds.length === 0) {
+      return { totalOutstanding: 0, totalClients: 0, totalSettled: 0 };
+    }
+
+    query = query.in("sale_id", validSaleIds);
   }
 
   const { data } = await query;

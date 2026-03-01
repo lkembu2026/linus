@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/actions/auth";
 import { getTransfers } from "@/actions/transfers";
 import { getBranches } from "@/actions/branches";
+import { MEDICINE_CATEGORIES } from "@/lib/constants";
 import { redirect } from "next/navigation";
 import { TransfersClient } from "./transfers-client";
 
@@ -9,7 +10,7 @@ export default async function TransfersPage() {
   if (!user) redirect("/login");
 
   const [transfers, branches] = await Promise.all([
-    getTransfers(),
+    getTransfers([...MEDICINE_CATEGORIES]),
     user.role === "admin" ? getBranches() : Promise.resolve([]),
   ]);
 

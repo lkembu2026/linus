@@ -6,10 +6,24 @@ import { revalidatePath } from "next/cache";
 import { sendTransferEmail, sendAuditEmail } from "@/lib/email";
 import type { StockTransfer } from "@/types/database";
 
-export async function getTransfers() {
+export async function getTransfers(categories?: string[]) {
   const supabase = await createClient();
   const user = await getCurrentUser();
   if (!user) return [] as StockTransfer[];
+
+  let validMedIds: string[] | undefined;
+  if (categories && categories.length > 0) {
+    const { data: medsData } = await supabase
+      .from("medicines")
+      .select("id")
+      .in("category", categories);
+    validMedIds = ((medsData ?? []) as unknown as { id: string }[]).map(
+      (m) => m.id,
+    );
+    if (validMedIds.length === 0) {
+      return [] as StockTransfer[];
+    }
+  }
 
   let query = supabase
     .from("stock_transfers")
@@ -28,6 +42,10 @@ export async function getTransfers() {
     query = query.or(
       `from_branch_id.eq.${user.branch_id},to_branch_id.eq.${user.branch_id}`,
     );
+  }
+
+  if (validMedIds !== undefined) {
+    query = query.in("medicine_id", validMedIds);
   }
 
   const { data, error } = await query;

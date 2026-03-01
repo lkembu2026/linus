@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +35,8 @@ import {
   createTransfer,
 } from "@/actions/transfers";
 import { getMedicines } from "@/actions/inventory";
+import { useMode } from "@/contexts/mode-context";
+import { MEDICINE_CATEGORIES, BEAUTY_CATEGORIES } from "@/lib/constants";
 import { formatDateTime } from "@/lib/utils";
 import {
   ArrowRightLeft,
@@ -58,6 +60,10 @@ export function TransfersClient({
   transfers: initialTransfers,
   branches,
 }: TransfersClientProps) {
+  const { mode } = useMode();
+  const modeCategories =
+    mode === "beauty" ? [...BEAUTY_CATEGORIES] : [...MEDICINE_CATEGORIES];
+  const itemLabel = mode === "beauty" ? "Product" : "Medicine";
   const [transfers, setTransfers] = useState(initialTransfers);
   const [isPending, startTransition] = useTransition();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -68,13 +74,17 @@ export function TransfersClient({
   const [quantity, setQuantity] = useState("");
 
   async function refresh() {
-    const updated = await getTransfers();
+    const updated = await getTransfers(modeCategories);
     setTransfers(updated);
   }
 
+  useEffect(() => {
+    refresh();
+  }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
+
   async function handleOpenDialog() {
     // Load medicines for the source branch
-    const meds = await getMedicines();
+    const meds = await getMedicines(undefined, undefined, modeCategories);
     setMedicines(meds as Medicine[]);
     setFromBranch(user.branch_id ?? "");
     setToBranch("");
@@ -140,7 +150,7 @@ export function TransfersClient({
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h1 className="text-xl md:text-2xl font-bold text-white font-[family-name:var(--font-sans)]">
-            Stock Transfers
+            {itemLabel} Transfers
           </h1>
           <p className="text-muted-foreground text-sm">
             {transfers.length} transfer{transfers.length !== 1 ? "s" : ""}
@@ -173,7 +183,7 @@ export function TransfersClient({
                 <TableHeader>
                   <TableRow className="border-border">
                     <TableHead className="text-muted-foreground">
-                      Medicine
+                      {itemLabel}
                     </TableHead>
                     <TableHead className="text-muted-foreground">
                       From
@@ -283,13 +293,13 @@ export function TransfersClient({
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div>
-              <Label className="text-muted-foreground text-sm">Medicine</Label>
+              <Label className="text-muted-foreground text-sm">{itemLabel}</Label>
               <Select
                 value={selectedMedicine}
                 onValueChange={setSelectedMedicine}
               >
                 <SelectTrigger className="bg-background border-border text-white mt-1">
-                  <SelectValue placeholder="Select medicine" />
+                  <SelectValue placeholder={`Select ${itemLabel.toLowerCase()}`} />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border">
                   {medicines.map((m) => (

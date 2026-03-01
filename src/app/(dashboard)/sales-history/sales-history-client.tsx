@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,8 @@ import {
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { Clock, XCircle, Search, Receipt } from "lucide-react";
 import { voidSale, getRecentSales } from "@/actions/sales";
+import { useMode } from "@/contexts/mode-context";
+import { MEDICINE_CATEGORIES, BEAUTY_CATEGORIES } from "@/lib/constants";
 import type { RecentSale } from "@/actions/sales";
 import { toast } from "sonner";
 
@@ -28,8 +30,16 @@ export function SalesHistoryClient({
   sales: initialSales,
   userRole,
 }: SalesHistoryClientProps) {
+  const { mode } = useMode();
+  const modeCategories =
+    mode === "beauty" ? [...BEAUTY_CATEGORIES] : [...MEDICINE_CATEGORIES];
+  const itemLabel = mode === "beauty" ? "products" : "items";
   const [sales, setSales] = useState<RecentSale[]>(initialSales);
   const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    getRecentSales(20, modeCategories).then((updated) => setSales(updated));
+  }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = sales.filter((s) => {
     if (!search) return true;
@@ -48,7 +58,7 @@ export function SalesHistoryClient({
       return;
     }
     toast.success("Sale voided successfully");
-    const updated = await getRecentSales();
+    const updated = await getRecentSales(20, modeCategories);
     setSales(updated);
   }
 
@@ -61,7 +71,7 @@ export function SalesHistoryClient({
             Sales History
           </h1>
           <p className="text-muted-foreground text-sm">
-            Complete record of all transactions
+            Complete record of {mode === "beauty" ? "beauty" : "pharmacy"} transactions
           </p>
         </div>
         <Badge variant="outline" className="border-primary text-primary">
@@ -74,7 +84,7 @@ export function SalesHistoryClient({
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Search by receipt number, items, or payment method..."
+          placeholder={`Search by receipt number, ${itemLabel}, or payment method...`}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-10 bg-background/50 border-border focus:border-primary"
@@ -105,7 +115,7 @@ export function SalesHistoryClient({
                       Receipt #
                     </TableHead>
                     <TableHead className="text-muted-foreground hidden md:table-cell">
-                      Items Sold
+                      {mode === "beauty" ? "Products Sold" : "Items Sold"}
                     </TableHead>
                     <TableHead className="text-muted-foreground">
                       Total
