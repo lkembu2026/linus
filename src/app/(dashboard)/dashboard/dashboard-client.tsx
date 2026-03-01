@@ -50,7 +50,9 @@ interface DashboardClientProps {
 async function getLegacyBeautyCategories(): Promise<string[]> {
   const all = await getMedicines();
   const medSet = new Set<string>(MEDICINE_CATEGORIES as readonly string[]);
-  return [...new Set(all.map((m) => m.category).filter((c) => !!c && !medSet.has(c)))];
+  return [
+    ...new Set(all.map((m) => m.category).filter((c) => !!c && !medSet.has(c))),
+  ];
 }
 
 async function fetchDashboardData(

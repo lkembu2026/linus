@@ -293,13 +293,17 @@ export function TransfersClient({
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div>
-              <Label className="text-muted-foreground text-sm">{itemLabel}</Label>
+              <Label className="text-muted-foreground text-sm">
+                {itemLabel}
+              </Label>
               <Select
                 value={selectedMedicine}
                 onValueChange={setSelectedMedicine}
               >
                 <SelectTrigger className="bg-background border-border text-white mt-1">
-                  <SelectValue placeholder={`Select ${itemLabel.toLowerCase()}`} />
+                  <SelectValue
+                    placeholder={`Select ${itemLabel.toLowerCase()}`}
+                  />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border">
                   {medicines.map((m) => (

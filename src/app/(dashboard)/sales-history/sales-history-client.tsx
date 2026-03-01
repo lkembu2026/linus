@@ -71,7 +71,8 @@ export function SalesHistoryClient({
             Sales History
           </h1>
           <p className="text-muted-foreground text-sm">
-            Complete record of {mode === "beauty" ? "beauty" : "pharmacy"} transactions
+            Complete record of {mode === "beauty" ? "beauty" : "pharmacy"}{" "}
+            transactions
           </p>
         </div>
         <Badge variant="outline" className="border-primary text-primary">

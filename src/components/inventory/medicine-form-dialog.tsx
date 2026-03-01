@@ -148,7 +148,9 @@ export function MedicineFormDialog({
         return;
       }
 
-      toast.success(isEdit ? `${singularLabel} updated` : `${singularLabel} added`);
+      toast.success(
+        isEdit ? `${singularLabel} updated` : `${singularLabel} added`,
+      );
       onClose();
     });
   }

@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/actions/auth";
+import { getEffectiveBranchId } from "@/lib/branch";
 
 // ---- Save receipt to database ----
 
@@ -54,6 +55,7 @@ export type SavedReceipt = {
 export async function getReceipts(limit = 50, categories?: string[]) {
   const supabase = await createClient();
   const user = await getCurrentUser();
+  const branchId = await getEffectiveBranchId(user);
 
   if (!user) return [] as SavedReceipt[];
 
@@ -94,6 +96,19 @@ export async function getReceipts(limit = 50, categories?: string[]) {
     .select("*")
     .order("created_at", { ascending: false })
     .limit(limit);
+
+  if (branchId) {
+    const { data: branchData } = await supabase
+      .from("branches")
+      .select("name")
+      .eq("id", branchId)
+      .single();
+
+    const branchName = (branchData as { name: string } | null)?.name;
+    if (branchName) {
+      query = query.eq("branch_name", branchName);
+    }
+  }
 
   if (validSaleIds !== undefined) {
     query = query.in("sale_id", validSaleIds);

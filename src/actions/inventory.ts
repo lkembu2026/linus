@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/actions/auth";
 import { revalidatePath } from "next/cache";
 import { sendAuditEmail, sendLowStockEmail } from "@/lib/email";
+import { getEffectiveBranchId } from "@/lib/branch";
 import type { Medicine } from "@/types/database";
 
 export async function getMedicines(
@@ -14,14 +15,15 @@ export async function getMedicines(
   const supabase = await createClient();
   const user = await getCurrentUser();
   if (!user) return [] as Medicine[];
+  const branchId = await getEffectiveBranchId(user);
 
   let query = supabase
     .from("medicines")
     .select("*")
     .order("name", { ascending: true });
 
-  if (user.role !== "admin") {
-    query = query.eq("branch_id", user.branch_id!);
+  if (branchId) {
+    query = query.eq("branch_id", branchId);
   }
 
   if (search) {
@@ -77,14 +79,16 @@ export async function createMedicine(formData: {
 }) {
   const supabase = await createClient();
   const user = await getCurrentUser();
+  const branchId = await getEffectiveBranchId(user);
   if (!user) return { error: "Not authenticated" };
+  if (!branchId) return { error: "No active branch selected" };
   if (user.role !== "admin" && user.role !== "pharmacist") {
     return { error: "Insufficient permissions" };
   }
 
   const { error } = await supabase.from("medicines").insert({
     ...formData,
-    branch_id: user.branch_id!,
+    branch_id: branchId,
     created_by: user.id,
   });
 
@@ -289,14 +293,16 @@ export async function bulkCreateMedicines(
 ) {
   const supabase = await createClient();
   const user = await getCurrentUser();
+  const branchId = await getEffectiveBranchId(user);
   if (!user) return { error: "Not authenticated" };
+  if (!branchId) return { error: "No active branch selected" };
   if (user.role !== "admin" && user.role !== "pharmacist") {
     return { error: "Insufficient permissions" };
   }
 
   const records = rows.map((row) => ({
     ...row,
-    branch_id: user.branch_id!,
+    branch_id: branchId,
     created_by: user.id,
   }));
 

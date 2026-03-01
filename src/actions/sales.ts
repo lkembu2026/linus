@@ -11,6 +11,7 @@ import {
 } from "@/lib/email";
 import { generateReceiptHtml } from "@/lib/receipt-html";
 import { saveReceipt } from "@/actions/receipts";
+import { getEffectiveBranchId } from "@/lib/branch";
 import type { CartItem } from "@/types";
 import type { Sale } from "@/types/database";
 
@@ -21,8 +22,9 @@ export async function createSale(
 ) {
   const supabase = await createClient();
   const user = await getCurrentUser();
+  const branchId = await getEffectiveBranchId(user);
 
-  if (!user || !user.branch_id) {
+  if (!user || !branchId) {
     return { error: "User not authenticated or not assigned to a branch" };
   }
 
@@ -31,7 +33,7 @@ export async function createSale(
     const { data: sale, error: saleError } = await supabase
       .from("sales")
       .insert({
-        branch_id: user.branch_id,
+        branch_id: branchId,
         cashier_id: user.id,
         receipt_number: generateReceiptNumber(),
         total_amount: totalAmount,
@@ -70,7 +72,7 @@ export async function createSale(
         .from("medicines")
         .select("quantity_in_stock, reorder_level, category")
         .eq("id", item.medicine_id)
-        .eq("branch_id", user.branch_id)
+        .eq("branch_id", branchId)
         .single();
 
       const med = medicine as {
@@ -94,7 +96,7 @@ export async function createSale(
           quantity_in_stock: med.quantity_in_stock - item.quantity,
         })
         .eq("id", item.medicine_id)
-        .eq("branch_id", user.branch_id);
+        .eq("branch_id", branchId);
 
       if (stockError) throw stockError;
 
@@ -128,7 +130,13 @@ export async function createSale(
     revalidatePath("/receipts");
 
     const cashierName = user.full_name ?? "Staff";
-    const branchName = user.branch?.name ?? "Branch";
+    const { data: branchData } = await supabase
+      .from("branches")
+      .select("name")
+      .eq("id", branchId)
+      .single();
+    const branchName =
+      (branchData as { name: string } | null)?.name ?? user.branch?.name ?? "Branch";
     const itemsSummary = items
       .map((i) => `${i.name} \u00d7${i.quantity}`)
       .join(", ");
@@ -218,15 +226,16 @@ export async function createSale(
 export async function searchMedicines(query: string, categories?: string[]) {
   const supabase = await createClient();
   const user = await getCurrentUser();
+  const branchId = await getEffectiveBranchId(user);
 
-  if (!user || !user.branch_id) return [];
+  if (!user || !branchId) return [];
 
   let q = supabase
     .from("medicines")
     .select(
       "id, name, generic_name, category, barcode, unit_price, quantity_in_stock, dispensing_unit",
     )
-    .eq("branch_id", user.branch_id)
+    .eq("branch_id", branchId)
     .gt("quantity_in_stock", 0)
     .or(
       `name.ilike.%${query}%,generic_name.ilike.%${query}%,barcode.eq.${query}`,
@@ -349,10 +358,9 @@ export async function getRecentSales(
 ) {
   const supabase = await createClient();
   const user = await getCurrentUser();
+  const branchId = await getEffectiveBranchId(user);
 
   if (!user) return [] as RecentSale[];
-
-  const isAdmin = user.role === "admin";
 
   let query = supabase
     .from("sales")
@@ -361,8 +369,8 @@ export async function getRecentSales(
     )
     .order("created_at", { ascending: false });
 
-  if (!isAdmin && user.branch_id) {
-    query = query.eq("branch_id", user.branch_id);
+  if (branchId) {
+    query = query.eq("branch_id", branchId);
   }
 
   // If categories filter is provided, get sales with matching sale_items
@@ -371,19 +379,27 @@ export async function getRecentSales(
       .from("medicines")
       .select("id")
       .in("category", categories);
-    
-    const validMedIds = ((medsData ?? []) as unknown as { id: string }[]).map(m => m.id);
-    
+
+    const validMedIds = ((medsData ?? []) as unknown as { id: string }[]).map(
+      (m) => m.id,
+    );
+
     if (validMedIds.length > 0) {
       const { data: saleItemsData } = await supabase
         .from("sale_items")
         .select("sale_id")
         .in("medicine_id", validMedIds);
-        
-      const validSaleIds = [...new Set(((saleItemsData ?? []) as unknown as { sale_id: string }[]).map(si => si.sale_id))];
-      
+
+      const validSaleIds = [
+        ...new Set(
+          ((saleItemsData ?? []) as unknown as { sale_id: string }[]).map(
+            (si) => si.sale_id,
+          ),
+        ),
+      ];
+
       if (validSaleIds.length === 0) return [] as RecentSale[];
-      
+
       query = query.in("id", validSaleIds);
     } else {
       return [] as RecentSale[];

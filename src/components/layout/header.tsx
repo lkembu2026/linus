@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { logout } from "@/actions/auth";
+import { getBranches } from "@/actions/branches";
 import {
   getNotifications,
   markNotificationRead,
@@ -33,12 +35,22 @@ import {
   XCircle,
 } from "lucide-react";
 import { ModeToggle } from "@/components/layout/mode-toggle";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ACTIVE_BRANCH_COOKIE, ALL_BRANCHES_VALUE } from "@/lib/branch";
 import type { UserRole } from "@/types";
 
 interface HeaderProps {
   userName: string;
   userRole: UserRole;
   branchName?: string;
+  branchId?: string;
+  branchSelection?: string;
   onMenuClick?: () => void;
 }
 
@@ -46,11 +58,18 @@ export function Header({
   userName,
   userRole,
   branchName,
+  branchId,
+  branchSelection,
   onMenuClick,
 }: HeaderProps) {
+  const router = useRouter();
   const isOnline = useOnlineStatus();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
+  const [activeBranchId, setActiveBranchId] = useState(
+    branchSelection ?? branchId ?? ALL_BRANCHES_VALUE,
+  );
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -67,6 +86,38 @@ export function Header({
     const interval = setInterval(fetchNotifications, 30000); // poll every 30s
     return () => clearInterval(interval);
   }, [fetchNotifications]);
+
+  useEffect(() => {
+    setActiveBranchId(branchSelection ?? branchId ?? ALL_BRANCHES_VALUE);
+  }, [branchSelection, branchId]);
+
+  useEffect(() => {
+    if (userRole !== "admin") return;
+
+    let isMounted = true;
+
+    (async () => {
+      const data = await getBranches();
+      if (!isMounted) return;
+
+      const branchOptions = (data ?? []).map((branch) => ({
+        id: branch.id,
+        name: branch.name,
+      }));
+
+      setBranches(branchOptions);
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [userRole]);
+
+  function handleBranchChange(nextBranchId: string) {
+    setActiveBranchId(nextBranchId);
+    document.cookie = `${ACTIVE_BRANCH_COOKIE}=${nextBranchId}; path=/; max-age=31536000; samesite=lax`;
+    router.refresh();
+  }
 
   async function handleMarkRead(id: string) {
     await markNotificationRead(id);
@@ -118,13 +169,32 @@ export function Header({
           <Menu className="h-5 w-5" />
         </Button>
 
-        {branchName && (
+        {userRole === "admin" && branches.length > 0 ? (
+          <div className="hidden sm:flex items-center gap-2 px-2 py-1 rounded-lg bg-card border border-border">
+            <span className="text-xs text-muted-foreground">Branch:</span>
+            <Select value={activeBranchId} onValueChange={handleBranchChange}>
+              <SelectTrigger className="h-7 min-w-[170px] border-0 bg-transparent px-2 text-xs">
+                <SelectValue placeholder="Select branch" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_BRANCHES_VALUE}>All Branches</SelectItem>
+                {branches.map((branch) => (
+                  <SelectItem key={branch.id} value={branch.id}>
+                    {branch.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        ) : (
+          branchName && (
           <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-card border border-border">
             <span className="text-xs text-muted-foreground">Branch:</span>
             <span className="text-xs font-medium text-primary">
               {branchName}
             </span>
           </div>
+          )
         )}
 
         {/* Mode toggle — Pharmacy / Beauty */}

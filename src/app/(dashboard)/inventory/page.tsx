@@ -4,7 +4,11 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { InventoryClient } from "./inventory-client";
 
-import { MODE_STORAGE_KEY, getCategoriesForMode, normalizeMode } from "@/lib/mode";
+import {
+  MODE_STORAGE_KEY,
+  getCategoriesForMode,
+  normalizeMode,
+} from "@/lib/mode";
 
 export default async function InventoryPage() {
   const cookieStore = await cookies();

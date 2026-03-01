@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/actions/auth";
 import { revalidatePath } from "next/cache";
 import { sendCreditEmail, sendCreditSettledEmail } from "@/lib/email";
+import { getEffectiveBranchId } from "@/lib/branch";
 import type { Credit } from "@/types/database";
 
 export type CreditWithBalance = Credit & { balance: number };
@@ -14,17 +15,16 @@ export async function getCredits(
 ): Promise<CreditWithBalance[]> {
   const supabase = await createClient();
   const user = await getCurrentUser();
+  const branchId = await getEffectiveBranchId(user);
   if (!user) return [];
-
-  const isAdmin = user.role === "admin";
 
   let query = supabase
     .from("credits")
     .select("*")
     .order("created_at", { ascending: false });
 
-  if (!isAdmin && user.branch_id) {
-    query = query.eq("branch_id", user.branch_id);
+  if (branchId) {
+    query = query.eq("branch_id", branchId);
   }
 
   if (filter === "outstanding") {
@@ -73,15 +73,14 @@ export async function getCredits(
 export async function getCreditStats(categories?: string[]) {
   const supabase = await createClient();
   const user = await getCurrentUser();
+  const branchId = await getEffectiveBranchId(user);
   if (!user) return { totalOutstanding: 0, totalClients: 0, totalSettled: 0 };
-
-  const isAdmin = user.role === "admin";
 
   let query = supabase
     .from("credits")
     .select("amount, amount_paid, is_settled, branch_id, sale_id");
-  if (!isAdmin && user.branch_id) {
-    query = query.eq("branch_id", user.branch_id);
+  if (branchId) {
+    query = query.eq("branch_id", branchId);
   }
 
   if (categories && categories.length > 0) {
@@ -147,10 +146,11 @@ export async function createCredit(data: {
 }) {
   const supabase = await createClient();
   const user = await getCurrentUser();
-  if (!user || !user.branch_id) return { error: "Not authenticated" };
+  const branchId = await getEffectiveBranchId(user);
+  if (!user || !branchId) return { error: "Not authenticated" };
 
   const { error } = await supabase.from("credits").insert({
-    branch_id: user.branch_id,
+    branch_id: branchId,
     sale_id: data.saleId,
     created_by: user.id,
     customer_name: data.customerName,

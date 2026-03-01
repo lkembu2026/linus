@@ -13,6 +13,8 @@ interface DashboardShellProps {
   userName: string;
   userRole: UserRole;
   branchName?: string;
+  branchId?: string;
+  branchSelection?: string;
 }
 
 export function DashboardShell({
@@ -20,6 +22,8 @@ export function DashboardShell({
   userName,
   userRole,
   branchName,
+  branchId,
+  branchSelection,
 }: DashboardShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
@@ -73,6 +77,8 @@ export function DashboardShell({
           userName={userName}
           userRole={userRole}
           branchName={branchName}
+          branchId={branchId}
+          branchSelection={branchSelection}
           onMenuClick={() => setMobileOpen(true)}
         />
         <main className="p-4 md:p-6">{children}</main>

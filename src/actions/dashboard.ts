@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/actions/auth";
+import { getEffectiveBranchId } from "@/lib/branch";
 import type {
   DashboardStats,
   TopMedicine,
@@ -24,8 +25,7 @@ export async function getDashboardStats(
 ): Promise<DashboardStats> {
   const supabase = await createClient();
   const user = await getCurrentUser();
-  const branchId = user?.branch_id;
-  const isAdmin = user?.role === "admin";
+  const branchId = await getEffectiveBranchId(user);
 
   let validMedIds: string[] | undefined;
   if (categories && categories.length > 0) {
@@ -67,10 +67,10 @@ export async function getDashboardStats(
     .gte("created_at", today.toISOString())
     .eq("is_voided", false);
 
-  if (!isAdmin && branchId) salesQuery = salesQuery.eq("branch_id", branchId);
+  if (branchId) salesQuery = salesQuery.eq("branch_id", branchId);
   if (validSaleIds !== undefined) {
     if (validSaleIds.length === 0) {
-      salesQuery = salesQuery.limit(0); 
+      salesQuery = salesQuery.limit(0);
     } else {
       salesQuery = salesQuery.in("id", validSaleIds);
     }
@@ -82,7 +82,7 @@ export async function getDashboardStats(
 
   // Total medicines count
   let medQuery = supabase.from("medicines").select("id", { count: "exact" });
-  if (!isAdmin && branchId) medQuery = medQuery.eq("branch_id", branchId);
+  if (branchId) medQuery = medQuery.eq("branch_id", branchId);
   if (categories && categories.length > 0)
     medQuery = medQuery.in("category", categories);
   const { count: totalMedicines } = await medQuery;
@@ -92,7 +92,7 @@ export async function getDashboardStats(
     let q = supabase
       .from("medicines")
       .select("quantity_in_stock, reorder_level");
-    if (!isAdmin && branchId) q = q.eq("branch_id", branchId);
+    if (branchId) q = q.eq("branch_id", branchId);
     if (categories && categories.length > 0) q = q.in("category", categories);
     return q;
   })();
@@ -114,7 +114,7 @@ export async function getDashboardStats(
     .select("total_amount")
     .gte("created_at", monthStart.toISOString())
     .eq("is_voided", false);
-  if (!isAdmin && branchId) monthQuery = monthQuery.eq("branch_id", branchId);
+  if (branchId) monthQuery = monthQuery.eq("branch_id", branchId);
   if (validSaleIds !== undefined) {
     if (validSaleIds.length === 0) {
       monthQuery = monthQuery.limit(0);
@@ -145,8 +145,7 @@ export async function getTopMedicines(
 ): Promise<TopMedicine[]> {
   const supabase = await createClient();
   const user = await getCurrentUser();
-  const branchId = user?.branch_id;
-  const isAdmin = user?.role === "admin";
+  const branchId = await getEffectiveBranchId(user);
 
   let validMedIds: string[] | undefined;
   if (categories && categories.length > 0) {
@@ -162,7 +161,7 @@ export async function getTopMedicines(
 
   // Get completed sales
   let salesQuery = supabase.from("sales").select("id").eq("is_voided", false);
-  if (!isAdmin && branchId) salesQuery = salesQuery.eq("branch_id", branchId);
+  if (branchId) salesQuery = salesQuery.eq("branch_id", branchId);
   const { data: salesData } = await salesQuery;
   const saleIds = ((salesData ?? []) as unknown as { id: string }[]).map(
     (s) => s.id,
@@ -234,8 +233,7 @@ export async function getRevenueChart(
 ): Promise<RevenueDataPoint[]> {
   const supabase = await createClient();
   const user = await getCurrentUser();
-  const branchId = user?.branch_id;
-  const isAdmin = user?.role === "admin";
+  const branchId = await getEffectiveBranchId(user);
 
   let validSaleIds: string[] | undefined;
   if (categories && categories.length > 0) {
@@ -272,7 +270,7 @@ export async function getRevenueChart(
     .eq("is_voided", false)
     .order("created_at", { ascending: true });
 
-  if (!isAdmin && branchId) query = query.eq("branch_id", branchId);
+  if (branchId) query = query.eq("branch_id", branchId);
   if (validSaleIds !== undefined) query = query.in("id", validSaleIds);
 
   const { data } = await query;
@@ -366,16 +364,16 @@ export async function getBranchComparison(
 export async function getLowStockItems(categories?: string[]) {
   const supabase = await createClient();
   const user = await getCurrentUser();
-  const branchId = user?.branch_id;
-  const isAdmin = user?.role === "admin";
+  const branchId = await getEffectiveBranchId(user);
 
   let query = supabase
     .from("medicines")
     .select("*")
     .order("quantity_in_stock", { ascending: true });
 
-  if (!isAdmin && branchId) query = query.eq("branch_id", branchId);
-  if (categories && categories.length > 0) query = query.in("category", categories);
+  if (branchId) query = query.eq("branch_id", branchId);
+  if (categories && categories.length > 0)
+    query = query.in("category", categories);
 
   const { data } = await query;
   const medicines = (data ?? []) as unknown as Medicine[];
@@ -389,14 +387,13 @@ export async function getInventoryOverview(
 ): Promise<InventoryOverview> {
   const supabase = await createClient();
   const user = await getCurrentUser();
-  const branchId = user?.branch_id;
-  const isAdmin = user?.role === "admin";
+  const branchId = await getEffectiveBranchId(user);
 
   let q = supabase
     .from("medicines")
     .select("id, quantity_in_stock, reorder_level, created_at")
     .order("created_at", { ascending: false });
-  if (!isAdmin && branchId) q = q.eq("branch_id", branchId);
+  if (branchId) q = q.eq("branch_id", branchId);
   if (categories && categories.length > 0) q = q.in("category", categories);
 
   const { data } = await q;
@@ -439,8 +436,7 @@ export async function getMedicineDailySales(
 ): Promise<MedicineDailySales[]> {
   const supabase = await createClient();
   const user = await getCurrentUser();
-  const branchId = user?.branch_id;
-  const isAdmin = user?.role === "admin";
+  const branchId = await getEffectiveBranchId(user);
 
   let validMedIds: string[] | undefined;
   if (categories && categories.length > 0) {
@@ -471,20 +467,20 @@ export async function getMedicineDailySales(
     .select("id")
     .gte("created_at", startDate.toISOString())
     .eq("is_voided", false);
-  if (!isAdmin && branchId) salesQ = salesQ.eq("branch_id", branchId);
+  if (branchId) salesQ = salesQ.eq("branch_id", branchId);
   const { data: salesData } = await salesQ;
   const saleIds = ((salesData ?? []) as unknown as { id: string }[]).map(
     (s) => s.id,
   );
   if (saleIds.length === 0) {
-      const results: MedicineDailySales[] = [];
-      for (let i = days; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        const key = d.toISOString().split("T")[0];
-        results.push({ date: key, units_sold: 0 });
-      }
-      return results;
+    const results: MedicineDailySales[] = [];
+    for (let i = days; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().split("T")[0];
+      results.push({ date: key, units_sold: 0 });
+    }
+    return results;
   }
 
   // Get sale items with sale date
@@ -526,20 +522,18 @@ export async function getMedicineDailySales(
 // ── Medicine Sales + Stock by Category ─────────────────────────────────────
 export async function getMedicineCategoryBreakdown(
   categories?: string[],
-): Promise<
-  MedicineCategoryBreakdown[]
-> {
+): Promise<MedicineCategoryBreakdown[]> {
   const supabase = await createClient();
   const user = await getCurrentUser();
-  const branchId = user?.branch_id;
-  const isAdmin = user?.role === "admin";
+  const branchId = await getEffectiveBranchId(user);
 
   // All medicines with stock
   let medQ = supabase
     .from("medicines")
     .select("id, category, quantity_in_stock");
-  if (!isAdmin && branchId) medQ = medQ.eq("branch_id", branchId);
-  if (categories && categories.length > 0) medQ = medQ.in("category", categories);
+  if (branchId) medQ = medQ.eq("branch_id", branchId);
+  if (categories && categories.length > 0)
+    medQ = medQ.in("category", categories);
   const { data: medsData } = await medQ;
   const meds = (medsData ?? []) as unknown as {
     id: string;
@@ -563,7 +557,7 @@ export async function getMedicineCategoryBreakdown(
 
   // Filter to non-voided sales first
   let salesQ = supabase.from("sales").select("id").eq("is_voided", false);
-  if (!isAdmin && branchId) salesQ = salesQ.eq("branch_id", branchId);
+  if (branchId) salesQ = salesQ.eq("branch_id", branchId);
   const { data: salesData } = await salesQ;
   const saleIds = ((salesData ?? []) as unknown as { id: string }[]).map(
     (s) => s.id,

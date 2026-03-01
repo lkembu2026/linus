@@ -136,7 +136,8 @@ export function CreditsClient({
             Credit Accounts
           </h1>
           <p className="text-muted-foreground text-sm">
-            Track {mode === "beauty" ? "beauty" : "pharmacy"} customers who owe payment
+            Track {mode === "beauty" ? "beauty" : "pharmacy"} customers who owe
+            payment
           </p>
         </div>
         <Badge variant="outline" className="border-amber-500 text-amber-400">
@@ -172,7 +173,9 @@ export function CreditsClient({
               <Users className="h-5 w-5 text-primary" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-white">{statsState.totalClients}</p>
+          <p className="text-2xl font-bold text-white">
+            {statsState.totalClients}
+          </p>
           <p className="text-xs text-muted-foreground mt-1">
             Active Credit Customers
           </p>

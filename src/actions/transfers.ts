@@ -3,12 +3,14 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/actions/auth";
 import { revalidatePath } from "next/cache";
-import { sendTransferEmail, sendAuditEmail } from "@/lib/email";
+import { sendTransferEmail } from "@/lib/email";
+import { getEffectiveBranchId } from "@/lib/branch";
 import type { StockTransfer } from "@/types/database";
 
 export async function getTransfers(categories?: string[]) {
   const supabase = await createClient();
   const user = await getCurrentUser();
+  const branchId = await getEffectiveBranchId(user);
   if (!user) return [] as StockTransfer[];
 
   let validMedIds: string[] | undefined;
@@ -38,9 +40,9 @@ export async function getTransfers(categories?: string[]) {
     )
     .order("created_at", { ascending: false });
 
-  if (user.role !== "admin") {
+  if (branchId) {
     query = query.or(
-      `from_branch_id.eq.${user.branch_id},to_branch_id.eq.${user.branch_id}`,
+      `from_branch_id.eq.${branchId},to_branch_id.eq.${branchId}`,
     );
   }
 

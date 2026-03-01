@@ -2,7 +2,11 @@ import { getCurrentUser } from "@/actions/auth";
 import { getTransfers } from "@/actions/transfers";
 import { getBranches } from "@/actions/branches";
 import { cookies } from "next/headers";
-import { MODE_STORAGE_KEY, getCategoriesForMode, normalizeMode } from "@/lib/mode";
+import {
+  MODE_STORAGE_KEY,
+  getCategoriesForMode,
+  normalizeMode,
+} from "@/lib/mode";
 import { redirect } from "next/navigation";
 import { TransfersClient } from "./transfers-client";
 

@@ -90,7 +90,8 @@ export function ReceiptsClient({ receipts }: ReceiptsClientProps) {
             Receipts
           </h1>
           <p className="text-muted-foreground text-sm">
-            View and reprint {mode === "beauty" ? "beauty" : "pharmacy"} sale receipts
+            View and reprint {mode === "beauty" ? "beauty" : "pharmacy"} sale
+            receipts
           </p>
         </div>
         <Badge variant="outline" className="border-primary text-primary">

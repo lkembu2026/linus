@@ -1,7 +1,11 @@
 import { getCurrentUser } from "@/actions/auth";
 import { getCredits, getCreditStats } from "@/actions/credits";
 import { cookies } from "next/headers";
-import { MODE_STORAGE_KEY, getCategoriesForMode, normalizeMode } from "@/lib/mode";
+import {
+  MODE_STORAGE_KEY,
+  getCategoriesForMode,
+  normalizeMode,
+} from "@/lib/mode";
 import { redirect } from "next/navigation";
 import { CreditsClient } from "./credits-client";
 
