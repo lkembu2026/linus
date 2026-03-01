@@ -53,8 +53,17 @@ export function SalesHistoryClient({
 
   useEffect(() => {
     const cached = cachedByModeRef.current[mode];
+    const oppositeMode: AppMode = mode === "pharmacy" ? "beauty" : "pharmacy";
     if (cached) {
       setSales(cached);
+      if (!cachedByModeRef.current[oppositeMode]) {
+        loadModeSales(oppositeMode)
+          .then((prefetched) => {
+            cachedByModeRef.current[oppositeMode] = prefetched;
+          })
+          .catch(() => {});
+      }
+      return;
     } else {
       setSales([]);
     }
@@ -67,8 +76,6 @@ export function SalesHistoryClient({
         if (requestId !== requestIdRef.current) return;
         cachedByModeRef.current[mode] = updated;
         setSales(updated);
-
-        const oppositeMode: AppMode = mode === "pharmacy" ? "beauty" : "pharmacy";
         if (!cachedByModeRef.current[oppositeMode]) {
           loadModeSales(oppositeMode)
             .then((prefetched) => {

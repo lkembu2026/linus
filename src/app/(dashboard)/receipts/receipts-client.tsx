@@ -63,8 +63,18 @@ export function ReceiptsClient({ receipts }: ReceiptsClientProps) {
 
   useEffect(() => {
     const cached = cachedByModeRef.current[mode];
+    const oppositeMode: AppMode = mode === "pharmacy" ? "beauty" : "pharmacy";
     if (cached) {
       setAllReceipts(cached);
+      if (!cachedByModeRef.current[oppositeMode]) {
+        loadModeReceipts(oppositeMode)
+          .then((prefetched) => {
+            cachedByModeRef.current[oppositeMode] = prefetched;
+          })
+          .catch(() => {});
+      }
+      setPreviewReceipt(null);
+      return;
     } else {
       setAllReceipts([]);
     }
@@ -78,8 +88,6 @@ export function ReceiptsClient({ receipts }: ReceiptsClientProps) {
         if (requestId !== requestIdRef.current) return;
         cachedByModeRef.current[mode] = updated;
         setAllReceipts(updated);
-
-        const oppositeMode: AppMode = mode === "pharmacy" ? "beauty" : "pharmacy";
         if (!cachedByModeRef.current[oppositeMode]) {
           loadModeReceipts(oppositeMode)
             .then((prefetched) => {

@@ -288,8 +288,9 @@ export function CheckoutDialog({
 
             <div className="space-y-4 py-4">
               <p className="text-xs text-muted-foreground">
-                This checkout will generate one receipt for all selected items
-                ({items.length} item type{items.length === 1 ? "" : "s"}, {totalUnits} total unit{totalUnits === 1 ? "" : "s"}).
+                This checkout will generate one receipt for all selected items (
+                {items.length} item type{items.length === 1 ? "" : "s"},{" "}
+                {totalUnits} total unit{totalUnits === 1 ? "" : "s"}).
               </p>
 
               {/* Items summary */}

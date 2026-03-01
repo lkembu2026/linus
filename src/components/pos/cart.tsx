@@ -162,8 +162,8 @@ export function Cart({
           </span>
         </div>
         <p className="text-[11px] text-muted-foreground">
-          Add multiple different items to this cart, then confirm once to print a
-          single combined receipt.
+          Add multiple different items to this cart, then confirm once to print
+          a single combined receipt.
         </p>
         <Button
           onClick={onCheckout}

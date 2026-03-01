@@ -97,10 +97,26 @@ export function CreditsClient({
     setFilter(f);
 
     const cacheKey = getCacheKey(mode, f);
+    const oppositeMode: AppMode = mode === "pharmacy" ? "beauty" : "pharmacy";
+    const oppositeKey = getCacheKey(oppositeMode, f);
     const cached = cacheRef.current[cacheKey];
     if (cached) {
       setCredits(cached.credits);
       setStatsState(cached.stats);
+      if (!cacheRef.current[oppositeKey]) {
+        Promise.all([
+          getCredits(f, [...modeCategoriesMap[oppositeMode]]),
+          getCreditStats([...modeCategoriesMap[oppositeMode]]),
+        ])
+          .then(([prefetchCredits, prefetchStats]) => {
+            cacheRef.current[oppositeKey] = {
+              credits: prefetchCredits,
+              stats: prefetchStats,
+            };
+          })
+          .catch(() => {});
+      }
+      return;
     } else {
       setCredits([]);
       setStatsState({ totalOutstanding: 0, totalClients: 0, totalSettled: 0 });
@@ -126,10 +142,26 @@ export function CreditsClient({
 
   useEffect(() => {
     const cacheKey = getCacheKey(mode, filter);
+    const oppositeMode: AppMode = mode === "pharmacy" ? "beauty" : "pharmacy";
+    const oppositeKey = getCacheKey(oppositeMode, filter);
     const cached = cacheRef.current[cacheKey];
     if (cached) {
       setCredits(cached.credits);
       setStatsState(cached.stats);
+      if (!cacheRef.current[oppositeKey]) {
+        Promise.all([
+          getCredits(filter, [...modeCategoriesMap[oppositeMode]]),
+          getCreditStats([...modeCategoriesMap[oppositeMode]]),
+        ])
+          .then(([prefetchCredits, prefetchStats]) => {
+            cacheRef.current[oppositeKey] = {
+              credits: prefetchCredits,
+              stats: prefetchStats,
+            };
+          })
+          .catch(() => {});
+      }
+      return;
     } else {
       setCredits([]);
       setStatsState({ totalOutstanding: 0, totalClients: 0, totalSettled: 0 });
@@ -151,9 +183,6 @@ export function CreditsClient({
         };
         setCredits(updatedCredits);
         setStatsState(updatedStats);
-
-        const oppositeMode: AppMode = mode === "pharmacy" ? "beauty" : "pharmacy";
-        const oppositeKey = getCacheKey(oppositeMode, filter);
         if (!cacheRef.current[oppositeKey]) {
           Promise.all([
             getCredits(filter, [...modeCategoriesMap[oppositeMode]]),

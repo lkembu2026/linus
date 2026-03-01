@@ -101,13 +101,6 @@ async function fetchDashboardData(
 async function loadModeData(targetMode: AppMode): Promise<DashboardData> {
   let nextData = await fetchDashboardData([...modeCategoriesMap[targetMode]]);
 
-  if (
-    targetMode === "pharmacy" &&
-    (nextData.stats?.totalMedicines ?? 0) === 0
-  ) {
-    nextData = await fetchDashboardData(undefined);
-  }
-
   if (targetMode === "beauty" && (nextData.stats?.totalMedicines ?? 0) === 0) {
     const fallbackCategories = await getLegacyBeautyCategories();
     if (fallbackCategories.length > 0) {
@@ -138,8 +131,19 @@ export function DashboardClient({
     // If the selected mode has no cache yet, clear current data so wrong-mode
     // values are never shown while loading.
     const cached = cachedByModeRef.current[mode];
+    const oppositeMode: AppMode = mode === "pharmacy" ? "beauty" : "pharmacy";
     if (cached) {
       setData(cached);
+      if (!cachedByModeRef.current[oppositeMode]) {
+        loadModeData(oppositeMode)
+          .then((prefetched) => {
+            cachedByModeRef.current[oppositeMode] = prefetched;
+          })
+          .catch(() => {
+            // ignore prefetch failures; active mode data is already rendered
+          });
+      }
+      return;
     } else {
       setData(null);
     }
@@ -155,9 +159,6 @@ export function DashboardClient({
 
         cachedByModeRef.current[mode] = nextData;
         setData(nextData);
-
-        const oppositeMode: AppMode =
-          mode === "pharmacy" ? "beauty" : "pharmacy";
         if (!cachedByModeRef.current[oppositeMode]) {
           loadModeData(oppositeMode)
             .then((prefetched) => {

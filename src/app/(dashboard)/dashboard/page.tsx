@@ -70,10 +70,6 @@ export default async function DashboardPage() {
 
   let initialData = await fetchDashboardData(categories);
 
-  if (mode === "pharmacy" && (initialData.stats?.totalMedicines ?? 0) === 0) {
-    initialData = await fetchDashboardData(undefined);
-  }
-
   if (mode === "beauty" && (initialData.stats?.totalMedicines ?? 0) === 0) {
     const fallbackCategories = await getLegacyBeautyCategories();
     if (fallbackCategories.length > 0) {

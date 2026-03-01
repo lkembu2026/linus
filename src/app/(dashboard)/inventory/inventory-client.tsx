@@ -128,8 +128,17 @@ export function InventoryClient({
     setCategory("");
     setPage(1);
     const cached = cachedByModeRef.current[mode];
+    const oppositeMode: AppMode = mode === "pharmacy" ? "beauty" : "pharmacy";
     if (cached) {
       setMedicines(cached);
+      if (!cachedByModeRef.current[oppositeMode]) {
+        loadModeMedicines(oppositeMode)
+          .then((prefetched) => {
+            cachedByModeRef.current[oppositeMode] = prefetched;
+          })
+          .catch(() => {});
+      }
+      return;
     } else {
       setMedicines([]);
     }
@@ -144,9 +153,6 @@ export function InventoryClient({
         if (requestId !== requestIdRef.current) return;
         cachedByModeRef.current[mode] = data;
         setMedicines(data);
-
-        const oppositeMode: AppMode =
-          mode === "pharmacy" ? "beauty" : "pharmacy";
         if (!cachedByModeRef.current[oppositeMode]) {
           loadModeMedicines(oppositeMode)
             .then((prefetched) => {
@@ -362,9 +368,12 @@ export function InventoryClient({
           <CardContent className="pt-6">
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div>
-                <p className="text-sm text-muted-foreground">Catalog Sync Status</p>
+                <p className="text-sm text-muted-foreground">
+                  Catalog Sync Status
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Checks if each product exists in every branch (stock remains branch-specific).
+                  Checks if each product exists in every branch (stock remains
+                  branch-specific).
                 </p>
               </div>
 

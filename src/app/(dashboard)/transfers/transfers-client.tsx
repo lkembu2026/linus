@@ -91,8 +91,17 @@ export function TransfersClient({
 
   useEffect(() => {
     const cached = cachedByModeRef.current[mode];
+    const oppositeMode: AppMode = mode === "pharmacy" ? "beauty" : "pharmacy";
     if (cached) {
       setTransfers(cached);
+      if (!cachedByModeRef.current[oppositeMode]) {
+        getTransfers([...modeCategoriesMap[oppositeMode]])
+          .then((prefetched) => {
+            cachedByModeRef.current[oppositeMode] = prefetched;
+          })
+          .catch(() => {});
+      }
+      return;
     } else {
       setTransfers([]);
     }
@@ -105,8 +114,6 @@ export function TransfersClient({
         if (requestId !== requestIdRef.current) return;
         cachedByModeRef.current[mode] = updated;
         setTransfers(updated);
-
-        const oppositeMode: AppMode = mode === "pharmacy" ? "beauty" : "pharmacy";
         if (!cachedByModeRef.current[oppositeMode]) {
           getTransfers([...modeCategoriesMap[oppositeMode]])
             .then((prefetched) => {

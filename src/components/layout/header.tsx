@@ -188,12 +188,12 @@ export function Header({
           </div>
         ) : (
           branchName && (
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-card border border-border">
-            <span className="text-xs text-muted-foreground">Branch:</span>
-            <span className="text-xs font-medium text-primary">
-              {branchName}
-            </span>
-          </div>
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-card border border-border">
+              <span className="text-xs text-muted-foreground">Branch:</span>
+              <span className="text-xs font-medium text-primary">
+                {branchName}
+              </span>
+            </div>
           )
         )}
 
