@@ -1,6 +1,10 @@
 import { cookies } from "next/headers";
 import { DashboardClient } from "./dashboard-client";
-import { MODE_STORAGE_KEY, getCategoriesForMode, normalizeMode } from "@/lib/mode";
+import {
+  MODE_STORAGE_KEY,
+  getCategoriesForMode,
+  normalizeMode,
+} from "@/lib/mode";
 import {
   getDashboardStats,
   getTopMedicines,
@@ -13,11 +17,7 @@ import {
 import { getRecentSales } from "@/actions/sales";
 import { getCurrentUser } from "@/actions/auth";
 
-export default async function DashboardPage() {
-  const cookieStore = await cookies();
-  const mode = normalizeMode(cookieStore.get(MODE_STORAGE_KEY)?.value);
-  const categories = getCategoriesForMode(mode);
-
+async function fetchDashboardData(categories?: string[]) {
   const [
     stats,
     topMedicines,
@@ -40,7 +40,7 @@ export default async function DashboardPage() {
     getCurrentUser(),
   ]);
 
-  const initialData = {
+  return {
     stats,
     topMedicines,
     revenueData,
@@ -51,6 +51,18 @@ export default async function DashboardPage() {
     recentSales,
     role: user?.role ?? "cashier",
   };
+}
+
+export default async function DashboardPage() {
+  const cookieStore = await cookies();
+  const mode = normalizeMode(cookieStore.get(MODE_STORAGE_KEY)?.value);
+  const categories = getCategoriesForMode(mode);
+
+  let initialData = await fetchDashboardData(categories);
+
+  if (mode === "pharmacy" && (initialData.stats?.totalMedicines ?? 0) === 0) {
+    initialData = await fetchDashboardData(undefined);
+  }
 
   return (
     <div className="space-y-6">

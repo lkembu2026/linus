@@ -46,6 +46,42 @@ interface DashboardClientProps {
   initialMode?: AppMode;
 }
 
+async function fetchDashboardData(categories?: string[]): Promise<DashboardData> {
+  const [
+    stats,
+    topMedicines,
+    revenueData,
+    lowStock,
+    overview,
+    dailySales,
+    categoryBreakdown,
+    recentSales,
+    user,
+  ] = await Promise.all([
+    getDashboardStats(categories),
+    getTopMedicines(10, categories),
+    getRevenueChart(30, categories),
+    getLowStockItems(categories),
+    getInventoryOverview(categories),
+    getMedicineDailySales(14, categories),
+    getMedicineCategoryBreakdown(categories),
+    getRecentSales(10, categories),
+    getCurrentUser(),
+  ]);
+
+  return {
+    stats,
+    topMedicines,
+    revenueData,
+    lowStock,
+    overview,
+    dailySales,
+    categoryBreakdown,
+    recentSales,
+    role: user?.role ?? "cashier",
+  };
+}
+
 export function DashboardClient({
   initialData,
   initialMode = "pharmacy",
@@ -74,49 +110,20 @@ export function DashboardClient({
     requestIdRef.current += 1;
     const requestId = requestIdRef.current;
 
-    Promise.all([
-      getDashboardStats(categories),
-      getTopMedicines(10, categories),
-      getRevenueChart(30, categories),
-      getLowStockItems(categories),
-      getInventoryOverview(categories),
-      getMedicineDailySales(14, categories),
-      getMedicineCategoryBreakdown(categories),
-      getRecentSales(10, categories),
-      getCurrentUser(),
-    ])
-      .then(
-        ([
-          stats,
-          topMedicines,
-          revenueData,
-          lowStock,
-          overview,
-          dailySales,
-          categoryBreakdown,
-          recentSales,
-          user,
-        ]) => {
-          if (requestId !== requestIdRef.current) {
-            return;
-          }
+    fetchDashboardData(categories)
+      .then(async (nextData) => {
+        // Pharmacy fallback: if strict categories return empty, fallback to legacy/unfiltered dataset
+        if (mode === "pharmacy" && (nextData.stats?.totalMedicines ?? 0) === 0) {
+          nextData = await fetchDashboardData(undefined);
+        }
 
-          const nextData: DashboardData = {
-            stats,
-            topMedicines,
-            revenueData,
-            lowStock,
-            overview,
-            dailySales,
-            categoryBreakdown,
-            recentSales,
-            role: user?.role ?? "cashier",
-          };
+        if (requestId !== requestIdRef.current) {
+          return;
+        }
 
-          cachedByModeRef.current[mode] = nextData;
-          setData(nextData);
-        },
-      )
+        cachedByModeRef.current[mode] = nextData;
+        setData(nextData);
+      })
       .catch((err) => {
         if (requestId !== requestIdRef.current) {
           return;
