@@ -223,7 +223,61 @@ export function TransfersClient({
               No transfers yet
             </p>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+              <div className="md:hidden space-y-3">
+                {transfers.map((t) => {
+                  const statusInfo = statusConfig[t.status] || statusConfig.pending;
+                  const StatusIcon = statusInfo.icon;
+                  return (
+                    <div
+                      key={t.id}
+                      className="rounded-lg border border-border bg-background/40 p-3 space-y-2"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-white font-medium text-sm">
+                          {t.medicine?.name ?? "—"}
+                        </p>
+                        <Badge variant="outline" className={statusInfo.color}>
+                          <StatusIcon className="h-3 w-3 mr-1" />
+                          {t.status}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {t.from_branch?.name ?? "—"} → {t.to_branch?.name ?? "—"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Qty: <span className="text-primary font-medium">{t.quantity}</span> · {formatDateTime(t.created_at)}
+                      </p>
+                      {user.role === "admin" && t.status === "pending" && (
+                        <div className="flex gap-2 pt-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-green-500 hover:text-green-400 h-8 px-2"
+                            onClick={() => handleApprove(t.id)}
+                            disabled={isPending}
+                          >
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Approve
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive hover:text-destructive/80 h-8 px-2"
+                            onClick={() => handleReject(t.id)}
+                            disabled={isPending}
+                          >
+                            <XCircle className="h-3 w-3 mr-1" />
+                            Reject
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="hidden md:block overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="border-border">
@@ -323,6 +377,8 @@ export function TransfersClient({
                   })}
                 </TableBody>
               </Table>
+              </div>
+            </>
             </div>
           )}
         </CardContent>
@@ -330,7 +386,7 @@ export function TransfersClient({
 
       {/* Create Transfer Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="bg-card border-border max-w-md">
+        <DialogContent className="bg-card border-border max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-white font-[family-name:var(--font-sans)]">
               New Stock Transfer

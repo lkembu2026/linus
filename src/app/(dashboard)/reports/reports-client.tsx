@@ -438,24 +438,25 @@ export function ReportsClient({ user }: ReportsClientProps) {
       </div>
 
       <Tabs defaultValue="daily" className="space-y-4">
-        <TabsList className="bg-background border border-border w-full flex-wrap h-auto gap-1 p-1">
+        <div className="overflow-x-auto">
+          <TabsList className="bg-background border border-border w-max min-w-full flex-nowrap sm:flex-wrap h-auto gap-1 p-1">
           <TabsTrigger
             value="daily"
-            className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary text-xs sm:text-sm"
+            className="shrink-0 data-[state=active]:bg-primary/10 data-[state=active]:text-primary text-xs sm:text-sm"
           >
             <Calendar className="h-4 w-4 mr-1.5" />
             Daily
           </TabsTrigger>
           <TabsTrigger
             value="monthly"
-            className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary text-xs sm:text-sm"
+            className="shrink-0 data-[state=active]:bg-primary/10 data-[state=active]:text-primary text-xs sm:text-sm"
           >
             <BarChart3 className="h-4 w-4 mr-1.5" />
             Monthly
           </TabsTrigger>
           <TabsTrigger
             value="top-selling"
-            className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary text-xs sm:text-sm"
+            className="shrink-0 data-[state=active]:bg-primary/10 data-[state=active]:text-primary text-xs sm:text-sm"
           >
             <TrendingUp className="h-4 w-4 mr-1.5" />
             Top Selling
@@ -463,7 +464,7 @@ export function ReportsClient({ user }: ReportsClientProps) {
           {user.role === "admin" && (
             <TabsTrigger
               value="branches"
-              className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary text-xs sm:text-sm"
+              className="shrink-0 data-[state=active]:bg-primary/10 data-[state=active]:text-primary text-xs sm:text-sm"
             >
               <Building2 className="h-4 w-4 mr-1.5" />
               Branches
@@ -471,19 +472,20 @@ export function ReportsClient({ user }: ReportsClientProps) {
           )}
           <TabsTrigger
             value="saved"
-            className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary text-xs sm:text-sm"
+            className="shrink-0 data-[state=active]:bg-primary/10 data-[state=active]:text-primary text-xs sm:text-sm"
           >
             <History className="h-4 w-4 mr-1.5" />
             Saved
           </TabsTrigger>
-        </TabsList>
+          </TabsList>
+        </div>
 
         {/* ── Daily Report ─────────────────────────────────── */}
         <TabsContent value="daily" className="space-y-4">
           <Card className="glass-card">
             <CardContent className="pt-6">
               <div className="flex gap-3 items-end flex-wrap">
-                <div className="flex-1 min-w-[140px]">
+                <div className="w-full sm:flex-1">
                   <label className="text-xs text-muted-foreground">Date</label>
                   <Input
                     type="date"
@@ -666,7 +668,7 @@ export function ReportsClient({ user }: ReportsClientProps) {
           <Card className="glass-card">
             <CardContent className="pt-6">
               <div className="flex gap-3 items-end flex-wrap">
-                <div className="flex-1 min-w-[140px]">
+                <div className="w-full sm:flex-1">
                   <label className="text-xs text-muted-foreground">Month</label>
                   <Input
                     type="month"

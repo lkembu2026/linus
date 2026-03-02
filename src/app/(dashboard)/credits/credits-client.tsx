@@ -376,7 +376,70 @@ export function CreditsClient({
                 : `No ${filter === "all" ? "" : filter} credits found`}
             </p>
           ) : (
-            <div className="overflow-x-auto -mx-6 px-6">
+            <>
+              <div className="md:hidden space-y-3">
+                {filtered.map((credit) => (
+                  <div
+                    key={credit.id}
+                    className="rounded-lg border border-border bg-background/40 p-3 space-y-2"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="text-white font-medium text-sm">
+                          {credit.customer_name}
+                        </p>
+                        {credit.customer_phone && (
+                          <p className="text-muted-foreground text-xs mt-0.5">
+                            {credit.customer_phone}
+                          </p>
+                        )}
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={
+                          credit.is_settled
+                            ? "border-green-500 text-green-500"
+                            : "border-amber-500 text-amber-400"
+                        }
+                      >
+                        {credit.is_settled ? "Settled" : "Pending"}
+                      </Badge>
+                    </div>
+
+                    <div className="text-xs text-muted-foreground">
+                      <p>Total: <span className="text-white">{formatCurrency(credit.amount)}</span></p>
+                      <p>Paid: <span className="text-green-400">{formatCurrency(credit.amount_paid)}</span></p>
+                      <p>
+                        Balance:{" "}
+                        <span
+                          className={
+                            credit.balance > 0 ? "text-amber-400" : "text-green-400"
+                          }
+                        >
+                          {formatCurrency(credit.balance)}
+                        </span>
+                      </p>
+                    </div>
+
+                    {!credit.is_settled && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-primary hover:text-primary/80 h-8 px-2"
+                        onClick={() => {
+                          setPayDialog(credit);
+                          setPayAmount(credit.balance.toString());
+                        }}
+                      >
+                        <Banknote className="h-3 w-3 mr-1" />
+                        Record Payment
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="hidden md:block overflow-x-auto -mx-6 px-6">
               <Table>
                 <TableHeader>
                   <TableRow className="border-border">
@@ -474,7 +537,8 @@ export function CreditsClient({
                   ))}
                 </TableBody>
               </Table>
-            </div>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

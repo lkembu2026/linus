@@ -157,7 +157,50 @@ export function SalesHistoryClient({
                 : "No sales recorded yet"}
             </p>
           ) : (
-            <div className="overflow-x-auto -mx-6 px-6">
+            <>
+              <div className="md:hidden space-y-3">
+                {filtered.map((sale) => (
+                  <div
+                    key={sale.id}
+                    className="rounded-lg border border-border bg-background/40 p-3 space-y-2"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-white font-mono text-xs">
+                        {sale.receipt_number}
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className={
+                          sale.is_voided
+                            ? "border-destructive text-destructive"
+                            : "border-green-500 text-green-500"
+                        }
+                      >
+                        {sale.is_voided ? "Voided" : "Completed"}
+                      </Badge>
+                    </div>
+                    <p className="text-primary font-semibold text-sm">
+                      {formatCurrency(sale.total_amount)}
+                    </p>
+                    <p className="text-xs text-muted-foreground capitalize">
+                      {sale.payment_method} · {formatDateTime(sale.created_at)}
+                    </p>
+                    {userRole === "admin" && !sale.is_voided && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive h-8 px-2"
+                        onClick={() => handleVoid(sale.id)}
+                      >
+                        <XCircle className="h-3 w-3 mr-1" />
+                        Void Sale
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="hidden md:block overflow-x-auto -mx-6 px-6">
               <Table>
                 <TableHeader>
                   <TableRow className="border-border">
@@ -238,7 +281,8 @@ export function SalesHistoryClient({
                   ))}
                 </TableBody>
               </Table>
-            </div>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

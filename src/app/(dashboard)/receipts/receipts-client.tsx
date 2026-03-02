@@ -184,7 +184,61 @@ export function ReceiptsClient({ receipts }: ReceiptsClientProps) {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto -mx-6 px-6">
+            <>
+              <div className="md:hidden space-y-3">
+                {filtered.map((receipt) => (
+                  <div
+                    key={receipt.id}
+                    className="rounded-lg border border-border bg-background/40 p-3 space-y-2"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-primary font-mono text-xs font-medium">
+                        {receipt.receipt_number}
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className={
+                          receipt.payment_method === "mpesa"
+                            ? "border-green-500 text-green-500"
+                            : "border-blue-400 text-blue-400"
+                        }
+                      >
+                        {receipt.payment_method.toUpperCase()}
+                      </Badge>
+                    </div>
+                    <p className="text-white font-medium text-sm">
+                      {formatCurrency(receipt.total_amount)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {receipt.cashier_name ?? "-"} · {formatDateTime(receipt.created_at)}
+                    </p>
+                    <div className="flex items-center gap-1 pt-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-primary hover:text-primary h-8 px-2"
+                        onClick={() => setPreviewReceipt(receipt)}
+                        title="Preview"
+                      >
+                        <Eye className="h-3.5 w-3.5 mr-1" />
+                        Preview
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-primary hover:text-primary h-8 px-2"
+                        onClick={() => handlePrint(receipt)}
+                        title="Print"
+                      >
+                        <Printer className="h-3.5 w-3.5 mr-1" />
+                        Print
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="hidden md:block overflow-x-auto -mx-6 px-6">
               <Table>
                 <TableHeader>
                   <TableRow className="border-border">
@@ -279,7 +333,8 @@ export function ReceiptsClient({ receipts }: ReceiptsClientProps) {
                   ))}
                 </TableBody>
               </Table>
-            </div>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
