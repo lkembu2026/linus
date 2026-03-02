@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { AppMode } from "@/types";
 import { MODE_STORAGE_KEY, normalizeMode } from "@/lib/mode";
 
@@ -21,6 +22,7 @@ export function ModeProvider({
   children: React.ReactNode;
   initialMode?: AppMode;
 }) {
+  const router = useRouter();
   const [mode, setModeState] = useState<AppMode>(initialMode);
 
   function persistMode(newMode: AppMode) {
@@ -54,6 +56,7 @@ export function ModeProvider({
     if (newMode === mode) return;
     setModeState(newMode);
     persistMode(newMode);
+    router.refresh();
   }
 
   return (
