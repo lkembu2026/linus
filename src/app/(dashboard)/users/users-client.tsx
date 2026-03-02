@@ -186,7 +186,9 @@ export function UsersClient({
               <TableHeader>
                 <TableRow className="border-border">
                   <TableHead className="text-muted-foreground">Name</TableHead>
-                  <TableHead className="text-muted-foreground">Email</TableHead>
+                  <TableHead className="text-muted-foreground hidden md:table-cell">
+                    Email
+                  </TableHead>
                   <TableHead className="text-muted-foreground">Role</TableHead>
                   <TableHead className="text-muted-foreground">
                     Branch
@@ -194,7 +196,7 @@ export function UsersClient({
                   <TableHead className="text-muted-foreground">
                     Status
                   </TableHead>
-                  <TableHead className="text-muted-foreground">
+                  <TableHead className="text-muted-foreground hidden sm:table-cell">
                     Joined
                   </TableHead>
                 </TableRow>
@@ -226,7 +228,7 @@ export function UsersClient({
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="text-muted-foreground hidden md:table-cell">
                       {u.email}
                     </TableCell>
                     <TableCell>
@@ -244,7 +246,7 @@ export function UsersClient({
                           onValueChange={(v) => handleRoleChange(u.id, v)}
                           disabled={isPending}
                         >
-                          <SelectTrigger className="w-32 bg-background border-border text-white h-8 text-xs">
+                          <SelectTrigger className="w-24 sm:w-32 bg-background border-border text-white h-8 text-xs">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="bg-card border-border">
@@ -267,7 +269,7 @@ export function UsersClient({
                         onValueChange={(v) => handleBranchChange(u.id, v)}
                         disabled={isPending || u.id === currentUserId}
                       >
-                        <SelectTrigger className="w-36 bg-background border-border text-white h-8 text-xs">
+                        <SelectTrigger className="w-28 sm:w-36 bg-background border-border text-white h-8 text-xs">
                           <SelectValue placeholder="Assign branch" />
                         </SelectTrigger>
                         <SelectContent className="bg-card border-border">
@@ -314,7 +316,7 @@ export function UsersClient({
                         </div>
                       )}
                     </TableCell>
-                    <TableCell className="text-muted-foreground text-xs">
+                    <TableCell className="text-muted-foreground text-xs hidden sm:table-cell">
                       {formatDate(u.created_at)}
                     </TableCell>
                   </TableRow>

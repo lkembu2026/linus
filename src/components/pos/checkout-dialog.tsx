@@ -277,7 +277,7 @@ export function CheckoutDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="bg-card border-border max-w-md">
+      <DialogContent className="bg-card border-border max-w-md max-h-[90vh] overflow-y-auto">
         {!completed ? (
           <>
             <DialogHeader>
@@ -324,15 +324,15 @@ export function CheckoutDialog({
                 <p className="text-sm text-muted-foreground mb-2">
                   Payment Method
                 </p>
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <Button
                     variant={paymentMethod === "cash" ? "default" : "outline"}
                     onClick={() => setPaymentMethod("cash")}
-                    className={
+                    className={`w-full sm:w-auto ${
                       paymentMethod === "cash"
                         ? "bg-primary text-primary-foreground"
                         : "border-border text-muted-foreground"
-                    }
+                    }`}
                   >
                     <Banknote className="h-4 w-4 mr-2" />
                     Cash
@@ -340,11 +340,11 @@ export function CheckoutDialog({
                   <Button
                     variant={paymentMethod === "mpesa" ? "default" : "outline"}
                     onClick={() => setPaymentMethod("mpesa")}
-                    className={
+                    className={`w-full sm:w-auto ${
                       paymentMethod === "mpesa"
                         ? "bg-green-600 text-white hover:bg-green-700"
                         : "border-border text-muted-foreground"
-                    }
+                    }`}
                   >
                     <Smartphone className="h-4 w-4 mr-2" />
                     M-Pesa
@@ -352,11 +352,11 @@ export function CheckoutDialog({
                   <Button
                     variant={paymentMethod === "credit" ? "default" : "outline"}
                     onClick={() => setPaymentMethod("credit")}
-                    className={
+                    className={`w-full sm:w-auto ${
                       paymentMethod === "credit"
                         ? "bg-amber-600 text-white hover:bg-amber-700"
                         : "border-border text-muted-foreground"
-                    }
+                    }`}
                   >
                     <CreditCard className="h-4 w-4 mr-2" />
                     Credit
@@ -458,18 +458,18 @@ export function CheckoutDialog({
               )}
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
               <Button
                 variant="ghost"
                 onClick={handleClose}
-                className="text-muted-foreground"
+                className="text-muted-foreground w-full sm:w-auto"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleConfirm}
                 disabled={isPending}
-                className="bg-primary text-primary-foreground hover:bg-[#00B8A9]"
+                className="bg-primary text-primary-foreground hover:bg-[#00B8A9] w-full sm:w-auto"
               >
                 {isPending ? (
                   <>
@@ -530,17 +530,17 @@ export function CheckoutDialog({
                 </p>
               )}
             </div>
-            <div className="flex gap-2 justify-center pt-4">
+            <div className="flex flex-col sm:flex-row gap-2 justify-center pt-4">
               <Button
                 variant="outline"
                 onClick={handleClose}
-                className="border-border text-muted-foreground"
+                className="border-border text-muted-foreground w-full sm:w-auto"
               >
                 New Sale
               </Button>
               <Button
                 variant="ghost"
-                className="text-primary"
+                className="text-primary w-full sm:w-auto"
                 onClick={handlePrintReceipt}
               >
                 <Printer className="h-4 w-4 mr-2" />

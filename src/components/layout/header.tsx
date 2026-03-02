@@ -130,7 +130,6 @@ export function Header({
       ? `${pathname}?${params.toString()}`
       : pathname;
     router.replace(nextUrl, { scroll: false });
-    router.refresh();
   }
 
   async function handleMarkRead(id: string) {

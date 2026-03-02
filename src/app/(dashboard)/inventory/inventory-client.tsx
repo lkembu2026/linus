@@ -296,7 +296,7 @@ export function InventoryClient({
           </p>
         </div>
         {can("add_medicine") && (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 justify-end">
             <Button
               variant="outline"
               className="border-border text-muted-foreground"
@@ -498,17 +498,17 @@ export function InventoryClient({
                     <TableHead className="text-muted-foreground text-right">
                       Price
                     </TableHead>
-                    <TableHead className="text-muted-foreground text-right">
+                    <TableHead className="text-muted-foreground text-right hidden md:table-cell">
                       Cost
                     </TableHead>
                     <TableHead className="text-muted-foreground text-right">
                       Stock
                     </TableHead>
-                    <TableHead className="text-muted-foreground">
+                    <TableHead className="text-muted-foreground hidden lg:table-cell">
                       Expiry
                     </TableHead>
                     {user.role === "admin" && (
-                      <TableHead className="text-muted-foreground">
+                      <TableHead className="text-muted-foreground hidden md:table-cell">
                         Branch
                       </TableHead>
                     )}
@@ -581,7 +581,7 @@ export function InventoryClient({
                         <TableCell className="text-right text-primary font-medium">
                           {formatCurrency(med.unit_price)}
                         </TableCell>
-                        <TableCell className="text-right text-muted-foreground">
+                        <TableCell className="text-right text-muted-foreground hidden md:table-cell">
                           {formatCurrency(med.cost_price)}
                         </TableCell>
                         <TableCell className="text-right">
@@ -598,7 +598,7 @@ export function InventoryClient({
                             <AlertTriangle className="inline h-3 w-3 ml-1 text-amber-500" />
                           )}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden lg:table-cell">
                           {med.expiry_date ? (
                             <span
                               className={
@@ -616,7 +616,7 @@ export function InventoryClient({
                           )}
                         </TableCell>
                         {user.role === "admin" && (
-                          <TableCell className="text-muted-foreground text-xs">
+                          <TableCell className="text-muted-foreground text-xs hidden md:table-cell">
                             {(med as any).branch?.name ?? "—"}
                           </TableCell>
                         )}
