@@ -58,18 +58,36 @@ export function CheckoutDialog({
   const [isOfflineSale, setIsOfflineSale] = useState(false);
   const [cashTendered, setCashTendered] = useState("");
   const [mpesaCode, setMpesaCode] = useState("");
+  const [mpesaPaid, setMpesaPaid] = useState("");
   // Credit fields
   const [creditName, setCreditName] = useState("");
   const [creditPhone, setCreditPhone] = useState("");
   const [creditNotes, setCreditNotes] = useState("");
+  const [balanceCreated, setBalanceCreated] = useState(0);
+  const [paidNow, setPaidNow] = useState(0);
 
   const cashAmount = parseFloat(cashTendered) || 0;
+  const mpesaAmount = parseFloat(mpesaPaid) || 0;
+  const paidAmountForMethod =
+    paymentMethod === "cash"
+      ? cashAmount
+      : paymentMethod === "mpesa"
+        ? mpesaAmount
+        : 0;
+  const paidNowAmount = Math.min(total, Math.max(0, paidAmountForMethod));
+  const remainingBalance = Math.max(0, total - paidNowAmount);
+  const hasPartialBalance =
+    paymentMethod !== "credit" && remainingBalance > 0 && paidNowAmount > 0;
   const change = cashAmount - total;
   const totalUnits = items.reduce((sum, item) => sum + item.quantity, 0);
 
   function handleConfirm() {
-    if (paymentMethod === "cash" && cashAmount < total) {
-      toast.error("Cash tendered is less than total");
+    if (paymentMethod === "cash" && cashAmount <= 0) {
+      toast.error("Enter cash amount received");
+      return;
+    }
+    if (paymentMethod === "mpesa" && mpesaAmount <= 0) {
+      toast.error("Enter amount received via M-Pesa");
       return;
     }
     if (paymentMethod === "mpesa" && !mpesaCode.trim()) {
@@ -78,6 +96,10 @@ export function CheckoutDialog({
     }
     if (paymentMethod === "credit" && !creditName.trim()) {
       toast.error("Customer name is required for credit sales");
+      return;
+    }
+    if (hasPartialBalance && !creditName.trim()) {
+      toast.error("Customer name is required to record remaining credit");
       return;
     }
 
@@ -109,9 +131,23 @@ export function CheckoutDialog({
         setIsOfflineSale(true);
       }
 
+      if (!online && hasPartialBalance) {
+        toast.error(
+          "Partial payment needs internet to create a credit record. Complete when online.",
+        );
+        return;
+      }
+
+      let effectivePaidNow = paymentMethod === "credit" ? 0 : paidNowAmount;
+      let effectiveBalance = paymentMethod === "credit" ? total : remainingBalance;
+
       if (online) {
         try {
-          const result = await createSale(items, paymentMethod, total);
+          const result = await createSale(items, paymentMethod, total, {
+            paidAmount: effectivePaidNow,
+            balanceDue: effectiveBalance,
+            mpesaCode: paymentMethod === "mpesa" ? mpesaCode.trim() : undefined,
+          });
           if (result.error) {
             // Business-logic error (e.g. insufficient stock) — do NOT save offline
             toast.error(result.error);
@@ -120,21 +156,34 @@ export function CheckoutDialog({
           if (result.receiptNumber) setReceiptNo(result.receiptNumber);
           if (result.receiptHtml) setReceiptHtml(result.receiptHtml);
 
-          // If credit sale, create credit record
-          if (paymentMethod === "credit" && result.saleId) {
+          // If fully credit OR partial balance, create credit record for outstanding amount
+          if ((paymentMethod === "credit" || effectiveBalance > 0) && result.saleId) {
             const medicineDetails = items
               .map((i) => `${i.name} ×${i.quantity}`)
               .join(", ");
-            await createCredit({
+            const creditResult = await createCredit({
               saleId: result.saleId,
               receiptNo: result.receiptNumber ?? "",
               customerName: creditName.trim(),
               customerPhone: creditPhone.trim() || undefined,
-              amount: total,
+              amount: effectiveBalance,
               medicineDetails,
-              notes: creditNotes.trim() || undefined,
+              notes:
+                (creditNotes.trim() || "") +
+                (paymentMethod !== "credit"
+                  ? `${creditNotes.trim() ? " | " : ""}Paid KES ${effectivePaidNow.toLocaleString()} via ${paymentMethod.toUpperCase()} at checkout.`
+                  : ""),
             });
+
+            if (creditResult.error) {
+              toast.error(
+                `Sale completed, but credit record failed: ${creditResult.error}`,
+              );
+            }
           }
+
+          setBalanceCreated(effectiveBalance);
+          setPaidNow(effectivePaidNow);
         } catch {
           // Network request failed mid-flight (connection dropped) — save offline
           console.warn("createSale network failure — saving offline");
@@ -146,8 +195,8 @@ export function CheckoutDialog({
 
       setCompleted(true);
       toast.success(
-        paymentMethod === "credit"
-          ? `Credit recorded for ${creditName}`
+        paymentMethod === "credit" || effectiveBalance > 0
+          ? `Sale recorded. Credit balance: ${formatCurrency(effectiveBalance)} for ${creditName}`
           : isOfflineSale || !online
             ? "Sale saved offline — will sync when back online"
             : `Sale completed successfully — 1 receipt for ${items.length} item type${items.length === 1 ? "" : "s"}`,
@@ -268,9 +317,12 @@ export function CheckoutDialog({
     setIsOfflineSale(false);
     setCashTendered("");
     setMpesaCode("");
+    setMpesaPaid("");
     setCreditName("");
     setCreditPhone("");
     setCreditNotes("");
+    setBalanceCreated(0);
+    setPaidNow(0);
     setPaymentMethod("cash");
     onClose();
   }
@@ -397,28 +449,53 @@ export function CheckoutDialog({
 
               {/* M-Pesa confirmation code */}
               {paymentMethod === "mpesa" && (
-                <div>
-                  <Label className="text-muted-foreground text-sm">
-                    M-Pesa Confirmation Code
-                  </Label>
-                  <Input
-                    value={mpesaCode}
-                    onChange={(e) => setMpesaCode(e.target.value.toUpperCase())}
-                    className="bg-background border-border text-white mt-1 font-mono"
-                    placeholder="e.g. SBK7XYZ123"
-                    maxLength={20}
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Enter the M-Pesa transaction code received by the customer
+                <div className="space-y-3">
+                  <div>
+                    <Label className="text-muted-foreground text-sm">
+                      Amount Received via M-Pesa (KES)
+                    </Label>
+                    <Input
+                      type="number"
+                      value={mpesaPaid}
+                      onChange={(e) => setMpesaPaid(e.target.value)}
+                      className="bg-background border-border text-white mt-1"
+                      placeholder={total.toString()}
+                      min={0}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground text-sm">
+                      M-Pesa Confirmation Code
+                    </Label>
+                    <Input
+                      value={mpesaCode}
+                      onChange={(e) => setMpesaCode(e.target.value.toUpperCase())}
+                      className="bg-background border-border text-white mt-1 font-mono"
+                      placeholder="e.g. SBK7XYZ123"
+                      maxLength={20}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Enter the M-Pesa transaction code received by the customer
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {hasPartialBalance && (
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+                  <p className="text-xs text-amber-300">
+                    Partial payment detected. Remaining credit to record: {formatCurrency(remainingBalance)}
                   </p>
                 </div>
               )}
 
               {/* Credit customer details */}
-              {paymentMethod === "credit" && (
+              {(paymentMethod === "credit" || hasPartialBalance) && (
                 <div className="space-y-3 p-3 rounded-lg border border-amber-500/30 bg-amber-500/5">
                   <p className="text-xs text-amber-400 font-medium">
-                    Customer will pay later — record their details below
+                    {paymentMethod === "credit"
+                      ? "Customer will pay later — record their details below"
+                      : "Record customer details for remaining credit balance"}
                   </p>
                   <div>
                     <Label className="text-muted-foreground text-sm">
@@ -499,11 +576,11 @@ export function CheckoutDialog({
                 {formatCurrency(total)}
               </p>
               <Badge className="mt-2 bg-primary/10 text-primary border-primary/20">
-                {paymentMethod === "credit"
+                {paymentMethod === "credit" || balanceCreated > 0
                   ? "CREDIT"
                   : paymentMethod.toUpperCase()}
               </Badge>
-              {paymentMethod === "credit" && (
+              {(paymentMethod === "credit" || balanceCreated > 0) && (
                 <div className="mt-3 p-3 rounded-lg border border-amber-500/30 bg-amber-500/5 text-left">
                   <p className="text-xs text-amber-400 font-semibold mb-1">
                     Credit Recorded
@@ -514,8 +591,13 @@ export function CheckoutDialog({
                       {creditPhone}
                     </p>
                   )}
+                  {paidNow > 0 && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Paid now: {formatCurrency(paidNow)} via {paymentMethod.toUpperCase()}
+                    </p>
+                  )}
                   <p className="text-sm font-bold text-amber-400 mt-1">
-                    Owes: {formatCurrency(total)}
+                    Owes: {formatCurrency(balanceCreated || total)}
                   </p>
                 </div>
               )}

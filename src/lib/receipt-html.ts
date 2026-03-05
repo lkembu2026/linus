@@ -7,6 +7,8 @@ export function generateReceiptHtml(data: {
   items: { name: string; quantity: number; unit_price: number }[];
   total: number;
   paymentMethod: string;
+  paidAmount?: number;
+  balanceDue?: number;
   cashierName: string;
   branchName: string;
   cashTendered?: number;
@@ -40,6 +42,22 @@ export function generateReceiptHtml(data: {
       </div>`
           : ""
       }`
+      : "";
+
+  const paidAmount = Number(data.paidAmount ?? data.total);
+  const balanceDue = Number(data.balanceDue ?? 0);
+
+  const paymentBreakdownSection =
+    paidAmount !== data.total || balanceDue > 0
+      ? `
+      <div style="display:flex;justify-content:space-between;padding:6px 0;color:#a0a0b0;font-size:13px;">
+        <span>Paid Now</span>
+        <span style="color:#e0e0e0;">KES ${paidAmount.toLocaleString()}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:6px 0;color:${balanceDue > 0 ? "#f59e0b" : "#4ade80"};font-size:13px;font-weight:600;">
+        <span>Balance Due</span>
+        <span>KES ${Math.max(0, balanceDue).toLocaleString()}</span>
+      </div>`
       : "";
 
   return `<!DOCTYPE html>
@@ -107,6 +125,7 @@ export function generateReceiptHtml(data: {
         <span style="display:inline-block;padding:2px 12px;background:${data.paymentMethod === "mpesa" ? "#065F46" : "#1e3a5f"};color:${data.paymentMethod === "mpesa" ? "#6ee7b7" : "#93c5fd"};border-radius:12px;font-size:11px;font-weight:600;">${data.paymentMethod.toUpperCase()}</span>
       </div>
       ${cashSection}
+      ${paymentBreakdownSection}
     </div>
 
     <!-- Decorative line -->

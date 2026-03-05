@@ -19,6 +19,11 @@ export async function createSale(
   items: CartItem[],
   paymentMethod: string,
   totalAmount: number,
+  options?: {
+    paidAmount?: number;
+    balanceDue?: number;
+    mpesaCode?: string;
+  },
 ) {
   const supabase = await createClient();
   const user = await getCurrentUser();
@@ -29,6 +34,9 @@ export async function createSale(
   }
 
   try {
+    const paidAmount = Number(options?.paidAmount ?? totalAmount);
+    const balanceDue = Number(options?.balanceDue ?? 0);
+
     // 1. Create the sale record
     const { data: sale, error: saleError } = await supabase
       .from("sales")
@@ -120,6 +128,9 @@ export async function createSale(
         sale_id: saleData.id,
         total_amount: totalAmount,
         payment_method: paymentMethod,
+        paid_amount: paidAmount,
+        balance_due: balanceDue,
+        mpesa_code: options?.mpesaCode ?? null,
         items_count: items.length,
       },
     });
@@ -161,6 +172,8 @@ export async function createSale(
       })),
       total: totalAmount,
       paymentMethod,
+      paidAmount,
+      balanceDue,
       cashierName,
       branchName,
       date: dateStr,
@@ -201,6 +214,8 @@ export async function createSale(
         receipt_number: saleData.receipt_number,
         total_amount: totalAmount,
         payment_method: paymentMethod,
+        paid_amount: paidAmount,
+        balance_due: balanceDue,
         items_count: items.length,
       },
     }).catch((err) => console.error("[Email] Audit email failed:", err));
