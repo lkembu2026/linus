@@ -379,7 +379,6 @@ export function TransfersClient({
               </Table>
               </div>
             </>
-            </div>
           )}
         </CardContent>
       </Card>
