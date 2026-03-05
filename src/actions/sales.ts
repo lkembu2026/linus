@@ -225,7 +225,11 @@ export async function createSale(
   }
 }
 
-export async function searchMedicines(query: string, categories?: string[]) {
+export async function searchMedicines(
+  query: string,
+  categories?: string[],
+  includeOutOfStock = false,
+) {
   const supabase = await createClient();
   const user = await getCurrentUser();
   const branchId = await getEffectiveBranchId(user);
@@ -238,10 +242,13 @@ export async function searchMedicines(query: string, categories?: string[]) {
       "id, name, generic_name, category, barcode, unit_price, quantity_in_stock, dispensing_unit",
     )
     .eq("branch_id", branchId)
-    .gt("quantity_in_stock", 0)
     .or(
       `name.ilike.%${query}%,generic_name.ilike.%${query}%,barcode.eq.${query}`,
     );
+
+  if (!includeOutOfStock) {
+    q = q.gt("quantity_in_stock", 0);
+  }
 
   if (categories && categories.length > 0) {
     q = q.in("category", categories);

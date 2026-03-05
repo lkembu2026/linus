@@ -42,6 +42,7 @@ export function MedicineSearch({
   const [showResults, setShowResults] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [isOfflineResults, setIsOfflineResults] = useState(false);
+  const [hasOutOfStockMatches, setHasOutOfStockMatches] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const requestIdRef = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -52,6 +53,7 @@ export function MedicineSearch({
     setResults([]);
     setShowResults(false);
     setIsOfflineResults(false);
+    setHasOutOfStockMatches(false);
   }, [mode]);
 
   const doSearch = useCallback(
@@ -59,6 +61,7 @@ export function MedicineSearch({
       if (value.length < 2) {
         setResults([]);
         setShowResults(false);
+        setHasOutOfStockMatches(false);
         return;
       }
 
@@ -68,10 +71,19 @@ export function MedicineSearch({
       startTransition(async () => {
         let data: SearchResult[];
         let fromCache = false;
+        let hasOutOfStock = false;
         const modeCats =
           mode === "beauty" ? [...BEAUTY_CATEGORIES] : [...MEDICINE_CATEGORIES];
         try {
           data = await searchMedicines(value, modeCats);
+          if (data.length === 0) {
+            const includingOutOfStock = await searchMedicines(
+              value,
+              modeCats,
+              true,
+            );
+            hasOutOfStock = includingOutOfStock.length > 0;
+          }
         } catch {
           // Server unreachable — use IndexedDB cache
           const cached = await searchCachedMedicines(value);
@@ -90,6 +102,7 @@ export function MedicineSearch({
         if (requestId !== requestIdRef.current) return;
 
         setIsOfflineResults(fromCache);
+  setHasOutOfStockMatches(hasOutOfStock);
         setResults(data);
         setShowResults(true);
 
@@ -267,7 +280,9 @@ export function MedicineSearch({
         !isPending && (
           <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-lg border border-border bg-card p-4 text-center">
             <p className="text-sm text-muted-foreground">
-              No {mode === "beauty" ? "products" : "medicines"} found
+              {hasOutOfStockMatches
+                ? `Matching ${mode === "beauty" ? "products" : "medicines"} found, but stock is 0 in this branch. Adjust stock in Inventory.`
+                : `No in-stock ${mode === "beauty" ? "products" : "medicines"} found in this branch`}
             </p>
           </div>
         )}
