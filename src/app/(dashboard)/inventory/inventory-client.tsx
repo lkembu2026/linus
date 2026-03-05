@@ -30,6 +30,7 @@ import { MedicineFormDialog } from "@/components/inventory/medicine-form-dialog"
 import { StockAdjustDialog } from "@/components/inventory/stock-adjust-dialog";
 import { BarcodeLabelDialog } from "@/components/inventory/barcode-label-dialog";
 import { ImportMedicinesDialog } from "@/components/inventory/import-medicines-dialog";
+import { BulkOpeningStockDialog } from "@/components/inventory/bulk-opening-stock-dialog";
 import {
   getMedicines,
   deleteMedicine,
@@ -95,6 +96,7 @@ export function InventoryClient({
   const [adjustMedicine, setAdjustMedicine] = useState<Medicine | null>(null);
   const [labelMedicine, setLabelMedicine] = useState<Medicine | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [bulkStockOpen, setBulkStockOpen] = useState(false);
   const [isSyncingCatalog, setIsSyncingCatalog] = useState(false);
   const [isLoadingSyncStatus, setIsLoadingSyncStatus] = useState(false);
   const [syncStatus, setSyncStatus] = useState<{
@@ -337,6 +339,16 @@ export function InventoryClient({
               <FileSpreadsheet className="h-4 w-4 mr-2" />
               Import
             </Button>
+            {can("adjust_stock") && (
+              <Button
+                variant="outline"
+                onClick={() => setBulkStockOpen(true)}
+                className="border-primary/40 text-primary hover:bg-primary/10"
+              >
+                <Package className="h-4 w-4 mr-2" />
+                Set Opening Stock
+              </Button>
+            )}
             {user.role === "admin" && (
               <Button
                 variant="outline"
@@ -739,6 +751,18 @@ export function InventoryClient({
         open={importOpen}
         onClose={() => setImportOpen(false)}
         onImported={async () => {
+          const data = await getMedicines(
+            search || undefined,
+            category || undefined,
+            category ? undefined : [...modeCategories],
+          );
+          setMedicines(data);
+        }}
+      />
+      <BulkOpeningStockDialog
+        open={bulkStockOpen}
+        onClose={() => setBulkStockOpen(false)}
+        onApplied={async () => {
           const data = await getMedicines(
             search || undefined,
             category || undefined,

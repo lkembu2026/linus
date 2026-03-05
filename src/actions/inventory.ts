@@ -404,6 +404,180 @@ export async function adjustStock(
   return { success: true };
 }
 
+export async function bulkSetOpeningStock(
+  rows: {
+    barcode?: string;
+    name?: string;
+    quantity: number;
+  }[],
+) {
+  const supabase = await createClient();
+  const user = await getCurrentUser();
+  const branchId = await getEffectiveBranchId(user);
+
+  if (!user) return { error: "Not authenticated" };
+  if (user.role !== "admin") {
+    return { error: "Only admins can bulk set opening stock" };
+  }
+
+  let resolvedBranchId = branchId;
+
+  if (!resolvedBranchId && user.role === "admin") {
+    const { data: branchesData, error: branchesError } = await supabase
+      .from("branches")
+      .select("id")
+      .order("created_at", { ascending: true });
+
+    if (branchesError) {
+      return { error: branchesError.message };
+    }
+
+    const adminBranches = (
+      (branchesData ?? []) as unknown as { id: string }[]
+    ).map((branch) => branch.id);
+
+    if (adminBranches.length === 1) {
+      resolvedBranchId = adminBranches[0];
+    }
+  }
+
+  if (!resolvedBranchId) {
+    return {
+      error:
+        "No active branch selected. Choose a specific branch from the header and try again.",
+    };
+  }
+
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return { error: "No rows provided" };
+  }
+
+  const { data: branchMedicinesData, error: medicinesError } = await supabase
+    .from("medicines")
+    .select("id, name, barcode, quantity_in_stock")
+    .eq("branch_id", resolvedBranchId);
+
+  if (medicinesError) {
+    return { error: medicinesError.message };
+  }
+
+  type BranchMedicine = {
+    id: string;
+    name: string;
+    barcode: string | null;
+    quantity_in_stock: number;
+  };
+
+  const branchMedicines =
+    (branchMedicinesData ?? []) as unknown as BranchMedicine[];
+
+  const byBarcode = new Map<string, BranchMedicine[]>();
+  const byName = new Map<string, BranchMedicine[]>();
+
+  for (const medicine of branchMedicines) {
+    const nameKey = medicine.name.trim().toLowerCase();
+    byName.set(nameKey, [...(byName.get(nameKey) ?? []), medicine]);
+
+    const barcodeKey = medicine.barcode?.trim().toLowerCase();
+    if (barcodeKey) {
+      byBarcode.set(barcodeKey, [...(byBarcode.get(barcodeKey) ?? []), medicine]);
+    }
+  }
+
+  const errors: string[] = [];
+  let updated = 0;
+  let unchanged = 0;
+
+  for (const row of rows) {
+    const barcode = row.barcode?.trim();
+    const name = row.name?.trim();
+    const quantity = Number(row.quantity);
+
+    const rowLabel = barcode || name || "(unknown item)";
+
+    if (!Number.isFinite(quantity) || quantity < 0) {
+      errors.push(`${rowLabel}: quantity must be 0 or greater`);
+      continue;
+    }
+
+    let matches: BranchMedicine[] = [];
+
+    if (barcode) {
+      matches = byBarcode.get(barcode.toLowerCase()) ?? [];
+    } else if (name) {
+      matches = byName.get(name.toLowerCase()) ?? [];
+    } else {
+      errors.push("Row missing barcode/name");
+      continue;
+    }
+
+    if (matches.length === 0) {
+      errors.push(`${rowLabel}: not found in selected branch inventory`);
+      continue;
+    }
+
+    if (matches.length > 1) {
+      errors.push(`${rowLabel}: multiple matches found, use barcode to disambiguate`);
+      continue;
+    }
+
+    const medicine = matches[0];
+
+    if (medicine.quantity_in_stock === quantity) {
+      unchanged += 1;
+      continue;
+    }
+
+    const { error: updateError } = await supabase
+      .from("medicines")
+      .update({ quantity_in_stock: quantity })
+      .eq("id", medicine.id)
+      .eq("branch_id", resolvedBranchId);
+
+    if (updateError) {
+      errors.push(`${rowLabel}: ${updateError.message}`);
+      continue;
+    }
+
+    updated += 1;
+  }
+
+  await supabase.from("audit_logs").insert({
+    user_id: user.id,
+    action: "bulk_set_opening_stock",
+    details: {
+      branch_id: resolvedBranchId,
+      rows_received: rows.length,
+      updated,
+      unchanged,
+      errors: errors.length,
+      sample_errors: errors.slice(0, 20),
+    },
+  });
+
+  sendAuditEmail({
+    action: "bulk_set_opening_stock",
+    userName: user.full_name ?? "Admin",
+    details: {
+      rows_received: rows.length,
+      updated,
+      unchanged,
+      errors: errors.length,
+    },
+  }).catch(() => {});
+
+  revalidatePath("/inventory");
+  revalidatePath("/sales");
+
+  return {
+    success: true,
+    updated,
+    unchanged,
+    failed: errors.length,
+    errors: errors.slice(0, 30),
+  };
+}
+
 export async function bulkCreateMedicines(
   rows: {
     name: string;
