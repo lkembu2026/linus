@@ -423,14 +423,43 @@ export async function bulkCreateMedicines(
   const user = await getCurrentUser();
   const branchId = await getEffectiveBranchId(user);
   if (!user) return { error: "Not authenticated" };
-  if (!branchId) return { error: "No active branch selected" };
   if (user.role !== "admin" && user.role !== "pharmacist") {
     return { error: "Insufficient permissions" };
   }
 
+  let resolvedBranchId = branchId;
+  if (!resolvedBranchId) {
+    if (user.role === "admin") {
+      const { data: branchesData, error: branchesError } = await supabase
+        .from("branches")
+        .select("id")
+        .order("created_at", { ascending: true })
+        .limit(2);
+
+      if (branchesError) {
+        return { error: branchesError.message };
+      }
+
+      const branchIds = ((branchesData ?? []) as { id: string }[]).map(
+        (branch) => branch.id,
+      );
+
+      if (branchIds.length === 1) {
+        resolvedBranchId = branchIds[0];
+      } else {
+        return {
+          error:
+            "No active branch selected. Use the Branch selector and choose one branch (not All Branches).",
+        };
+      }
+    } else {
+      return { error: "No active branch selected" };
+    }
+  }
+
   const records = rows.map((row) => ({
     ...row,
-    branch_id: branchId,
+    branch_id: resolvedBranchId,
     created_by: user.id,
   }));
 
