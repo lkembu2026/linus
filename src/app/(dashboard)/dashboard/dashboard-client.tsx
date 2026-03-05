@@ -133,7 +133,28 @@ export function DashboardClient({
     const cached = cachedByModeRef.current[mode];
     const oppositeMode: AppMode = mode === "pharmacy" ? "beauty" : "pharmacy";
     if (cached) {
+      // Show cached data immediately, then refresh in the background so
+      // dashboard reflects newly created sales without requiring hard reload.
       setData(cached);
+
+      requestIdRef.current += 1;
+      const requestId = requestIdRef.current;
+
+      loadModeData(mode)
+        .then((nextData) => {
+          if (requestId !== requestIdRef.current) {
+            return;
+          }
+          cachedByModeRef.current[mode] = nextData;
+          setData(nextData);
+        })
+        .catch((err) => {
+          if (requestId !== requestIdRef.current) {
+            return;
+          }
+          console.error("Dashboard refresh error:", err);
+        });
+
       if (!cachedByModeRef.current[oppositeMode]) {
         loadModeData(oppositeMode)
           .then((prefetched) => {
@@ -144,9 +165,9 @@ export function DashboardClient({
           });
       }
       return;
-    } else {
-      setData(null);
     }
+
+    setData(null);
 
     requestIdRef.current += 1;
     const requestId = requestIdRef.current;
