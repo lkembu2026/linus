@@ -219,8 +219,7 @@ export function ImportMedicinesDialog({
         return (
           nameVal &&
           nameVal !== "name" &&
-          !nameVal.includes("(optional)") &&
-          !nameVal.includes("/")
+          !nameVal.includes("(optional)")
         );
       });
 
