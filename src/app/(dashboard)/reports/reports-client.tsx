@@ -440,43 +440,43 @@ export function ReportsClient({ user }: ReportsClientProps) {
       <Tabs defaultValue="daily" className="space-y-4">
         <div className="overflow-x-auto">
           <TabsList className="bg-background border border-border w-max min-w-full flex-nowrap sm:flex-wrap h-auto gap-1 p-1">
-          <TabsTrigger
-            value="daily"
-            className="shrink-0 data-[state=active]:bg-primary/10 data-[state=active]:text-primary text-xs sm:text-sm"
-          >
-            <Calendar className="h-4 w-4 mr-1.5" />
-            Daily
-          </TabsTrigger>
-          <TabsTrigger
-            value="monthly"
-            className="shrink-0 data-[state=active]:bg-primary/10 data-[state=active]:text-primary text-xs sm:text-sm"
-          >
-            <BarChart3 className="h-4 w-4 mr-1.5" />
-            Monthly
-          </TabsTrigger>
-          <TabsTrigger
-            value="top-selling"
-            className="shrink-0 data-[state=active]:bg-primary/10 data-[state=active]:text-primary text-xs sm:text-sm"
-          >
-            <TrendingUp className="h-4 w-4 mr-1.5" />
-            Top Selling
-          </TabsTrigger>
-          {user.role === "admin" && (
             <TabsTrigger
-              value="branches"
+              value="daily"
               className="shrink-0 data-[state=active]:bg-primary/10 data-[state=active]:text-primary text-xs sm:text-sm"
             >
-              <Building2 className="h-4 w-4 mr-1.5" />
-              Branches
+              <Calendar className="h-4 w-4 mr-1.5" />
+              Daily
             </TabsTrigger>
-          )}
-          <TabsTrigger
-            value="saved"
-            className="shrink-0 data-[state=active]:bg-primary/10 data-[state=active]:text-primary text-xs sm:text-sm"
-          >
-            <History className="h-4 w-4 mr-1.5" />
-            Saved
-          </TabsTrigger>
+            <TabsTrigger
+              value="monthly"
+              className="shrink-0 data-[state=active]:bg-primary/10 data-[state=active]:text-primary text-xs sm:text-sm"
+            >
+              <BarChart3 className="h-4 w-4 mr-1.5" />
+              Monthly
+            </TabsTrigger>
+            <TabsTrigger
+              value="top-selling"
+              className="shrink-0 data-[state=active]:bg-primary/10 data-[state=active]:text-primary text-xs sm:text-sm"
+            >
+              <TrendingUp className="h-4 w-4 mr-1.5" />
+              Top Selling
+            </TabsTrigger>
+            {user.role === "admin" && (
+              <TabsTrigger
+                value="branches"
+                className="shrink-0 data-[state=active]:bg-primary/10 data-[state=active]:text-primary text-xs sm:text-sm"
+              >
+                <Building2 className="h-4 w-4 mr-1.5" />
+                Branches
+              </TabsTrigger>
+            )}
+            <TabsTrigger
+              value="saved"
+              className="shrink-0 data-[state=active]:bg-primary/10 data-[state=active]:text-primary text-xs sm:text-sm"
+            >
+              <History className="h-4 w-4 mr-1.5" />
+              Saved
+            </TabsTrigger>
           </TabsList>
         </div>
 

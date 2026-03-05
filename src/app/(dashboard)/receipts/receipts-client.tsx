@@ -210,7 +210,8 @@ export function ReceiptsClient({ receipts }: ReceiptsClientProps) {
                       {formatCurrency(receipt.total_amount)}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {receipt.cashier_name ?? "-"} · {formatDateTime(receipt.created_at)}
+                      {receipt.cashier_name ?? "-"} ·{" "}
+                      {formatDateTime(receipt.created_at)}
                     </p>
                     <div className="flex items-center gap-1 pt-1">
                       <Button
@@ -239,100 +240,100 @@ export function ReceiptsClient({ receipts }: ReceiptsClientProps) {
               </div>
 
               <div className="hidden md:block overflow-x-auto -mx-6 px-6">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-border">
-                    <TableHead className="text-muted-foreground">
-                      Receipt #
-                    </TableHead>
-                    <TableHead className="text-muted-foreground">
-                      Items
-                    </TableHead>
-                    <TableHead className="text-muted-foreground">
-                      Total
-                    </TableHead>
-                    <TableHead className="text-muted-foreground">
-                      Payment
-                    </TableHead>
-                    <TableHead className="text-muted-foreground">
-                      Cashier
-                    </TableHead>
-                    <TableHead className="text-muted-foreground">
-                      Date
-                    </TableHead>
-                    <TableHead className="text-muted-foreground text-right">
-                      Actions
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map((receipt) => (
-                    <TableRow key={receipt.id} className="border-border">
-                      <TableCell className="text-primary font-mono text-xs font-medium">
-                        {receipt.receipt_number}
-                      </TableCell>
-                      <TableCell
-                        className="text-muted-foreground text-xs max-w-[200px] truncate"
-                        title={receipt.items_summary ?? "-"}
-                      >
-                        {receipt.items_summary || "-"}
-                      </TableCell>
-                      <TableCell className="text-white font-medium">
-                        {formatCurrency(receipt.total_amount)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={
-                            receipt.payment_method === "mpesa"
-                              ? "border-green-500 text-green-500"
-                              : "border-blue-400 text-blue-400"
-                          }
-                        >
-                          {receipt.payment_method.toUpperCase()}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
-                        {receipt.cashier_name ?? "-"}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-xs">
-                        {formatDateTime(receipt.created_at)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-primary hover:text-primary h-8 w-8 p-0"
-                            onClick={() => setPreviewReceipt(receipt)}
-                            title="Preview"
-                          >
-                            <Eye className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-primary hover:text-primary h-8 w-8 p-0"
-                            onClick={() => handlePrint(receipt)}
-                            title="Print"
-                          >
-                            <Printer className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-muted-foreground hover:text-white h-8 w-8 p-0"
-                            onClick={() => handleDownloadHtml(receipt)}
-                            title="Download HTML"
-                          >
-                            <Download className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </TableCell>
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-border">
+                      <TableHead className="text-muted-foreground">
+                        Receipt #
+                      </TableHead>
+                      <TableHead className="text-muted-foreground">
+                        Items
+                      </TableHead>
+                      <TableHead className="text-muted-foreground">
+                        Total
+                      </TableHead>
+                      <TableHead className="text-muted-foreground">
+                        Payment
+                      </TableHead>
+                      <TableHead className="text-muted-foreground">
+                        Cashier
+                      </TableHead>
+                      <TableHead className="text-muted-foreground">
+                        Date
+                      </TableHead>
+                      <TableHead className="text-muted-foreground text-right">
+                        Actions
+                      </TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map((receipt) => (
+                      <TableRow key={receipt.id} className="border-border">
+                        <TableCell className="text-primary font-mono text-xs font-medium">
+                          {receipt.receipt_number}
+                        </TableCell>
+                        <TableCell
+                          className="text-muted-foreground text-xs max-w-[200px] truncate"
+                          title={receipt.items_summary ?? "-"}
+                        >
+                          {receipt.items_summary || "-"}
+                        </TableCell>
+                        <TableCell className="text-white font-medium">
+                          {formatCurrency(receipt.total_amount)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={
+                              receipt.payment_method === "mpesa"
+                                ? "border-green-500 text-green-500"
+                                : "border-blue-400 text-blue-400"
+                            }
+                          >
+                            {receipt.payment_method.toUpperCase()}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {receipt.cashier_name ?? "-"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-xs">
+                          {formatDateTime(receipt.created_at)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-primary hover:text-primary h-8 w-8 p-0"
+                              onClick={() => setPreviewReceipt(receipt)}
+                              title="Preview"
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-primary hover:text-primary h-8 w-8 p-0"
+                              onClick={() => handlePrint(receipt)}
+                              title="Print"
+                            >
+                              <Printer className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-muted-foreground hover:text-white h-8 w-8 p-0"
+                              onClick={() => handleDownloadHtml(receipt)}
+                              title="Download HTML"
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
             </>
           )}

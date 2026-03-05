@@ -407,13 +407,25 @@ export function CreditsClient({
                     </div>
 
                     <div className="text-xs text-muted-foreground">
-                      <p>Total: <span className="text-white">{formatCurrency(credit.amount)}</span></p>
-                      <p>Paid: <span className="text-green-400">{formatCurrency(credit.amount_paid)}</span></p>
+                      <p>
+                        Total:{" "}
+                        <span className="text-white">
+                          {formatCurrency(credit.amount)}
+                        </span>
+                      </p>
+                      <p>
+                        Paid:{" "}
+                        <span className="text-green-400">
+                          {formatCurrency(credit.amount_paid)}
+                        </span>
+                      </p>
                       <p>
                         Balance:{" "}
                         <span
                           className={
-                            credit.balance > 0 ? "text-amber-400" : "text-green-400"
+                            credit.balance > 0
+                              ? "text-amber-400"
+                              : "text-green-400"
                           }
                         >
                           {formatCurrency(credit.balance)}
@@ -440,103 +452,103 @@ export function CreditsClient({
               </div>
 
               <div className="hidden md:block overflow-x-auto -mx-6 px-6">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-border">
-                    <TableHead className="text-muted-foreground">
-                      Customer
-                    </TableHead>
-                    <TableHead className="text-muted-foreground hidden md:table-cell">
-                      {mode === "beauty" ? "Products" : "Medicines"}
-                    </TableHead>
-                    <TableHead className="text-muted-foreground">
-                      Total
-                    </TableHead>
-                    <TableHead className="text-muted-foreground">
-                      Paid
-                    </TableHead>
-                    <TableHead className="text-muted-foreground">
-                      Balance
-                    </TableHead>
-                    <TableHead className="text-muted-foreground hidden sm:table-cell">
-                      Date
-                    </TableHead>
-                    <TableHead className="text-muted-foreground">
-                      Status
-                    </TableHead>
-                    <TableHead className="text-muted-foreground text-right">
-                      Action
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map((credit) => (
-                    <TableRow key={credit.id} className="border-border">
-                      <TableCell>
-                        <div>
-                          <p className="text-white font-medium text-sm">
-                            {credit.customer_name}
-                          </p>
-                          {credit.customer_phone && (
-                            <p className="text-muted-foreground text-xs flex items-center gap-1 mt-0.5">
-                              <Phone className="h-3 w-3" />
-                              {credit.customer_phone}
-                            </p>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell
-                        className="text-muted-foreground text-xs max-w-[200px] truncate hidden md:table-cell"
-                        title={credit.medicine_details ?? "-"}
-                      >
-                        {credit.medicine_details || "-"}
-                      </TableCell>
-                      <TableCell className="text-white font-medium text-sm">
-                        {formatCurrency(credit.amount)}
-                      </TableCell>
-                      <TableCell className="text-green-400 text-sm">
-                        {formatCurrency(credit.amount_paid)}
-                      </TableCell>
-                      <TableCell
-                        className={`font-bold text-sm ${credit.balance > 0 ? "text-amber-400" : "text-green-400"}`}
-                      >
-                        {formatCurrency(credit.balance)}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-xs hidden sm:table-cell">
-                        {formatDateTime(credit.created_at)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={
-                            credit.is_settled
-                              ? "border-green-500 text-green-500"
-                              : "border-amber-500 text-amber-400"
-                          }
-                        >
-                          {credit.is_settled ? "Settled" : "Pending"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {!credit.is_settled && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-primary hover:text-primary/80 h-7 px-2"
-                            onClick={() => {
-                              setPayDialog(credit);
-                              setPayAmount(credit.balance.toString());
-                            }}
-                          >
-                            <Banknote className="h-3 w-3 mr-1" />
-                            Pay
-                          </Button>
-                        )}
-                      </TableCell>
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-border">
+                      <TableHead className="text-muted-foreground">
+                        Customer
+                      </TableHead>
+                      <TableHead className="text-muted-foreground hidden md:table-cell">
+                        {mode === "beauty" ? "Products" : "Medicines"}
+                      </TableHead>
+                      <TableHead className="text-muted-foreground">
+                        Total
+                      </TableHead>
+                      <TableHead className="text-muted-foreground">
+                        Paid
+                      </TableHead>
+                      <TableHead className="text-muted-foreground">
+                        Balance
+                      </TableHead>
+                      <TableHead className="text-muted-foreground hidden sm:table-cell">
+                        Date
+                      </TableHead>
+                      <TableHead className="text-muted-foreground">
+                        Status
+                      </TableHead>
+                      <TableHead className="text-muted-foreground text-right">
+                        Action
+                      </TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map((credit) => (
+                      <TableRow key={credit.id} className="border-border">
+                        <TableCell>
+                          <div>
+                            <p className="text-white font-medium text-sm">
+                              {credit.customer_name}
+                            </p>
+                            {credit.customer_phone && (
+                              <p className="text-muted-foreground text-xs flex items-center gap-1 mt-0.5">
+                                <Phone className="h-3 w-3" />
+                                {credit.customer_phone}
+                              </p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell
+                          className="text-muted-foreground text-xs max-w-[200px] truncate hidden md:table-cell"
+                          title={credit.medicine_details ?? "-"}
+                        >
+                          {credit.medicine_details || "-"}
+                        </TableCell>
+                        <TableCell className="text-white font-medium text-sm">
+                          {formatCurrency(credit.amount)}
+                        </TableCell>
+                        <TableCell className="text-green-400 text-sm">
+                          {formatCurrency(credit.amount_paid)}
+                        </TableCell>
+                        <TableCell
+                          className={`font-bold text-sm ${credit.balance > 0 ? "text-amber-400" : "text-green-400"}`}
+                        >
+                          {formatCurrency(credit.balance)}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-xs hidden sm:table-cell">
+                          {formatDateTime(credit.created_at)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={
+                              credit.is_settled
+                                ? "border-green-500 text-green-500"
+                                : "border-amber-500 text-amber-400"
+                            }
+                          >
+                            {credit.is_settled ? "Settled" : "Pending"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {!credit.is_settled && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-primary hover:text-primary/80 h-7 px-2"
+                              onClick={() => {
+                                setPayDialog(credit);
+                                setPayAmount(credit.balance.toString());
+                              }}
+                            >
+                              <Banknote className="h-3 w-3 mr-1" />
+                              Pay
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
             </>
           )}

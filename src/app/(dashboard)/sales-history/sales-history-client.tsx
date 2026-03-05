@@ -201,86 +201,86 @@ export function SalesHistoryClient({
               </div>
 
               <div className="hidden md:block overflow-x-auto -mx-6 px-6">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-border">
-                    <TableHead className="text-muted-foreground">
-                      Receipt #
-                    </TableHead>
-                    <TableHead className="text-muted-foreground hidden md:table-cell">
-                      {mode === "beauty" ? "Products Sold" : "Items Sold"}
-                    </TableHead>
-                    <TableHead className="text-muted-foreground">
-                      Total
-                    </TableHead>
-                    <TableHead className="text-muted-foreground hidden sm:table-cell">
-                      Payment
-                    </TableHead>
-                    <TableHead className="text-muted-foreground">
-                      Date/Time
-                    </TableHead>
-                    <TableHead className="text-muted-foreground">
-                      Status
-                    </TableHead>
-                    {userRole === "admin" && (
-                      <TableHead className="text-muted-foreground text-right">
-                        Action
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-border">
+                      <TableHead className="text-muted-foreground">
+                        Receipt #
                       </TableHead>
-                    )}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map((sale) => (
-                    <TableRow key={sale.id} className="border-border">
-                      <TableCell className="text-white font-mono text-xs">
-                        {sale.receipt_number}
-                      </TableCell>
-                      <TableCell
-                        className="text-muted-foreground text-xs max-w-[250px] truncate hidden md:table-cell"
-                        title={sale.items_summary ?? "-"}
-                      >
-                        {sale.items_summary || "-"}
-                      </TableCell>
-                      <TableCell className="text-primary font-medium">
-                        {formatCurrency(sale.total_amount)}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground capitalize hidden sm:table-cell">
-                        {sale.payment_method}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-xs">
-                        {formatDateTime(sale.created_at)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={
-                            sale.is_voided
-                              ? "border-destructive text-destructive"
-                              : "border-green-500 text-green-500"
-                          }
-                        >
-                          {sale.is_voided ? "Voided" : "Completed"}
-                        </Badge>
-                      </TableCell>
+                      <TableHead className="text-muted-foreground hidden md:table-cell">
+                        {mode === "beauty" ? "Products Sold" : "Items Sold"}
+                      </TableHead>
+                      <TableHead className="text-muted-foreground">
+                        Total
+                      </TableHead>
+                      <TableHead className="text-muted-foreground hidden sm:table-cell">
+                        Payment
+                      </TableHead>
+                      <TableHead className="text-muted-foreground">
+                        Date/Time
+                      </TableHead>
+                      <TableHead className="text-muted-foreground">
+                        Status
+                      </TableHead>
                       {userRole === "admin" && (
-                        <TableCell className="text-right">
-                          {!sale.is_voided && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-destructive hover:text-destructive h-7 px-2"
-                              onClick={() => handleVoid(sale.id)}
-                            >
-                              <XCircle className="h-3 w-3 mr-1" />
-                              Void
-                            </Button>
-                          )}
-                        </TableCell>
+                        <TableHead className="text-muted-foreground text-right">
+                          Action
+                        </TableHead>
                       )}
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map((sale) => (
+                      <TableRow key={sale.id} className="border-border">
+                        <TableCell className="text-white font-mono text-xs">
+                          {sale.receipt_number}
+                        </TableCell>
+                        <TableCell
+                          className="text-muted-foreground text-xs max-w-[250px] truncate hidden md:table-cell"
+                          title={sale.items_summary ?? "-"}
+                        >
+                          {sale.items_summary || "-"}
+                        </TableCell>
+                        <TableCell className="text-primary font-medium">
+                          {formatCurrency(sale.total_amount)}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground capitalize hidden sm:table-cell">
+                          {sale.payment_method}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-xs">
+                          {formatDateTime(sale.created_at)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={
+                              sale.is_voided
+                                ? "border-destructive text-destructive"
+                                : "border-green-500 text-green-500"
+                            }
+                          >
+                            {sale.is_voided ? "Voided" : "Completed"}
+                          </Badge>
+                        </TableCell>
+                        {userRole === "admin" && (
+                          <TableCell className="text-right">
+                            {!sale.is_voided && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive hover:text-destructive h-7 px-2"
+                                onClick={() => handleVoid(sale.id)}
+                              >
+                                <XCircle className="h-3 w-3 mr-1" />
+                                Void
+                              </Button>
+                            )}
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
             </>
           )}
