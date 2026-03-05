@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { bulkCreateMedicines } from "@/actions/inventory";
-import { MEDICINE_CATEGORIES, DISPENSING_UNITS } from "@/lib/constants";
+import { MEDICINE_CATEGORIES, BEAUTY_CATEGORIES, DISPENSING_UNITS } from "@/lib/constants";
 
 // ── Template columns (order matters — matches what the user fills in) ──────────
 const TEMPLATE_COLUMNS = [
@@ -50,7 +50,7 @@ const TEMPLATE_COLUMNS = [
 const COLUMN_HINTS: Record<string, string> = {
   name: "Paracetamol 500mg",
   generic_name: "Acetaminophen (optional)",
-  category: MEDICINE_CATEGORIES.join(" / "),
+  category: [...MEDICINE_CATEGORIES, ...BEAUTY_CATEGORIES].join(" / "),
   dispensing_unit: DISPENSING_UNITS.join(" / ") + " (optional)",
   unit_price: "50",
   cost_price: "30",
@@ -91,7 +91,7 @@ function parseRow(raw: Record<string, any>, rowNum: number): ParsedRow {
   if (!name) errors.push("name is required");
 
   const category = String(raw["category"] ?? "").trim();
-  const validCats = MEDICINE_CATEGORIES as readonly string[];
+  const validCats = [...MEDICINE_CATEGORIES, ...BEAUTY_CATEGORIES] as string[];
   if (!category) {
     errors.push("category is required");
   } else if (!validCats.includes(category)) {
