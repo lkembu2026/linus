@@ -139,7 +139,8 @@ export function CheckoutDialog({
       }
 
       let effectivePaidNow = paymentMethod === "credit" ? 0 : paidNowAmount;
-      let effectiveBalance = paymentMethod === "credit" ? total : remainingBalance;
+      let effectiveBalance =
+        paymentMethod === "credit" ? total : remainingBalance;
 
       if (online) {
         try {
@@ -157,7 +158,10 @@ export function CheckoutDialog({
           if (result.receiptHtml) setReceiptHtml(result.receiptHtml);
 
           // If fully credit OR partial balance, create credit record for outstanding amount
-          if ((paymentMethod === "credit" || effectiveBalance > 0) && result.saleId) {
+          if (
+            (paymentMethod === "credit" || effectiveBalance > 0) &&
+            result.saleId
+          ) {
             const medicineDetails = items
               .map((i) => `${i.name} ×${i.quantity}`)
               .join(", ");
@@ -184,10 +188,20 @@ export function CheckoutDialog({
 
           setBalanceCreated(effectiveBalance);
           setPaidNow(effectivePaidNow);
-        } catch {
-          // Network request failed mid-flight (connection dropped) — save offline
-          console.warn("createSale network failure — saving offline");
-          await saveOffline();
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          const networkLikeError = /network|fetch|failed to fetch|load failed|abort/i.test(
+            message,
+          );
+
+          if (networkLikeError) {
+            // Network request failed mid-flight (connection dropped) — save offline
+            console.warn("createSale network failure — saving offline", message);
+            await saveOffline();
+          } else {
+            toast.error(`Sale failed: ${message}`);
+            return;
+          }
         }
       } else {
         await saveOffline();
@@ -469,7 +483,9 @@ export function CheckoutDialog({
                     </Label>
                     <Input
                       value={mpesaCode}
-                      onChange={(e) => setMpesaCode(e.target.value.toUpperCase())}
+                      onChange={(e) =>
+                        setMpesaCode(e.target.value.toUpperCase())
+                      }
                       className="bg-background border-border text-white mt-1 font-mono"
                       placeholder="e.g. SBK7XYZ123"
                       maxLength={20}
@@ -484,7 +500,8 @@ export function CheckoutDialog({
               {hasPartialBalance && (
                 <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
                   <p className="text-xs text-amber-300">
-                    Partial payment detected. Remaining credit to record: {formatCurrency(remainingBalance)}
+                    Partial payment detected. Remaining credit to record:{" "}
+                    {formatCurrency(remainingBalance)}
                   </p>
                 </div>
               )}
@@ -593,7 +610,8 @@ export function CheckoutDialog({
                   )}
                   {paidNow > 0 && (
                     <p className="text-xs text-muted-foreground mt-1">
-                      Paid now: {formatCurrency(paidNow)} via {paymentMethod.toUpperCase()}
+                      Paid now: {formatCurrency(paidNow)} via{" "}
+                      {paymentMethod.toUpperCase()}
                     </p>
                   )}
                   <p className="text-sm font-bold text-amber-400 mt-1">
