@@ -399,28 +399,40 @@ export async function getRecentSales(
 
   // If categories filter is provided, get sales with matching sale_items
   if (categories && categories.length > 0) {
-    const { data: medsData } = await supabase
+    let medsQuery = supabase
       .from("medicines")
       .select("id")
       .in("category", categories);
+
+    if (branchId) {
+      medsQuery = medsQuery.eq("branch_id", branchId);
+    }
+
+    const { data: medsData } = await medsQuery;
 
     const validMedIds = ((medsData ?? []) as unknown as { id: string }[]).map(
       (m) => m.id,
     );
 
     if (validMedIds.length > 0) {
-      const { data: saleItemsData } = await supabase
-        .from("sale_items")
-        .select("sale_id")
-        .in("medicine_id", validMedIds);
+      const CHUNK_SIZE = 100;
+      const saleIdSet = new Set<string>();
 
-      const validSaleIds = [
-        ...new Set(
-          ((saleItemsData ?? []) as unknown as { sale_id: string }[]).map(
-            (si) => si.sale_id,
-          ),
-        ),
-      ];
+      for (let i = 0; i < validMedIds.length; i += CHUNK_SIZE) {
+        const chunk = validMedIds.slice(i, i + CHUNK_SIZE);
+        const { data: saleItemsData } = await supabase
+          .from("sale_items")
+          .select("sale_id")
+          .in("medicine_id", chunk);
+
+        for (const row of (saleItemsData ?? []) as unknown as {
+          sale_id: string;
+        }[]) {
+          saleIdSet.add(row.sale_id);
+        }
+      }
+
+      const validSaleIds = [...saleIdSet];
 
       if (validSaleIds.length === 0) return [] as RecentSale[];
 

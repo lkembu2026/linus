@@ -20,6 +20,47 @@ type SaleAmount = {
   branch_id: string;
 };
 
+async function getSaleIdsByCategories(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  categories: string[],
+  branchId?: string | null,
+) {
+  if (!categories.length) return undefined;
+
+  let medsQuery = supabase
+    .from("medicines")
+    .select("id")
+    .in("category", categories);
+
+  if (branchId) {
+    medsQuery = medsQuery.eq("branch_id", branchId);
+  }
+
+  const { data: medsData } = await medsQuery;
+  const validMedIds = ((medsData ?? []) as unknown as { id: string }[]).map(
+    (m) => m.id,
+  );
+
+  if (validMedIds.length === 0) return [];
+
+  const CHUNK_SIZE = 100;
+  const saleIdSet = new Set<string>();
+
+  for (let i = 0; i < validMedIds.length; i += CHUNK_SIZE) {
+    const chunk = validMedIds.slice(i, i + CHUNK_SIZE);
+    const { data: saleItemsData } = await supabase
+      .from("sale_items")
+      .select("sale_id")
+      .in("medicine_id", chunk);
+
+    for (const row of (saleItemsData ?? []) as unknown as { sale_id: string }[]) {
+      saleIdSet.add(row.sale_id);
+    }
+  }
+
+  return [...saleIdSet];
+}
+
 export async function getDashboardStats(
   categories?: string[],
 ): Promise<DashboardStats> {
@@ -27,35 +68,10 @@ export async function getDashboardStats(
   const user = await getCurrentUser();
   const branchId = await getEffectiveBranchId(user);
 
-  let validMedIds: string[] | undefined;
-  if (categories && categories.length > 0) {
-    const { data: medsData } = await supabase
-      .from("medicines")
-      .select("id")
-      .in("category", categories);
-    validMedIds = ((medsData ?? []) as unknown as { id: string }[]).map(
-      (m) => m.id,
-    );
-  }
-
-  let validSaleIds: string[] | undefined;
-  if (validMedIds !== undefined) {
-    if (validMedIds.length === 0) {
-      validSaleIds = [];
-    } else {
-      const { data: saleItemsData } = await supabase
-        .from("sale_items")
-        .select("sale_id")
-        .in("medicine_id", validMedIds);
-      validSaleIds = [
-        ...new Set(
-          ((saleItemsData ?? []) as unknown as { sale_id: string }[]).map(
-            (si) => si.sale_id,
-          ),
-        ),
-      ];
-    }
-  }
+  const validSaleIds =
+    categories && categories.length > 0
+      ? await getSaleIdsByCategories(supabase, categories, branchId)
+      : undefined;
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -147,21 +163,20 @@ export async function getTopMedicines(
   const user = await getCurrentUser();
   const branchId = await getEffectiveBranchId(user);
 
-  let validMedIds: string[] | undefined;
-  if (categories && categories.length > 0) {
-    const { data: medsData } = await supabase
-      .from("medicines")
-      .select("id")
-      .in("category", categories);
-    validMedIds = ((medsData ?? []) as unknown as { id: string }[]).map(
-      (m) => m.id,
-    );
-    if (validMedIds.length === 0) return [];
-  }
+  const validSaleIdsByCategories =
+    categories && categories.length > 0
+      ? await getSaleIdsByCategories(supabase, categories, branchId)
+      : undefined;
+
+  if (validSaleIdsByCategories !== undefined && validSaleIdsByCategories.length === 0)
+    return [];
 
   // Get completed sales
   let salesQuery = supabase.from("sales").select("id").eq("is_voided", false);
   if (branchId) salesQuery = salesQuery.eq("branch_id", branchId);
+  if (validSaleIdsByCategories !== undefined) {
+    salesQuery = salesQuery.in("id", validSaleIdsByCategories);
+  }
   const { data: salesData } = await salesQuery;
   const saleIds = ((salesData ?? []) as unknown as { id: string }[]).map(
     (s) => s.id,
@@ -174,10 +189,6 @@ export async function getTopMedicines(
     .from("sale_items")
     .select("medicine_id, quantity, unit_price")
     .in("sale_id", saleIds);
-
-  if (validMedIds !== undefined) {
-    itemsQuery = itemsQuery.in("medicine_id", validMedIds);
-  }
 
   const { data: itemsData } = await itemsQuery;
 
@@ -235,30 +246,12 @@ export async function getRevenueChart(
   const user = await getCurrentUser();
   const branchId = await getEffectiveBranchId(user);
 
-  let validSaleIds: string[] | undefined;
-  if (categories && categories.length > 0) {
-    const { data: medsData } = await supabase
-      .from("medicines")
-      .select("id")
-      .in("category", categories);
-    const validMedIds = ((medsData ?? []) as unknown as { id: string }[]).map(
-      (m) => m.id,
-    );
-    if (validMedIds.length === 0) return [];
+  const validSaleIds =
+    categories && categories.length > 0
+      ? await getSaleIdsByCategories(supabase, categories, branchId)
+      : undefined;
 
-    const { data: saleItemsData } = await supabase
-      .from("sale_items")
-      .select("sale_id")
-      .in("medicine_id", validMedIds);
-    validSaleIds = [
-      ...new Set(
-        ((saleItemsData ?? []) as unknown as { sale_id: string }[]).map(
-          (si) => si.sale_id,
-        ),
-      ),
-    ];
-    if (validSaleIds.length === 0) return [];
-  }
+  if (validSaleIds !== undefined && validSaleIds.length === 0) return [];
 
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - days);
@@ -438,16 +431,12 @@ export async function getMedicineDailySales(
   const user = await getCurrentUser();
   const branchId = await getEffectiveBranchId(user);
 
-  let validMedIds: string[] | undefined;
-  if (categories && categories.length > 0) {
-    const { data: medsData } = await supabase
-      .from("medicines")
-      .select("id")
-      .in("category", categories);
-    validMedIds = ((medsData ?? []) as unknown as { id: string }[]).map(
-      (m) => m.id,
-    );
-    if (validMedIds.length === 0) {
+  const validSaleIdsByCategories =
+    categories && categories.length > 0
+      ? await getSaleIdsByCategories(supabase, categories, branchId)
+      : undefined;
+
+  if (validSaleIdsByCategories !== undefined && validSaleIdsByCategories.length === 0) {
       const results: MedicineDailySales[] = [];
       for (let i = days; i >= 0; i--) {
         const d = new Date();
@@ -456,7 +445,6 @@ export async function getMedicineDailySales(
         results.push({ date: key, units_sold: 0 });
       }
       return results;
-    }
   }
 
   const startDate = new Date();
@@ -468,6 +456,9 @@ export async function getMedicineDailySales(
     .gte("created_at", startDate.toISOString())
     .eq("is_voided", false);
   if (branchId) salesQ = salesQ.eq("branch_id", branchId);
+  if (validSaleIdsByCategories !== undefined) {
+    salesQ = salesQ.in("id", validSaleIdsByCategories);
+  }
   const { data: salesData } = await salesQ;
   const saleIds = ((salesData ?? []) as unknown as { id: string }[]).map(
     (s) => s.id,
@@ -488,10 +479,6 @@ export async function getMedicineDailySales(
     .from("sale_items")
     .select("quantity, sale_id, sales(created_at)")
     .in("sale_id", saleIds);
-
-  if (validMedIds !== undefined) {
-    itemsQuery = itemsQuery.in("medicine_id", validMedIds);
-  }
 
   const { data: itemsData } = await itemsQuery;
 
