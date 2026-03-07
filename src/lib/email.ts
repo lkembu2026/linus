@@ -76,10 +76,21 @@ export async function sendReceiptEmail(data: {
   paymentMethod: string;
   cashierName: string;
   branchName: string;
+  paidAmount?: number;
+  balanceDue?: number;
   cashTendered?: number;
   change?: number;
+  mpesaCode?: string;
+  saleDate?: string;
 }) {
   try {
+    if (!process.env.RESEND_API_KEY) {
+      console.warn(
+        "[Email] RESEND_API_KEY is not configured. Skipping receipt email.",
+      );
+      return;
+    }
+
     const itemRows = data.items
       .map(
         (item) =>
@@ -99,13 +110,31 @@ export async function sendReceiptEmail(data: {
           <div class="row"><span class="label">Change</span><span class="value">${formatKES(data.change ?? 0)}</span></div>`
         : "";
 
+    const paidAmount = Number(data.paidAmount ?? data.total);
+    const balanceDue = Number(
+      data.balanceDue ?? Math.max(data.total - paidAmount, 0),
+    );
+    const balanceDetails =
+      balanceDue > 0
+        ? `
+          <div class="row"><span class="label">Paid Now</span><span class="value">${formatKES(paidAmount)}</span></div>
+          <div class="row"><span class="label">Credit Balance</span><span class="value">${formatKES(balanceDue)}</span></div>`
+        : `
+          <div class="row"><span class="label">Paid</span><span class="value">${formatKES(paidAmount)}</span></div>`;
+    const mpesaDetails =
+      data.paymentMethod === "mpesa" && data.mpesaCode
+        ? `
+          <div class="row"><span class="label">M-Pesa Code</span><span class="value">${data.mpesaCode}</span></div>`
+        : "";
+
     const body = `
       <div class="card">
         <h2>🧾 Sale Receipt — ${data.receiptNo}</h2>
         <div class="row"><span class="label">Branch</span><span class="value">${data.branchName}</span></div>
         <div class="row"><span class="label">Cashier</span><span class="value">${data.cashierName}</span></div>
         <div class="row"><span class="label">Payment</span><span class="value badge badge-info">${data.paymentMethod.toUpperCase()}</span></div>
-        <div class="row"><span class="label">Date</span><span class="value">${new Date().toLocaleString("en-KE")}</span></div>
+        <div class="row"><span class="label">Date</span><span class="value">${data.saleDate ?? new Date().toLocaleString("en-KE")}</span></div>
+        ${mpesaDetails}
       </div>
       <div class="card">
         <h2>Items</h2>
@@ -115,6 +144,7 @@ export async function sendReceiptEmail(data: {
         </table>
         <div style="margin-top:12px; border-top:2px solid #00FFE0; padding-top:12px;">
           <div class="total-row"><span>TOTAL</span><span>${formatKES(data.total)}</span></div>
+          ${balanceDetails}
           ${paymentDetails}
         </div>
       </div>`;

@@ -468,8 +468,8 @@ export async function bulkSetOpeningStock(
     quantity_in_stock: number;
   };
 
-  const branchMedicines =
-    (branchMedicinesData ?? []) as unknown as BranchMedicine[];
+  const branchMedicines = (branchMedicinesData ??
+    []) as unknown as BranchMedicine[];
 
   const byBarcode = new Map<string, BranchMedicine[]>();
   const byName = new Map<string, BranchMedicine[]>();
@@ -480,7 +480,10 @@ export async function bulkSetOpeningStock(
 
     const barcodeKey = medicine.barcode?.trim().toLowerCase();
     if (barcodeKey) {
-      byBarcode.set(barcodeKey, [...(byBarcode.get(barcodeKey) ?? []), medicine]);
+      byBarcode.set(barcodeKey, [
+        ...(byBarcode.get(barcodeKey) ?? []),
+        medicine,
+      ]);
     }
   }
 
@@ -517,7 +520,9 @@ export async function bulkSetOpeningStock(
     }
 
     if (matches.length > 1) {
-      errors.push(`${rowLabel}: multiple matches found, use barcode to disambiguate`);
+      errors.push(
+        `${rowLabel}: multiple matches found, use barcode to disambiguate`,
+      );
       continue;
     }
 

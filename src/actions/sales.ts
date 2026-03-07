@@ -135,11 +135,6 @@ export async function createSale(
       },
     });
 
-    revalidatePath("/dashboard");
-    revalidatePath("/dashboard/sales");
-    revalidatePath("/dashboard/inventory");
-    revalidatePath("/receipts");
-
     const cashierName = user.full_name ?? "Staff";
     const { data: branchData } = await supabase
       .from("branches")
@@ -179,8 +174,7 @@ export async function createSale(
       date: dateStr,
     });
 
-    // Save receipt to database (fire-and-forget)
-    saveReceipt({
+    const receiptSaveResult = await saveReceipt({
       saleId: saleData.id,
       receiptNo: saleData.receipt_number,
       receiptHtml,
@@ -189,49 +183,70 @@ export async function createSale(
       cashierName,
       branchName,
       itemsSummary,
-    }).catch((err) => console.error("[Receipt] Save failed:", err));
+    });
 
-    // Send receipt email to admin (fire-and-forget)
-    sendReceiptEmail({
-      receiptNo: saleData.receipt_number,
-      items: items.map((i) => ({
-        name: i.name,
-        quantity: i.quantity,
-        unit_price: i.unit_price,
-      })),
-      total: totalAmount,
-      paymentMethod,
-      cashierName,
-      branchName,
-    }).catch((err) => console.error("[Email] Receipt email failed:", err));
-
-    // Audit email for sale (fire-and-forget)
-    sendAuditEmail({
-      action: "create_sale",
-      userName: cashierName,
-      details: {
-        sale_id: saleData.id,
-        receipt_number: saleData.receipt_number,
-        total_amount: totalAmount,
-        payment_method: paymentMethod,
-        paid_amount: paidAmount,
-        balance_due: balanceDue,
-        items_count: items.length,
-      },
-    }).catch((err) => console.error("[Email] Audit email failed:", err));
-
-    // Low stock email if any items dropped below reorder level
-    if (lowStockAfterSale.length > 0) {
-      sendLowStockEmail({ items: lowStockAfterSale }).catch((err) =>
-        console.error("[Email] Low stock email failed:", err),
-      );
+    if (receiptSaveResult?.error) {
+      console.error("[Receipt] Save failed:", receiptSaveResult.error);
     }
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/sales");
+    revalidatePath("/dashboard/inventory");
+    revalidatePath("/dashboard/receipts");
+
+    const sideEffects: Promise<unknown>[] = [
+      sendReceiptEmail({
+        receiptNo: saleData.receipt_number,
+        items: items.map((i) => ({
+          name: i.name,
+          quantity: i.quantity,
+          unit_price: i.unit_price,
+        })),
+        total: totalAmount,
+        paymentMethod,
+        cashierName,
+        branchName,
+        paidAmount,
+        balanceDue,
+        mpesaCode: options?.mpesaCode,
+        saleDate: dateStr,
+      }),
+      sendAuditEmail({
+        action: "create_sale",
+        userName: cashierName,
+        details: {
+          sale_id: saleData.id,
+          receipt_number: saleData.receipt_number,
+          total_amount: totalAmount,
+          payment_method: paymentMethod,
+          paid_amount: paidAmount,
+          balance_due: balanceDue,
+          items_count: items.length,
+        },
+      }),
+    ];
+
+    if (lowStockAfterSale.length > 0) {
+      sideEffects.push(sendLowStockEmail({ items: lowStockAfterSale }));
+    }
+
+    const sideEffectResults = await Promise.allSettled(sideEffects);
+    sideEffectResults.forEach((result, index) => {
+      if (result.status === "rejected") {
+        const labels = ["receipt email", "audit email", "low stock email"];
+        console.error(
+          `[Email] ${labels[index] ?? "sale side effect"} failed:`,
+          result.reason,
+        );
+      }
+    });
 
     return {
       success: true,
       saleId: saleData.id,
       receiptNumber: saleData.receipt_number,
       receiptHtml,
+      receiptSaved: !receiptSaveResult?.error,
     };
   } catch (error: unknown) {
     const message =

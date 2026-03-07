@@ -102,7 +102,7 @@ export function MedicineSearch({
         if (requestId !== requestIdRef.current) return;
 
         setIsOfflineResults(fromCache);
-  setHasOutOfStockMatches(hasOutOfStock);
+        setHasOutOfStockMatches(hasOutOfStock);
         setResults(data);
         setShowResults(true);
 

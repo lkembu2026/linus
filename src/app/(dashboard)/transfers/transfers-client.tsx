@@ -226,7 +226,8 @@ export function TransfersClient({
             <>
               <div className="md:hidden space-y-3">
                 {transfers.map((t) => {
-                  const statusInfo = statusConfig[t.status] || statusConfig.pending;
+                  const statusInfo =
+                    statusConfig[t.status] || statusConfig.pending;
                   const StatusIcon = statusInfo.icon;
                   return (
                     <div
@@ -243,10 +244,15 @@ export function TransfersClient({
                         </Badge>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        {t.from_branch?.name ?? "—"} → {t.to_branch?.name ?? "—"}
+                        {t.from_branch?.name ?? "—"} →{" "}
+                        {t.to_branch?.name ?? "—"}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Qty: <span className="text-primary font-medium">{t.quantity}</span> · {formatDateTime(t.created_at)}
+                        Qty:{" "}
+                        <span className="text-primary font-medium">
+                          {t.quantity}
+                        </span>{" "}
+                        · {formatDateTime(t.created_at)}
                       </p>
                       {user.role === "admin" && t.status === "pending" && (
                         <div className="flex gap-2 pt-1">
@@ -278,105 +284,110 @@ export function TransfersClient({
               </div>
 
               <div className="hidden md:block overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-border">
-                    <TableHead className="text-muted-foreground">
-                      {itemLabel}
-                    </TableHead>
-                    <TableHead className="text-muted-foreground">
-                      From
-                    </TableHead>
-                    <TableHead className="text-muted-foreground">To</TableHead>
-                    <TableHead className="text-muted-foreground text-right">
-                      Qty
-                    </TableHead>
-                    <TableHead className="text-muted-foreground">
-                      Requested By
-                    </TableHead>
-                    <TableHead className="text-muted-foreground">
-                      Date
-                    </TableHead>
-                    <TableHead className="text-muted-foreground">
-                      Status
-                    </TableHead>
-                    {user.role === "admin" && (
-                      <TableHead className="text-muted-foreground text-right">
-                        Actions
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-border">
+                      <TableHead className="text-muted-foreground">
+                        {itemLabel}
                       </TableHead>
-                    )}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {transfers.map((t) => {
-                    const statusInfo =
-                      statusConfig[t.status] || statusConfig.pending;
-                    const StatusIcon = statusInfo.icon;
-                    return (
-                      <TableRow key={t.id} className="border-border">
-                        <TableCell className="text-white font-medium">
-                          {t.medicine?.name ?? "—"}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {t.from_branch?.name ?? "—"}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {t.to_branch?.name ?? "—"}
-                        </TableCell>
-                        <TableCell className="text-right text-primary font-medium">
-                          {t.quantity}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {t.requested_by_user?.full_name ?? "—"}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-xs">
-                          {formatDateTime(t.created_at)}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={statusInfo.color}>
-                            <StatusIcon className="h-3 w-3 mr-1" />
-                            {t.status}
-                          </Badge>
-                        </TableCell>
-                        {user.role === "admin" && (
-                          <TableCell className="text-right">
-                            {t.status === "pending" && (
-                              <div className="flex gap-1 justify-end">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-green-500 hover:text-green-400 h-7"
-                                  onClick={() => handleApprove(t.id)}
-                                  disabled={isPending}
-                                >
-                                  {isPending ? (
-                                    <Loader2 className="h-3 w-3 animate-spin" />
-                                  ) : (
-                                    <>
-                                      <CheckCircle className="h-3 w-3 mr-1" />
-                                      Approve
-                                    </>
-                                  )}
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-destructive hover:text-destructive/80 h-7"
-                                  onClick={() => handleReject(t.id)}
-                                  disabled={isPending}
-                                >
-                                  <XCircle className="h-3 w-3 mr-1" />
-                                  Reject
-                                </Button>
-                              </div>
-                            )}
+                      <TableHead className="text-muted-foreground">
+                        From
+                      </TableHead>
+                      <TableHead className="text-muted-foreground">
+                        To
+                      </TableHead>
+                      <TableHead className="text-muted-foreground text-right">
+                        Qty
+                      </TableHead>
+                      <TableHead className="text-muted-foreground">
+                        Requested By
+                      </TableHead>
+                      <TableHead className="text-muted-foreground">
+                        Date
+                      </TableHead>
+                      <TableHead className="text-muted-foreground">
+                        Status
+                      </TableHead>
+                      {user.role === "admin" && (
+                        <TableHead className="text-muted-foreground text-right">
+                          Actions
+                        </TableHead>
+                      )}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {transfers.map((t) => {
+                      const statusInfo =
+                        statusConfig[t.status] || statusConfig.pending;
+                      const StatusIcon = statusInfo.icon;
+                      return (
+                        <TableRow key={t.id} className="border-border">
+                          <TableCell className="text-white font-medium">
+                            {t.medicine?.name ?? "—"}
                           </TableCell>
-                        )}
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                          <TableCell className="text-muted-foreground">
+                            {t.from_branch?.name ?? "—"}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {t.to_branch?.name ?? "—"}
+                          </TableCell>
+                          <TableCell className="text-right text-primary font-medium">
+                            {t.quantity}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {t.requested_by_user?.full_name ?? "—"}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-xs">
+                            {formatDateTime(t.created_at)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="outline"
+                              className={statusInfo.color}
+                            >
+                              <StatusIcon className="h-3 w-3 mr-1" />
+                              {t.status}
+                            </Badge>
+                          </TableCell>
+                          {user.role === "admin" && (
+                            <TableCell className="text-right">
+                              {t.status === "pending" && (
+                                <div className="flex gap-1 justify-end">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-green-500 hover:text-green-400 h-7"
+                                    onClick={() => handleApprove(t.id)}
+                                    disabled={isPending}
+                                  >
+                                    {isPending ? (
+                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                    ) : (
+                                      <>
+                                        <CheckCircle className="h-3 w-3 mr-1" />
+                                        Approve
+                                      </>
+                                    )}
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-destructive hover:text-destructive/80 h-7"
+                                    onClick={() => handleReject(t.id)}
+                                    disabled={isPending}
+                                  >
+                                    <XCircle className="h-3 w-3 mr-1" />
+                                    Reject
+                                  </Button>
+                                </div>
+                              )}
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
               </div>
             </>
           )}

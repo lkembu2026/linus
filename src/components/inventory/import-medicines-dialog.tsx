@@ -30,7 +30,11 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { bulkCreateMedicines } from "@/actions/inventory";
-import { MEDICINE_CATEGORIES, BEAUTY_CATEGORIES, DISPENSING_UNITS } from "@/lib/constants";
+import {
+  MEDICINE_CATEGORIES,
+  BEAUTY_CATEGORIES,
+  DISPENSING_UNITS,
+} from "@/lib/constants";
 
 // ── Template columns (order matters — matches what the user fills in) ──────────
 const TEMPLATE_COLUMNS = [
@@ -216,11 +220,7 @@ export function ImportMedicinesDialog({
         const nameVal = String(r["name"] ?? "")
           .trim()
           .toLowerCase();
-        return (
-          nameVal &&
-          nameVal !== "name" &&
-          !nameVal.includes("(optional)")
-        );
+        return nameVal && nameVal !== "name" && !nameVal.includes("(optional)");
       });
 
       setRows(dataRows.map((r, i) => parseRow(r, i + 2)));

@@ -53,7 +53,9 @@ async function getSaleIdsByCategories(
       .select("sale_id")
       .in("medicine_id", chunk);
 
-    for (const row of (saleItemsData ?? []) as unknown as { sale_id: string }[]) {
+    for (const row of (saleItemsData ?? []) as unknown as {
+      sale_id: string;
+    }[]) {
       saleIdSet.add(row.sale_id);
     }
   }
@@ -168,7 +170,10 @@ export async function getTopMedicines(
       ? await getSaleIdsByCategories(supabase, categories, branchId)
       : undefined;
 
-  if (validSaleIdsByCategories !== undefined && validSaleIdsByCategories.length === 0)
+  if (
+    validSaleIdsByCategories !== undefined &&
+    validSaleIdsByCategories.length === 0
+  )
     return [];
 
   // Get completed sales
@@ -436,15 +441,18 @@ export async function getMedicineDailySales(
       ? await getSaleIdsByCategories(supabase, categories, branchId)
       : undefined;
 
-  if (validSaleIdsByCategories !== undefined && validSaleIdsByCategories.length === 0) {
-      const results: MedicineDailySales[] = [];
-      for (let i = days; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        const key = d.toISOString().split("T")[0];
-        results.push({ date: key, units_sold: 0 });
-      }
-      return results;
+  if (
+    validSaleIdsByCategories !== undefined &&
+    validSaleIdsByCategories.length === 0
+  ) {
+    const results: MedicineDailySales[] = [];
+    for (let i = days; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().split("T")[0];
+      results.push({ date: key, units_sold: 0 });
+    }
+    return results;
   }
 
   const startDate = new Date();

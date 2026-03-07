@@ -27,7 +27,7 @@ export async function saveReceipt(data: {
     cashier_name: data.cashierName,
     branch_name: data.branchName,
     items_summary: data.itemsSummary,
-  } as any);
+  });
 
   if (error) {
     console.error("[Receipts] Failed to save receipt:", error);
@@ -52,6 +52,95 @@ export type SavedReceipt = {
   created_at: string;
 };
 
+async function getScopedSaleIds(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  branchId: string | null,
+  categories: string[] | undefined,
+  limit: number,
+) {
+  let branchSaleIds: string[] | undefined;
+
+  if (branchId) {
+    const { data: salesData, error: salesError } = await supabase
+      .from("sales")
+      .select("id")
+      .eq("branch_id", branchId)
+      .order("created_at", { ascending: false })
+      .limit(Math.max(limit * 20, 1000));
+
+    if (salesError) {
+      console.error("[Receipts] Failed to scope sales by branch:", salesError);
+      return [] as string[];
+    }
+
+    branchSaleIds = ((salesData ?? []) as { id: string }[]).map(
+      (sale) => sale.id,
+    );
+
+    if (branchSaleIds.length === 0) {
+      return [] as string[];
+    }
+  }
+
+  if (!categories || categories.length === 0) {
+    return branchSaleIds;
+  }
+
+  let medicinesQuery = supabase
+    .from("medicines")
+    .select("id")
+    .in("category", categories);
+
+  if (branchId) {
+    medicinesQuery = medicinesQuery.eq("branch_id", branchId);
+  }
+
+  const { data: medicinesData, error: medicinesError } = await medicinesQuery;
+
+  if (medicinesError) {
+    console.error(
+      "[Receipts] Failed to scope medicines by category:",
+      medicinesError,
+    );
+    return [] as string[];
+  }
+
+  const medicineIds = ((medicinesData ?? []) as { id: string }[]).map(
+    (medicine) => medicine.id,
+  );
+
+  if (medicineIds.length === 0) {
+    return [] as string[];
+  }
+
+  const categorySaleIds = new Set<string>();
+  const chunkSize = 100;
+
+  for (let index = 0; index < medicineIds.length; index += chunkSize) {
+    const chunk = medicineIds.slice(index, index + chunkSize);
+    const { data: saleItemsData, error: saleItemsError } = await supabase
+      .from("sale_items")
+      .select("sale_id")
+      .in("medicine_id", chunk);
+
+    if (saleItemsError) {
+      console.error("[Receipts] Failed to scope sale items:", saleItemsError);
+      return [] as string[];
+    }
+
+    for (const row of (saleItemsData ?? []) as { sale_id: string }[]) {
+      categorySaleIds.add(row.sale_id);
+    }
+  }
+
+  if (!branchSaleIds) {
+    return [...categorySaleIds];
+  }
+
+  const branchSaleIdSet = new Set(branchSaleIds);
+  return [...categorySaleIds].filter((saleId) => branchSaleIdSet.has(saleId));
+}
+
 export async function getReceipts(limit = 50, categories?: string[]) {
   const supabase = await createClient();
   const user = await getCurrentUser();
@@ -59,36 +148,15 @@ export async function getReceipts(limit = 50, categories?: string[]) {
 
   if (!user) return [] as SavedReceipt[];
 
-  let validSaleIds: string[] | undefined;
-  if (categories && categories.length > 0) {
-    const { data: medsData } = await supabase
-      .from("medicines")
-      .select("id")
-      .in("category", categories);
-    const validMedIds = ((medsData ?? []) as unknown as { id: string }[]).map(
-      (m) => m.id,
-    );
+  const validSaleIds = await getScopedSaleIds(
+    supabase,
+    branchId,
+    categories,
+    limit,
+  );
 
-    if (validMedIds.length === 0) {
-      return [] as SavedReceipt[];
-    }
-
-    const { data: saleItemsData } = await supabase
-      .from("sale_items")
-      .select("sale_id")
-      .in("medicine_id", validMedIds);
-
-    validSaleIds = [
-      ...new Set(
-        ((saleItemsData ?? []) as unknown as { sale_id: string }[]).map(
-          (si) => si.sale_id,
-        ),
-      ),
-    ];
-
-    if (validSaleIds.length === 0) {
-      return [] as SavedReceipt[];
-    }
+  if (validSaleIds !== undefined && validSaleIds.length === 0) {
+    return [] as SavedReceipt[];
   }
 
   let query = supabase
@@ -96,19 +164,6 @@ export async function getReceipts(limit = 50, categories?: string[]) {
     .select("*")
     .order("created_at", { ascending: false })
     .limit(limit);
-
-  if (branchId) {
-    const { data: branchData } = await supabase
-      .from("branches")
-      .select("name")
-      .eq("id", branchId)
-      .single();
-
-    const branchName = (branchData as { name: string } | null)?.name;
-    if (branchName) {
-      query = query.eq("branch_name", branchName);
-    }
-  }
 
   if (validSaleIds !== undefined) {
     query = query.in("sale_id", validSaleIds);

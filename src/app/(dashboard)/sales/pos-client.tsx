@@ -89,8 +89,8 @@ export function POSClient({ user }: POSClientProps) {
         })) as Awaited<ReturnType<typeof searchMedicines>>;
       }
       if (results.length === 0) {
-        showFeedback("error", `No medicine found for: ${barcode}`);
-        toast.error(`Barcode not found: ${barcode}`);
+        showFeedback("error", `No in-stock medicine found for: ${barcode}`);
+        toast.error(`No in-stock item found in this branch for: ${barcode}`);
         return;
       }
       if (results.length === 1) {

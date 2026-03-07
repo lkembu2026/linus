@@ -190,13 +190,15 @@ export function CheckoutDialog({
           setPaidNow(effectivePaidNow);
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
-          const networkLikeError = /network|fetch|failed to fetch|load failed|abort/i.test(
-            message,
-          );
+          const networkLikeError =
+            /network|fetch|failed to fetch|load failed|abort/i.test(message);
 
           if (networkLikeError) {
             // Network request failed mid-flight (connection dropped) — save offline
-            console.warn("createSale network failure — saving offline", message);
+            console.warn(
+              "createSale network failure — saving offline",
+              message,
+            );
             await saveOffline();
           } else {
             toast.error(`Sale failed: ${message}`);

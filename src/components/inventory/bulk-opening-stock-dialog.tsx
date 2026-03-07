@@ -124,8 +124,12 @@ export function BulkOpeningStockDialog({
       });
 
       const dataRows = rawRows.filter((row) => {
-        const barcode = String(row["barcode"] ?? "").trim().toLowerCase();
-        const name = String(row["name"] ?? "").trim().toLowerCase();
+        const barcode = String(row["barcode"] ?? "")
+          .trim()
+          .toLowerCase();
+        const name = String(row["name"] ?? "")
+          .trim()
+          .toLowerCase();
 
         return (
           barcode !== "barcode" &&
@@ -206,10 +210,12 @@ export function BulkOpeningStockDialog({
 
         <div className="space-y-5 py-2">
           <div className="rounded-lg border border-border bg-background/40 p-4 space-y-3">
-            <p className="text-sm font-medium text-white">Step 1 — Download template</p>
+            <p className="text-sm font-medium text-white">
+              Step 1 — Download template
+            </p>
             <p className="text-xs text-muted-foreground">
-              Fill barcode + quantity. If barcode is missing, the system tries name match.
-              Updates apply to the currently selected branch only.
+              Fill barcode + quantity. If barcode is missing, the system tries
+              name match. Updates apply to the currently selected branch only.
             </p>
             <div className="flex gap-2">
               <Button
@@ -234,7 +240,9 @@ export function BulkOpeningStockDialog({
           </div>
 
           <div className="rounded-lg border border-border bg-background/40 p-4 space-y-3">
-            <p className="text-sm font-medium text-white">Step 2 — Upload filled file</p>
+            <p className="text-sm font-medium text-white">
+              Step 2 — Upload filled file
+            </p>
             <div
               className="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-lg py-8 cursor-pointer hover:border-primary/50 transition-colors"
               onClick={() => fileInputRef.current?.click()}
@@ -249,7 +257,9 @@ export function BulkOpeningStockDialog({
               <p className="text-sm text-muted-foreground">
                 Click or drag & drop your CSV / Excel file here
               </p>
-              {fileName && <p className="text-xs text-primary mt-1">{fileName}</p>}
+              {fileName && (
+                <p className="text-xs text-primary mt-1">{fileName}</p>
+              )}
             </div>
 
             <input
@@ -268,7 +278,10 @@ export function BulkOpeningStockDialog({
           {rows.length > 0 && (
             <div className="space-y-3">
               <div className="flex items-center gap-2 flex-wrap">
-                <Badge variant="outline" className="border-green-500 text-green-400">
+                <Badge
+                  variant="outline"
+                  className="border-green-500 text-green-400"
+                >
                   <CheckCircle className="h-3 w-3 mr-1" />
                   {validRows.length} ready
                 </Badge>
@@ -288,10 +301,18 @@ export function BulkOpeningStockDialog({
                   <TableHeader>
                     <TableRow className="border-border">
                       <TableHead className="text-muted-foreground">#</TableHead>
-                      <TableHead className="text-muted-foreground">Barcode</TableHead>
-                      <TableHead className="text-muted-foreground">Name</TableHead>
-                      <TableHead className="text-muted-foreground">Quantity</TableHead>
-                      <TableHead className="text-muted-foreground">Status</TableHead>
+                      <TableHead className="text-muted-foreground">
+                        Barcode
+                      </TableHead>
+                      <TableHead className="text-muted-foreground">
+                        Name
+                      </TableHead>
+                      <TableHead className="text-muted-foreground">
+                        Quantity
+                      </TableHead>
+                      <TableHead className="text-muted-foreground">
+                        Status
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -306,8 +327,12 @@ export function BulkOpeningStockDialog({
                         <TableCell className="font-mono text-xs text-muted-foreground">
                           {row.barcode ?? "—"}
                         </TableCell>
-                        <TableCell className="text-white text-sm">{row.name ?? "—"}</TableCell>
-                        <TableCell className="text-white text-sm">{row.quantity}</TableCell>
+                        <TableCell className="text-white text-sm">
+                          {row.name ?? "—"}
+                        </TableCell>
+                        <TableCell className="text-white text-sm">
+                          {row.quantity}
+                        </TableCell>
                         <TableCell>
                           {row._errors.length > 0 ? (
                             <span
