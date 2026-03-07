@@ -63,6 +63,7 @@ export function CreditsClient({
   stats,
   userRole,
 }: CreditsClientProps) {
+  void userRole;
   const { mode } = useMode();
   const modeCategories = [...modeCategoriesMap[mode]];
   const cacheRef = useRef<
@@ -83,6 +84,7 @@ export function CreditsClient({
   const requestIdRef = useRef(0);
   const [credits, setCredits] = useState<CreditWithBalance[]>(initial);
   const [statsState, setStatsState] = useState(stats);
+  const [isModeLoading, setIsModeLoading] = useState(false);
   const [filter, setFilter] = useState<CreditFilter>("outstanding");
   const [search, setSearch] = useState("");
   const [payDialog, setPayDialog] = useState<CreditWithBalance | null>(null);
@@ -103,6 +105,7 @@ export function CreditsClient({
     if (cached) {
       setCredits(cached.credits);
       setStatsState(cached.stats);
+      setIsModeLoading(false);
       if (!cacheRef.current[oppositeKey]) {
         Promise.all([
           getCredits(f, [...modeCategoriesMap[oppositeMode]]),
@@ -117,10 +120,9 @@ export function CreditsClient({
           .catch(() => {});
       }
       return;
-    } else {
-      setCredits([]);
-      setStatsState({ totalOutstanding: 0, totalClients: 0, totalSettled: 0 });
     }
+
+    setIsModeLoading(true);
 
     requestIdRef.current += 1;
     const requestId = requestIdRef.current;
@@ -183,6 +185,7 @@ export function CreditsClient({
         };
         setCredits(updatedCredits);
         setStatsState(updatedStats);
+        setIsModeLoading(false);
         if (!cacheRef.current[oppositeKey]) {
           Promise.all([
             getCredits(filter, [...modeCategoriesMap[oppositeMode]]),
@@ -199,6 +202,7 @@ export function CreditsClient({
       })
       .catch(() => {
         if (requestId !== requestIdRef.current) return;
+        setIsModeLoading(false);
       });
   }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -261,6 +265,11 @@ export function CreditsClient({
             Track {mode === "beauty" ? "beauty" : "pharmacy"} customers who owe
             payment
           </p>
+          {isModeLoading && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Refreshing data...
+            </p>
+          )}
         </div>
         <Badge variant="outline" className="border-amber-500 text-amber-400">
           <AlertTriangle className="h-3 w-3 mr-1" />

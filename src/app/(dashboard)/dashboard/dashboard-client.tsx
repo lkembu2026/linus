@@ -2,23 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useMode } from "@/contexts/mode-context";
-import { MEDICINE_CATEGORIES, BEAUTY_CATEGORIES } from "@/lib/constants";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { AppMode } from "@/types";
-
-// Actions
 import {
-  getDashboardStats,
-  getTopMedicines,
-  getRevenueChart,
-  getLowStockItems,
-  getInventoryOverview,
-  getMedicineDailySales,
-  getMedicineCategoryBreakdown,
+  getDashboardPageData,
+  type DashboardPageData,
 } from "@/actions/dashboard";
-import { getMedicines } from "@/actions/inventory";
-import { getRecentSales } from "@/actions/sales";
-import { getCurrentUser } from "@/actions/auth";
 
 // Components
 import { StatsCards } from "@/components/dashboard/stats-cards";
@@ -30,85 +19,9 @@ import { MedicineInventoryCard } from "@/components/dashboard/medicine-inventory
 import { DailySalesChart } from "@/components/dashboard/daily-sales-chart";
 import { MedicineCategoryBreakdownCard } from "@/components/dashboard/medicine-category-breakdown";
 
-type DashboardData = {
-  stats: any;
-  topMedicines: any[];
-  revenueData: any[];
-  lowStock: any[];
-  overview: any;
-  dailySales: any[];
-  categoryBreakdown: any[];
-  recentSales: any[];
-  role: string;
-};
-
-const modeCategoriesMap = {
-  pharmacy: [...MEDICINE_CATEGORIES],
-  beauty: [...BEAUTY_CATEGORIES],
-} as const;
-
 interface DashboardClientProps {
-  initialData?: DashboardData;
+  initialData?: DashboardPageData;
   initialMode?: AppMode;
-}
-
-async function getLegacyBeautyCategories(): Promise<string[]> {
-  const all = await getMedicines();
-  const medSet = new Set<string>(MEDICINE_CATEGORIES as readonly string[]);
-  return [
-    ...new Set(all.map((m) => m.category).filter((c) => !!c && !medSet.has(c))),
-  ];
-}
-
-async function fetchDashboardData(
-  categories?: string[],
-): Promise<DashboardData> {
-  const [
-    stats,
-    topMedicines,
-    revenueData,
-    lowStock,
-    overview,
-    dailySales,
-    categoryBreakdown,
-    recentSales,
-    user,
-  ] = await Promise.all([
-    getDashboardStats(categories),
-    getTopMedicines(10, categories),
-    getRevenueChart(30, categories),
-    getLowStockItems(categories),
-    getInventoryOverview(categories),
-    getMedicineDailySales(14, categories),
-    getMedicineCategoryBreakdown(categories),
-    getRecentSales(10, categories),
-    getCurrentUser(),
-  ]);
-
-  return {
-    stats,
-    topMedicines,
-    revenueData,
-    lowStock,
-    overview,
-    dailySales,
-    categoryBreakdown,
-    recentSales,
-    role: user?.role ?? "cashier",
-  };
-}
-
-async function loadModeData(targetMode: AppMode): Promise<DashboardData> {
-  let nextData = await fetchDashboardData([...modeCategoriesMap[targetMode]]);
-
-  if (targetMode === "beauty" && (nextData.stats?.totalMedicines ?? 0) === 0) {
-    const fallbackCategories = await getLegacyBeautyCategories();
-    if (fallbackCategories.length > 0) {
-      nextData = await fetchDashboardData(fallbackCategories);
-    }
-  }
-
-  return nextData;
 }
 
 export function DashboardClient({
@@ -116,47 +29,47 @@ export function DashboardClient({
   initialMode = "pharmacy",
 }: DashboardClientProps) {
   const { mode } = useMode();
-  const cachedByModeRef = useRef<Record<AppMode, DashboardData | undefined>>({
+  const initialCachedData = initialData ?? null;
+  const cachedByModeRef = useRef<
+    Record<AppMode, DashboardPageData | undefined>
+  >({
     pharmacy: initialMode === "pharmacy" ? initialData : undefined,
     beauty: initialMode === "beauty" ? initialData : undefined,
   });
-  const [data, setData] = useState<DashboardData | null>(
-    cachedByModeRef.current[mode] ?? initialData ?? null,
-  );
+  const [data, setData] = useState<DashboardPageData | null>(initialCachedData);
+  const [isRefreshingMode, setIsRefreshingMode] = useState(false);
   const requestIdRef = useRef(0);
   const itemLabel = mode === "beauty" ? "products" : "medicines";
 
   useEffect(() => {
-    // Mode-aware fetching. Keep rendered data strictly aligned to selected mode.
-    // If the selected mode has no cache yet, clear current data so wrong-mode
-    // values are never shown while loading.
     const cached = cachedByModeRef.current[mode];
     const oppositeMode: AppMode = mode === "pharmacy" ? "beauty" : "pharmacy";
     if (cached) {
-      // Show cached data immediately, then refresh in the background so
-      // dashboard reflects newly created sales without requiring hard reload.
       setData(cached);
+      setIsRefreshingMode(true);
 
       requestIdRef.current += 1;
       const requestId = requestIdRef.current;
 
-      loadModeData(mode)
+      getDashboardPageData(mode)
         .then((nextData) => {
           if (requestId !== requestIdRef.current) {
             return;
           }
           cachedByModeRef.current[mode] = nextData;
           setData(nextData);
+          setIsRefreshingMode(false);
         })
         .catch((err) => {
           if (requestId !== requestIdRef.current) {
             return;
           }
           console.error("Dashboard refresh error:", err);
+          setIsRefreshingMode(false);
         });
 
       if (!cachedByModeRef.current[oppositeMode]) {
-        loadModeData(oppositeMode)
+        getDashboardPageData(oppositeMode)
           .then((prefetched) => {
             cachedByModeRef.current[oppositeMode] = prefetched;
           })
@@ -167,21 +80,22 @@ export function DashboardClient({
       return;
     }
 
-    setData(null);
+    setIsRefreshingMode(true);
 
     requestIdRef.current += 1;
     const requestId = requestIdRef.current;
 
-    loadModeData(mode)
-      .then(async (nextData) => {
+    getDashboardPageData(mode)
+      .then((nextData) => {
         if (requestId !== requestIdRef.current) {
           return;
         }
 
         cachedByModeRef.current[mode] = nextData;
         setData(nextData);
+        setIsRefreshingMode(false);
         if (!cachedByModeRef.current[oppositeMode]) {
-          loadModeData(oppositeMode)
+          getDashboardPageData(oppositeMode)
             .then((prefetched) => {
               cachedByModeRef.current[oppositeMode] = prefetched;
             })
@@ -195,6 +109,7 @@ export function DashboardClient({
           return;
         }
         console.error("Dashboard fetch error:", err);
+        setIsRefreshingMode(false);
       });
   }, [mode]);
 
@@ -216,6 +131,11 @@ export function DashboardClient({
           {mode === "beauty" ? "Beauty Mode" : "Pharmacy Mode"} · Showing{" "}
           {itemLabel}
         </p>
+        {isRefreshingMode && (
+          <p className="text-xs text-muted-foreground mt-1">
+            Refreshing data...
+          </p>
+        )}
       </div>
 
       <StatsCards stats={data.stats} mode={mode} />

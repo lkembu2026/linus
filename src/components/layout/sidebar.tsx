@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NAV_ITEMS } from "@/lib/constants";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { UserRole } from "@/types";
 
 const iconMap: Record<string, React.ElementType> = {
@@ -59,6 +59,7 @@ export function Sidebar({
   onCollapse,
 }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [internalCollapsed, setInternalCollapsed] = useState(false);
 
   // Use controlled state from parent if provided, otherwise use internal
@@ -71,6 +72,17 @@ export function Sidebar({
   const filteredNavItems = NAV_ITEMS.filter((item) =>
     (item.roles as readonly string[]).includes(userRole),
   );
+
+  useEffect(() => {
+    filteredNavItems.forEach((item) => {
+      router.prefetch(item.href);
+    });
+    router.prefetch("/dashboard");
+  }, [filteredNavItems, router]);
+
+  function prefetchRoute(href: string) {
+    router.prefetch(href);
+  }
 
   return (
     <aside
@@ -85,6 +97,8 @@ export function Sidebar({
       <div className="flex h-16 items-center border-b border-border px-3 gap-2">
         <Link
           href="/dashboard"
+          onMouseEnter={() => prefetchRoute("/dashboard")}
+          onFocus={() => prefetchRoute("/dashboard")}
           className={cn(
             "flex items-center gap-3 flex-1 min-w-0",
             collapsed && "justify-center",
@@ -133,6 +147,8 @@ export function Sidebar({
               key={item.href}
               href={item.href}
               onClick={onNavigate}
+              onMouseEnter={() => prefetchRoute(item.href)}
+              onFocus={() => prefetchRoute(item.href)}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                 isActive

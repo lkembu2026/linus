@@ -3,6 +3,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/actions/auth";
 import { getEffectiveBranchId } from "@/lib/branch-server";
+import { MEDICINE_CATEGORIES } from "@/lib/constants";
+import { getCategoriesForMode } from "@/lib/mode";
 import type {
   DashboardStats,
   TopMedicine,
@@ -12,7 +14,22 @@ import type {
   MedicineDailySales,
   MedicineCategoryBreakdown,
 } from "@/types";
+import type { AppMode } from "@/types";
 import type { Medicine } from "@/types/database";
+
+export type DashboardPageData = {
+  stats: DashboardStats;
+  topMedicines: TopMedicine[];
+  revenueData: RevenueDataPoint[];
+  lowStock: Medicine[];
+  overview: InventoryOverview;
+  dailySales: MedicineDailySales[];
+  categoryBreakdown: MedicineCategoryBreakdown[];
+  recentSales: Awaited<
+    ReturnType<typeof import("@/actions/sales").getRecentSales>
+  >;
+  role: string;
+};
 
 type SaleAmount = {
   total_amount: number;
@@ -61,6 +78,88 @@ async function getSaleIdsByCategories(
   }
 
   return [...saleIdSet];
+}
+
+async function getLegacyBeautyCategories(branchId?: string | null) {
+  const supabase = await createClient();
+  const medSet = new Set<string>(MEDICINE_CATEGORIES as readonly string[]);
+
+  let query = supabase.from("medicines").select("category");
+  if (branchId) {
+    query = query.eq("branch_id", branchId);
+  }
+
+  const { data } = await query;
+
+  return [
+    ...new Set(
+      ((data ?? []) as { category: string | null }[])
+        .map((item) => item.category)
+        .filter(
+          (category): category is string => !!category && !medSet.has(category),
+        ),
+    ),
+  ];
+}
+
+export async function getDashboardPageData(
+  mode: AppMode,
+): Promise<DashboardPageData> {
+  const user = await getCurrentUser();
+  const branchId = await getEffectiveBranchId(user);
+
+  let categories = getCategoriesForMode(mode);
+
+  const buildData = async (targetCategories: string[]) => {
+    const [
+      stats,
+      topMedicines,
+      revenueData,
+      lowStock,
+      overview,
+      dailySales,
+      categoryBreakdown,
+      recentSalesModule,
+    ] = await Promise.all([
+      getDashboardStats(targetCategories),
+      getTopMedicines(10, targetCategories),
+      getRevenueChart(30, targetCategories),
+      getLowStockItems(targetCategories),
+      getInventoryOverview(targetCategories),
+      getMedicineDailySales(14, targetCategories),
+      getMedicineCategoryBreakdown(targetCategories),
+      import("@/actions/sales"),
+    ]);
+
+    const recentSales = await recentSalesModule.getRecentSales(
+      10,
+      targetCategories,
+    );
+
+    return {
+      stats,
+      topMedicines,
+      revenueData,
+      lowStock,
+      overview,
+      dailySales,
+      categoryBreakdown,
+      recentSales,
+      role: user?.role ?? "cashier",
+    };
+  };
+
+  let data = await buildData(categories);
+
+  if (mode === "beauty" && (data.stats?.totalMedicines ?? 0) === 0) {
+    const fallbackCategories = await getLegacyBeautyCategories(branchId);
+    if (fallbackCategories.length > 0) {
+      categories = fallbackCategories;
+      data = await buildData(categories);
+    }
+  }
+
+  return data;
 }
 
 export async function getDashboardStats(
@@ -190,7 +289,7 @@ export async function getTopMedicines(
   if (saleIds.length === 0) return [];
 
   // Get sale items for those sales
-  let itemsQuery = supabase
+  const itemsQuery = supabase
     .from("sale_items")
     .select("medicine_id, quantity, unit_price")
     .in("sale_id", saleIds);
@@ -483,7 +582,7 @@ export async function getMedicineDailySales(
   }
 
   // Get sale items with sale date
-  let itemsQuery = supabase
+  const itemsQuery = supabase
     .from("sale_items")
     .select("quantity, sale_id, sales(created_at)")
     .in("sale_id", saleIds);

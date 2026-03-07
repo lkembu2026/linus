@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -28,8 +27,6 @@ export function DashboardShell({
 }: DashboardShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  const searchParams = useSearchParams();
-  const branchScopeKey = searchParams.get("branch") ?? "all-branches";
 
   // Start auto-sync for offline sales when coming back online
   useEffect(() => {
@@ -84,9 +81,7 @@ export function DashboardShell({
           branchSelection={branchSelection}
           onMenuClick={() => setMobileOpen(true)}
         />
-        <main key={branchScopeKey} className="p-4 md:p-6">
-          {children}
-        </main>
+        <main className="p-4 md:p-6">{children}</main>
       </div>
     </div>
   );

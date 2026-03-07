@@ -45,6 +45,7 @@ export function SalesHistoryClient({
   });
   const requestIdRef = useRef(0);
   const [sales, setSales] = useState<RecentSale[]>(initialSales);
+  const [isModeLoading, setIsModeLoading] = useState(false);
   const [search, setSearch] = useState("");
 
   async function loadModeSales(targetMode: AppMode) {
@@ -56,6 +57,7 @@ export function SalesHistoryClient({
     const oppositeMode: AppMode = mode === "pharmacy" ? "beauty" : "pharmacy";
     if (cached) {
       setSales(cached);
+      setIsModeLoading(false);
       if (!cachedByModeRef.current[oppositeMode]) {
         loadModeSales(oppositeMode)
           .then((prefetched) => {
@@ -64,9 +66,9 @@ export function SalesHistoryClient({
           .catch(() => {});
       }
       return;
-    } else {
-      setSales([]);
     }
+
+    setIsModeLoading(true);
 
     requestIdRef.current += 1;
     const requestId = requestIdRef.current;
@@ -76,6 +78,7 @@ export function SalesHistoryClient({
         if (requestId !== requestIdRef.current) return;
         cachedByModeRef.current[mode] = updated;
         setSales(updated);
+        setIsModeLoading(false);
         if (!cachedByModeRef.current[oppositeMode]) {
           loadModeSales(oppositeMode)
             .then((prefetched) => {
@@ -86,8 +89,9 @@ export function SalesHistoryClient({
       })
       .catch(() => {
         if (requestId !== requestIdRef.current) return;
+        setIsModeLoading(false);
       });
-  }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mode]);
 
   const filtered = sales.filter((s) => {
     if (!search) return true;
@@ -123,6 +127,11 @@ export function SalesHistoryClient({
             Complete record of {mode === "beauty" ? "beauty" : "pharmacy"}{" "}
             transactions
           </p>
+          {isModeLoading && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Refreshing data...
+            </p>
+          )}
         </div>
         <Badge variant="outline" className="border-primary text-primary">
           <Receipt className="h-3 w-3 mr-1" />

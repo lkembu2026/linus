@@ -45,7 +45,6 @@ interface ReceiptsClientProps {
 
 export function ReceiptsClient({ receipts }: ReceiptsClientProps) {
   const { mode } = useMode();
-  const modeCategories = [...modeCategoriesMap[mode]];
   const cachedByModeRef = useRef<Record<AppMode, SavedReceipt[] | undefined>>({
     pharmacy: mode === "pharmacy" ? receipts : undefined,
     beauty: mode === "beauty" ? receipts : undefined,
@@ -53,6 +52,7 @@ export function ReceiptsClient({ receipts }: ReceiptsClientProps) {
   const requestIdRef = useRef(0);
   const [search, setSearch] = useState("");
   const [allReceipts, setAllReceipts] = useState<SavedReceipt[]>(receipts);
+  const [isModeLoading, setIsModeLoading] = useState(false);
   const [previewReceipt, setPreviewReceipt] = useState<SavedReceipt | null>(
     null,
   );
@@ -66,6 +66,7 @@ export function ReceiptsClient({ receipts }: ReceiptsClientProps) {
     const oppositeMode: AppMode = mode === "pharmacy" ? "beauty" : "pharmacy";
     if (cached) {
       setAllReceipts(cached);
+      setIsModeLoading(false);
       if (!cachedByModeRef.current[oppositeMode]) {
         loadModeReceipts(oppositeMode)
           .then((prefetched) => {
@@ -75,9 +76,8 @@ export function ReceiptsClient({ receipts }: ReceiptsClientProps) {
       }
       setPreviewReceipt(null);
       return;
-    } else {
-      setAllReceipts([]);
     }
+    setIsModeLoading(true);
     setPreviewReceipt(null);
 
     requestIdRef.current += 1;
@@ -88,6 +88,7 @@ export function ReceiptsClient({ receipts }: ReceiptsClientProps) {
         if (requestId !== requestIdRef.current) return;
         cachedByModeRef.current[mode] = updated;
         setAllReceipts(updated);
+        setIsModeLoading(false);
         if (!cachedByModeRef.current[oppositeMode]) {
           loadModeReceipts(oppositeMode)
             .then((prefetched) => {
@@ -98,8 +99,9 @@ export function ReceiptsClient({ receipts }: ReceiptsClientProps) {
       })
       .catch(() => {
         if (requestId !== requestIdRef.current) return;
+        setIsModeLoading(false);
       });
-  }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mode]);
 
   const filtered = allReceipts.filter((r) => {
     const q = search.toLowerCase();
@@ -143,6 +145,11 @@ export function ReceiptsClient({ receipts }: ReceiptsClientProps) {
             View and reprint {mode === "beauty" ? "beauty" : "pharmacy"} sale
             receipts
           </p>
+          {isModeLoading && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Refreshing data...
+            </p>
+          )}
         </div>
         <Badge variant="outline" className="border-primary text-primary">
           <Receipt className="h-3 w-3 mr-1" />

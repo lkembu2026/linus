@@ -48,7 +48,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import type { AppMode } from "@/types";
-import type { User, Branch, Medicine } from "@/types/database";
+import type { User, Branch, Medicine, StockTransfer } from "@/types/database";
 
 const modeCategoriesMap = {
   pharmacy: [...MEDICINE_CATEGORIES],
@@ -57,9 +57,16 @@ const modeCategoriesMap = {
 
 interface TransfersClientProps {
   user: User & { branch?: { name: string } | null };
-  transfers: any[];
+  transfers: TransferRecord[];
   branches: Branch[];
 }
+
+type TransferRecord = StockTransfer & {
+  medicine: { id: string; name: string } | null;
+  from_branch: { id: string; name: string } | null;
+  to_branch: { id: string; name: string } | null;
+  requested_by_user: { id: string; full_name: string } | null;
+};
 
 export function TransfersClient({
   user,
@@ -69,12 +76,15 @@ export function TransfersClient({
   const { mode } = useMode();
   const modeCategories = [...modeCategoriesMap[mode]];
   const itemLabel = mode === "beauty" ? "Product" : "Medicine";
-  const cachedByModeRef = useRef<Record<AppMode, any[] | undefined>>({
-    pharmacy: mode === "pharmacy" ? initialTransfers : undefined,
-    beauty: mode === "beauty" ? initialTransfers : undefined,
-  });
+  const cachedByModeRef = useRef<Record<AppMode, TransferRecord[] | undefined>>(
+    {
+      pharmacy: mode === "pharmacy" ? initialTransfers : undefined,
+      beauty: mode === "beauty" ? initialTransfers : undefined,
+    },
+  );
   const requestIdRef = useRef(0);
   const [transfers, setTransfers] = useState(initialTransfers);
+  const [isModeLoading, setIsModeLoading] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [medicines, setMedicines] = useState<Medicine[]>([]);
@@ -94,6 +104,7 @@ export function TransfersClient({
     const oppositeMode: AppMode = mode === "pharmacy" ? "beauty" : "pharmacy";
     if (cached) {
       setTransfers(cached);
+      setIsModeLoading(false);
       if (!cachedByModeRef.current[oppositeMode]) {
         getTransfers([...modeCategoriesMap[oppositeMode]])
           .then((prefetched) => {
@@ -102,18 +113,19 @@ export function TransfersClient({
           .catch(() => {});
       }
       return;
-    } else {
-      setTransfers([]);
     }
+
+    setIsModeLoading(true);
 
     requestIdRef.current += 1;
     const requestId = requestIdRef.current;
 
-    getTransfers(modeCategories)
+    getTransfers([...modeCategoriesMap[mode]])
       .then((updated) => {
         if (requestId !== requestIdRef.current) return;
         cachedByModeRef.current[mode] = updated;
         setTransfers(updated);
+        setIsModeLoading(false);
         if (!cachedByModeRef.current[oppositeMode]) {
           getTransfers([...modeCategoriesMap[oppositeMode]])
             .then((prefetched) => {
@@ -124,8 +136,9 @@ export function TransfersClient({
       })
       .catch(() => {
         if (requestId !== requestIdRef.current) return;
+        setIsModeLoading(false);
       });
-  }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mode]);
 
   async function handleOpenDialog() {
     // Load medicines for the source branch
@@ -184,7 +197,10 @@ export function TransfersClient({
     });
   }
 
-  const statusConfig: Record<string, { icon: any; color: string }> = {
+  const statusConfig: Record<
+    string,
+    { icon: React.ComponentType<{ className?: string }>; color: string }
+  > = {
     pending: { icon: Clock, color: "border-amber-500 text-amber-500" },
     approved: { icon: CheckCircle, color: "border-green-500 text-green-500" },
     rejected: { icon: XCircle, color: "border-destructive text-destructive" },
@@ -200,6 +216,11 @@ export function TransfersClient({
           <p className="text-muted-foreground text-sm">
             {transfers.length} transfer{transfers.length !== 1 ? "s" : ""}
           </p>
+          {isModeLoading && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Refreshing data...
+            </p>
+          )}
         </div>
         <Button
           onClick={handleOpenDialog}

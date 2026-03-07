@@ -62,8 +62,15 @@ import type { User, Medicine } from "@/types/database";
 
 interface InventoryClientProps {
   user: User & { branch?: { name: string } | null };
-  initialMedicines: (Medicine & { branch?: { name: string } | null })[];
+  initialMedicines: InventoryMedicine[];
 }
+
+type InventoryMedicine = Medicine & {
+  branch?: { name: string } | null;
+  brand?: string | null;
+  size?: string | null;
+  colour?: string | null;
+};
 
 const modeCategoriesMap = {
   pharmacy: [...MEDICINE_CATEGORIES],
@@ -79,16 +86,14 @@ export function InventoryClient({
   const modeCategories = modeCategoriesMap[mode];
   const itemLabel = mode === "beauty" ? "Product" : "Medicine";
   const cachedByModeRef = useRef<
-    Record<
-      AppMode,
-      (Medicine & { branch?: { name: string } | null })[] | undefined
-    >
+    Record<AppMode, InventoryMedicine[] | undefined>
   >({
     pharmacy: mode === "pharmacy" ? initialMedicines : undefined,
     beauty: mode === "beauty" ? initialMedicines : undefined,
   });
   const requestIdRef = useRef(0);
-  const [medicines, setMedicines] = useState(initialMedicines);
+  const [medicines, setMedicines] =
+    useState<InventoryMedicine[]>(initialMedicines);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
   const [formOpen, setFormOpen] = useState(false);
@@ -99,6 +104,7 @@ export function InventoryClient({
   const [bulkStockOpen, setBulkStockOpen] = useState(false);
   const [isSyncingCatalog, setIsSyncingCatalog] = useState(false);
   const [isLoadingSyncStatus, setIsLoadingSyncStatus] = useState(false);
+  const [isModeLoading, setIsModeLoading] = useState(false);
   const [syncStatus, setSyncStatus] = useState<{
     totalUniqueProducts: number;
     branchCount: number;
@@ -108,7 +114,7 @@ export function InventoryClient({
     coveragePercent: number;
     synced: boolean;
   } | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 20;
 
@@ -133,6 +139,7 @@ export function InventoryClient({
     const oppositeMode: AppMode = mode === "pharmacy" ? "beauty" : "pharmacy";
     if (cached) {
       setMedicines(cached);
+      setIsModeLoading(false);
       if (!cachedByModeRef.current[oppositeMode]) {
         loadModeMedicines(oppositeMode)
           .then((prefetched) => {
@@ -141,9 +148,9 @@ export function InventoryClient({
           .catch(() => {});
       }
       return;
-    } else {
-      setMedicines([]);
     }
+
+    setIsModeLoading(true);
 
     requestIdRef.current += 1;
     const requestId = requestIdRef.current;
@@ -155,6 +162,7 @@ export function InventoryClient({
         if (requestId !== requestIdRef.current) return;
         cachedByModeRef.current[mode] = data;
         setMedicines(data);
+        setIsModeLoading(false);
         if (!cachedByModeRef.current[oppositeMode]) {
           loadModeMedicines(oppositeMode)
             .then((prefetched) => {
@@ -165,8 +173,9 @@ export function InventoryClient({
       })
       .catch(() => {
         if (requestId !== requestIdRef.current) return;
+        setIsModeLoading(false);
       });
-  }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mode]);
 
   function handleSearch(searchTerm: string, cat: string) {
     startTransition(async () => {
@@ -296,6 +305,11 @@ export function InventoryClient({
             {medicines.length} {itemLabel.toLowerCase()}s •{" "}
             {user.branch?.name ?? "All Branches"}
           </p>
+          {isModeLoading && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Refreshing data...
+            </p>
+          )}
         </div>
         {can("add_medicine") && (
           <div className="flex flex-wrap gap-2 justify-end">
@@ -564,20 +578,16 @@ export function InventoryClient({
                         {mode === "beauty" && (
                           <TableCell>
                             <div className="text-xs">
-                              {(med as any).brand && (
-                                <p className="text-white">
-                                  {(med as any).brand}
-                                </p>
+                              {med.brand && (
+                                <p className="text-white">{med.brand}</p>
                               )}
-                              {(med as any).size && (
+                              {med.size && (
                                 <p className="text-muted-foreground">
-                                  {(med as any).size}
+                                  {med.size}
                                 </p>
                               )}
-                              {(med as any).colour && (
-                                <p className="text-primary/70">
-                                  {(med as any).colour}
-                                </p>
+                              {med.colour && (
+                                <p className="text-primary/70">{med.colour}</p>
                               )}
                             </div>
                           </TableCell>
@@ -629,7 +639,7 @@ export function InventoryClient({
                         </TableCell>
                         {user.role === "admin" && (
                           <TableCell className="text-muted-foreground text-xs hidden md:table-cell">
-                            {(med as any).branch?.name ?? "—"}
+                            {med.branch?.name ?? "—"}
                           </TableCell>
                         )}
                         <TableCell className="text-right">
