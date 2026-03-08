@@ -32,7 +32,12 @@ export async function logout() {
 import type { User } from "@/types/database";
 
 type CurrentUser = User & {
-  branch?: { name: string; location: string | null } | null;
+  branch?: {
+    name: string;
+    location: string | null;
+    enable_pharmacy: boolean;
+    enable_beauty: boolean;
+  } | null;
 };
 
 // React cache() deduplicates calls within a single server request
@@ -47,7 +52,9 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
 
   const { data: user } = await supabase
     .from("users")
-    .select("*, branch:branches(name, location)")
+    .select(
+      "*, branch:branches(name, location, enable_pharmacy, enable_beauty)",
+    )
     .eq("id", authUser.id)
     .single();
 

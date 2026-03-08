@@ -4,14 +4,16 @@ import { cookies } from "next/headers";
 import {
   MODE_STORAGE_KEY,
   getCategoriesForMode,
-  normalizeMode,
+  resolveCurrentBranchMode,
 } from "@/lib/mode";
 import { redirect } from "next/navigation";
 import { CreditsClient } from "./credits-client";
 
 export default async function CreditsPage() {
   const cookieStore = await cookies();
-  const mode = normalizeMode(cookieStore.get(MODE_STORAGE_KEY)?.value);
+  const mode = await resolveCurrentBranchMode(
+    cookieStore.get(MODE_STORAGE_KEY)?.value,
+  );
   const categories = getCategoriesForMode(mode);
 
   const user = await getCurrentUser();

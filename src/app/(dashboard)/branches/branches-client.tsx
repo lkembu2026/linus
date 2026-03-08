@@ -3,8 +3,10 @@
 import { useState, useTransition } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -12,14 +14,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,6 +40,14 @@ import {
 import { toast } from "sonner";
 import type { Branch } from "@/types/database";
 
+type BranchFormState = {
+  name: string;
+  location: string;
+  phone: string;
+  enable_pharmacy: boolean;
+  enable_beauty: boolean;
+};
+
 interface BranchesClientProps {
   branches: Branch[];
 }
@@ -58,11 +60,31 @@ export function BranchesClient({
   const [editBranch, setEditBranch] = useState<Branch | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const [form, setForm] = useState({ name: "", location: "", phone: "" });
+  const [form, setForm] = useState<BranchFormState>({
+    name: "",
+    location: "",
+    phone: "",
+    enable_pharmacy: true,
+    enable_beauty: true,
+  });
+
+  function formatBranchModes(branch: Branch) {
+    if (branch.enable_pharmacy && branch.enable_beauty)
+      return "Pharmacy + Beauty";
+    if (branch.enable_pharmacy) return "Pharmacy only";
+    if (branch.enable_beauty) return "Beauty only";
+    return "No modes";
+  }
 
   function openCreate() {
     setEditBranch(null);
-    setForm({ name: "", location: "", phone: "" });
+    setForm({
+      name: "",
+      location: "",
+      phone: "",
+      enable_pharmacy: true,
+      enable_beauty: true,
+    });
     setDialogOpen(true);
   }
 
@@ -72,6 +94,8 @@ export function BranchesClient({
       name: branch.name,
       location: branch.location ?? "",
       phone: branch.phone ?? "",
+      enable_pharmacy: branch.enable_pharmacy,
+      enable_beauty: branch.enable_beauty,
     });
     setDialogOpen(true);
   }
@@ -82,11 +106,18 @@ export function BranchesClient({
       return;
     }
 
+    if (!form.enable_pharmacy && !form.enable_beauty) {
+      toast.error("Enable at least one mode for the branch");
+      return;
+    }
+
     startTransition(async () => {
       const payload = {
         name: form.name,
         location: form.location || undefined,
         phone: form.phone || undefined,
+        enable_pharmacy: form.enable_pharmacy,
+        enable_beauty: form.enable_beauty,
       };
 
       const result = editBranch
@@ -182,6 +213,14 @@ export function BranchesClient({
             </CardHeader>
             <CardContent>
               <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant="outline"
+                    className="border-primary/30 text-primary"
+                  >
+                    {formatBranchModes(branch)}
+                  </Badge>
+                </div>
                 {branch.location && (
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <MapPin className="h-3 w-3" />
@@ -238,6 +277,45 @@ export function BranchesClient({
                 className="bg-background border-border text-white mt-1"
                 placeholder="+254..."
               />
+            </div>
+            <div className="space-y-3 rounded-lg border border-border bg-background/40 p-3">
+              <div>
+                <Label className="text-muted-foreground">Allowed Modes</Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Choose which modes should appear when this branch is selected.
+                </p>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm text-white">Pharmacy</p>
+                  <p className="text-xs text-muted-foreground">
+                    Show medicine workflows for this branch
+                  </p>
+                </div>
+                <Switch
+                  checked={form.enable_pharmacy}
+                  onCheckedChange={(checked) =>
+                    setForm((prev) => ({ ...prev, enable_pharmacy: checked }))
+                  }
+                />
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm text-white">Beauty</p>
+                  <p className="text-xs text-muted-foreground">
+                    Show beauty product workflows for this branch
+                  </p>
+                </div>
+                <Switch
+                  checked={form.enable_beauty}
+                  onCheckedChange={(checked) =>
+                    setForm((prev) => ({ ...prev, enable_beauty: checked }))
+                  }
+                />
+              </div>
+              <p className="text-xs text-primary">
+                At least one mode must remain enabled.
+              </p>
             </div>
           </div>
           <DialogFooter>

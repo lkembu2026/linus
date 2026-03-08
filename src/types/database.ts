@@ -8,6 +8,7 @@
 export type UserRole = "admin" | "supervisor" | "pharmacist" | "cashier";
 export type PaymentMethod = "cash" | "mpesa" | "credit";
 export type TransferStatus = "pending" | "approved" | "rejected";
+export type AppMode = "pharmacy" | "beauty";
 
 // ---- BRANCHES ----
 export type Branch = {
@@ -15,6 +16,8 @@ export type Branch = {
   name: string;
   location: string | null;
   phone: string | null;
+  enable_pharmacy: boolean;
+  enable_beauty: boolean;
   created_at: string;
 };
 
@@ -163,6 +166,8 @@ export interface Database {
           name: string;
           location?: string | null;
           phone?: string | null;
+          enable_pharmacy?: boolean;
+          enable_beauty?: boolean;
           created_at?: string;
         };
         Update: Partial<Branch>;

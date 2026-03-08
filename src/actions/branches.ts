@@ -5,6 +5,15 @@ import { getCurrentUser } from "@/actions/auth";
 import { revalidatePath } from "next/cache";
 import type { Branch } from "@/types/database";
 
+type BranchModePayload = {
+  enable_pharmacy?: boolean;
+  enable_beauty?: boolean;
+};
+
+function hasAtLeastOneModeEnabled(payload: BranchModePayload) {
+  return payload.enable_pharmacy !== false || payload.enable_beauty !== false;
+}
+
 export async function getBranches() {
   const supabase = await createClient();
   const user = await getCurrentUser();
@@ -27,10 +36,16 @@ export async function createBranch(formData: {
   name: string;
   location?: string;
   phone?: string;
+  enable_pharmacy?: boolean;
+  enable_beauty?: boolean;
 }) {
   const supabase = await createClient();
   const user = await getCurrentUser();
   if (!user || user.role !== "admin") return { error: "Admin access required" };
+
+  if (!hasAtLeastOneModeEnabled(formData)) {
+    return { error: "A branch must have at least one mode enabled" };
+  }
 
   const { error } = await supabase.from("branches").insert(formData);
 
@@ -48,11 +63,39 @@ export async function createBranch(formData: {
 
 export async function updateBranch(
   id: string,
-  formData: { name?: string; location?: string; phone?: string },
+  formData: {
+    name?: string;
+    location?: string;
+    phone?: string;
+    enable_pharmacy?: boolean;
+    enable_beauty?: boolean;
+  },
 ) {
   const supabase = await createClient();
   const user = await getCurrentUser();
   if (!user || user.role !== "admin") return { error: "Admin access required" };
+
+  if (
+    formData.enable_pharmacy !== undefined ||
+    formData.enable_beauty !== undefined
+  ) {
+    const { data: existingBranch } = await supabase
+      .from("branches")
+      .select("enable_pharmacy, enable_beauty")
+      .eq("id", id)
+      .single();
+
+    const nextModes = {
+      enable_pharmacy:
+        formData.enable_pharmacy ?? existingBranch?.enable_pharmacy ?? true,
+      enable_beauty:
+        formData.enable_beauty ?? existingBranch?.enable_beauty ?? true,
+    };
+
+    if (!hasAtLeastOneModeEnabled(nextModes)) {
+      return { error: "A branch must have at least one mode enabled" };
+    }
+  }
 
   const { error } = await supabase
     .from("branches")

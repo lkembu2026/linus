@@ -14,8 +14,14 @@ CREATE TABLE branches (
   name       TEXT NOT NULL UNIQUE,
   location   TEXT,
   phone      TEXT,
+  enable_pharmacy BOOLEAN NOT NULL DEFAULT true,
+  enable_beauty   BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT now()
 );
+
+ALTER TABLE branches
+  ADD CONSTRAINT branches_at_least_one_mode
+  CHECK (enable_pharmacy OR enable_beauty);
 
 -- --------------------------------------------------------
 -- 2. USERS (extends Supabase auth.users)

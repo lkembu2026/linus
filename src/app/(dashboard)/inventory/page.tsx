@@ -7,12 +7,14 @@ import { InventoryClient } from "./inventory-client";
 import {
   MODE_STORAGE_KEY,
   getCategoriesForMode,
-  normalizeMode,
+  resolveCurrentBranchMode,
 } from "@/lib/mode";
 
 export default async function InventoryPage() {
   const cookieStore = await cookies();
-  const mode = normalizeMode(cookieStore.get(MODE_STORAGE_KEY)?.value);
+  const mode = await resolveCurrentBranchMode(
+    cookieStore.get(MODE_STORAGE_KEY)?.value,
+  );
   const categories = getCategoriesForMode(mode);
 
   const user = await getCurrentUser();

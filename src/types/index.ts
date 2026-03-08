@@ -14,6 +14,7 @@ export type {
   UserRole,
   PaymentMethod,
   TransferStatus,
+  AppMode,
   SaleWithItems,
   AuditLogWithUser,
   Database,
@@ -152,9 +153,6 @@ export interface MedicinePerformance {
     revenue: number;
   }[];
 }
-
-// ---- App Mode ----
-export type AppMode = "pharmacy" | "beauty";
 
 // ---- Navigation ----
 export interface NavItem {
