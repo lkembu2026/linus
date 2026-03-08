@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { DashboardClient } from "./dashboard-client";
-import { MODE_STORAGE_KEY, resolveCurrentBranchMode } from "@/lib/mode";
+import { MODE_STORAGE_KEY } from "@/lib/mode";
+import { resolveCurrentBranchMode } from "@/lib/mode-server";
 
 export default async function DashboardPage() {
   const cookieStore = await cookies();

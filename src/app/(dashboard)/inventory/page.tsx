@@ -7,8 +7,8 @@ import { InventoryClient } from "./inventory-client";
 import {
   MODE_STORAGE_KEY,
   getCategoriesForMode,
-  resolveCurrentBranchMode,
 } from "@/lib/mode";
+import { resolveCurrentBranchMode } from "@/lib/mode-server";
 
 export default async function InventoryPage() {
   const cookieStore = await cookies();
