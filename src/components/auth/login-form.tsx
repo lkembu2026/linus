@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { login, resetPassword } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,11 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [forgotMode, setForgotMode] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
-  const router = useRouter();
+  const searchParams = useSearchParams();
+  const timeoutMessage =
+    searchParams.get("reason") === "timeout"
+      ? "Your session expired after inactivity. Please sign in again."
+      : null;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -123,10 +127,10 @@ export function LoginForm() {
                 />
               </div>
 
-              {error && (
+              {(error || timeoutMessage) && (
                 <div className="flex items-center gap-2 p-3 rounded-md bg-destructive/10 border border-destructive/20 text-destructive text-sm">
                   <AlertCircle className="w-4 h-4 shrink-0" />
-                  {error}
+                  {error ?? timeoutMessage}
                 </div>
               )}
 
@@ -186,10 +190,10 @@ export function LoginForm() {
                 />
               </div>
 
-              {error && (
+              {(error || timeoutMessage) && (
                 <div className="flex items-center gap-2 p-3 rounded-md bg-destructive/10 border border-destructive/20 text-destructive text-sm">
                   <AlertCircle className="w-4 h-4 shrink-0" />
-                  {error}
+                  {error ?? timeoutMessage}
                 </div>
               )}
 

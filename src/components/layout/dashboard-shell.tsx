@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
+import { IdleSessionManager } from "@/components/layout/idle-session-manager";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { startAutoSync } from "@/lib/offline/sync-queue";
 import { toast } from "sonner";
@@ -43,6 +44,8 @@ export function DashboardShell({
 
   return (
     <div className="min-h-screen bg-background">
+      <IdleSessionManager />
+
       {/* Desktop sidebar — hidden on mobile */}
       <div className="hidden md:block">
         <Sidebar
