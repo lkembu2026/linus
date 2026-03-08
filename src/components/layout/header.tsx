@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { logout } from "@/actions/auth";
 import { getBranches } from "@/actions/branches";
@@ -62,16 +62,13 @@ export function Header({
   branchSelection,
   onMenuClick,
 }: HeaderProps) {
-  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const isOnline = useOnlineStatus();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
-  const [activeBranchId, setActiveBranchId] = useState(
-    branchSelection ?? branchId ?? ALL_BRANCHES_VALUE,
-  );
+  const activeBranchId = branchSelection ?? branchId ?? ALL_BRANCHES_VALUE;
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -84,14 +81,15 @@ export function Header({
   }, []);
 
   useEffect(() => {
-    fetchNotifications();
+    const timeout = window.setTimeout(() => {
+      void fetchNotifications();
+    }, 0);
     const interval = setInterval(fetchNotifications, 30000); // poll every 30s
-    return () => clearInterval(interval);
+    return () => {
+      window.clearTimeout(timeout);
+      clearInterval(interval);
+    };
   }, [fetchNotifications]);
-
-  useEffect(() => {
-    setActiveBranchId(branchSelection ?? branchId ?? ALL_BRANCHES_VALUE);
-  }, [branchSelection, branchId]);
 
   useEffect(() => {
     if (userRole !== "admin") return;
@@ -116,7 +114,6 @@ export function Header({
   }, [userRole]);
 
   function handleBranchChange(nextBranchId: string) {
-    setActiveBranchId(nextBranchId);
     document.cookie = `${ACTIVE_BRANCH_COOKIE}=${nextBranchId}; path=/; max-age=31536000; samesite=lax`;
 
     const params = new URLSearchParams(searchParams.toString());
@@ -129,7 +126,7 @@ export function Header({
     const nextUrl = params.toString()
       ? `${pathname}?${params.toString()}`
       : pathname;
-    router.replace(nextUrl, { scroll: false });
+    window.location.assign(nextUrl);
   }
 
   async function handleMarkRead(id: string) {
