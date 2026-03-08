@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { login, resetPassword } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,16 +9,15 @@ import { AlertCircle, Loader2, ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
 
-export function LoginForm() {
+interface LoginFormProps {
+  timeoutMessage?: string | null;
+}
+
+export function LoginForm({ timeoutMessage = null }: LoginFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [forgotMode, setForgotMode] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
-  const searchParams = useSearchParams();
-  const timeoutMessage =
-    searchParams.get("reason") === "timeout"
-      ? "Your session expired after inactivity. Please sign in again."
-      : null;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

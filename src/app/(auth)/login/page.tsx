@@ -1,6 +1,18 @@
 import { LoginForm } from "@/components/auth/login-form";
 
-export default function LoginPage() {
+type LoginPageProps = {
+  searchParams: Promise<{
+    reason?: string;
+  }>;
+};
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const params = await searchParams;
+  const timeoutMessage =
+    params.reason === "timeout"
+      ? "Your session expired after inactivity. Please sign in again."
+      : null;
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       {/* Background glow effect */}
@@ -13,7 +25,7 @@ export default function LoginPage() {
         />
       </div>
 
-      <LoginForm />
+      <LoginForm timeoutMessage={timeoutMessage} />
     </div>
   );
 }
