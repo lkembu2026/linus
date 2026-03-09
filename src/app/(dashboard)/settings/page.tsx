@@ -5,6 +5,7 @@ import { SettingsClient } from "./settings-client";
 export default async function SettingsPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  if (user.role !== "admin") redirect("/dashboard");
 
   return <SettingsClient user={user} />;
 }

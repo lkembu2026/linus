@@ -5,7 +5,10 @@ import { getCurrentUser } from "@/actions/auth";
 import { revalidatePath } from "next/cache";
 import { sendAuditEmail, sendLowStockEmail } from "@/lib/email";
 import { getEffectiveBranchId } from "@/lib/branch-server";
-import type { Medicine } from "@/types/database";
+import { hasPermission } from "@/lib/permissions";
+import type { Database, Medicine } from "@/types/database";
+
+type MedicineInsert = Database["public"]["Tables"]["medicines"]["Insert"];
 
 function normalizeText(value?: string) {
   const trimmed = value?.trim();
@@ -171,7 +174,7 @@ export async function createMedicine(formData: {
   const branchId = await getEffectiveBranchId(user);
   if (!user) return { error: "Not authenticated" };
   if (!branchId) return { error: "No active branch selected" };
-  if (user.role !== "admin" && user.role !== "pharmacist") {
+  if (!hasPermission(user.role, "add_medicine")) {
     return { error: "Insufficient permissions" };
   }
 
@@ -213,7 +216,7 @@ export async function createMedicine(formData: {
       if (cloneRows.length > 0) {
         const { error: cloneError } = await supabase
           .from("medicines")
-          .insert(cloneRows as any);
+          .insert(cloneRows as MedicineInsert[]);
 
         if (cloneError) {
           console.error("createMedicine branch clone error:", cloneError);
@@ -269,7 +272,7 @@ export async function updateMedicine(
   const supabase = await createClient();
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
-  if (user.role !== "admin" && user.role !== "pharmacist") {
+  if (!hasPermission(user.role, "edit_medicine")) {
     return { error: "Insufficient permissions" };
   }
 
@@ -332,7 +335,7 @@ export async function adjustStock(
   const supabase = await createClient();
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
-  if (user.role !== "admin" && user.role !== "pharmacist") {
+  if (!hasPermission(user.role, "adjust_stock")) {
     return { error: "Insufficient permissions" };
   }
 
@@ -416,7 +419,7 @@ export async function bulkSetOpeningStock(
   const branchId = await getEffectiveBranchId(user);
 
   if (!user) return { error: "Not authenticated" };
-  if (user.role !== "admin") {
+  if (!hasPermission(user.role, "bulk_opening_stock")) {
     return { error: "Only admins can bulk set opening stock" };
   }
 
@@ -602,7 +605,7 @@ export async function bulkCreateMedicines(
   const user = await getCurrentUser();
   const branchId = await getEffectiveBranchId(user);
   if (!user) return { error: "Not authenticated" };
-  if (user.role !== "admin" && user.role !== "pharmacist") {
+  if (!hasPermission(user.role, "import_medicines")) {
     return { error: "Insufficient permissions" };
   }
 
@@ -642,7 +645,9 @@ export async function bulkCreateMedicines(
     created_by: user.id,
   }));
 
-  const { error } = await supabase.from("medicines").insert(records as any);
+  const { error } = await supabase
+    .from("medicines")
+    .insert(records as MedicineInsert[]);
   if (error) return { error: error.message };
 
   await supabase.from("audit_logs").insert({
@@ -659,7 +664,7 @@ export async function syncCatalogAcrossBranches() {
   const supabase = await createClient();
   const user = await getCurrentUser();
 
-  if (!user || user.role !== "admin") {
+  if (!user || !hasPermission(user.role, "sync_catalog")) {
     return { error: "Admin access required" };
   }
 
@@ -739,7 +744,7 @@ export async function syncCatalogAcrossBranches() {
     branchesByKey.get(key)!.add(medicine.branch_id);
   }
 
-  const rowsToInsert: Array<Record<string, unknown>> = [];
+  const rowsToInsert: MedicineInsert[] = [];
 
   for (const [key, canonical] of canonicalByKey.entries()) {
     const existingBranches = branchesByKey.get(key) ?? new Set<string>();
@@ -772,7 +777,7 @@ export async function syncCatalogAcrossBranches() {
     const chunkSize = 500;
     for (let index = 0; index < rowsToInsert.length; index += chunkSize) {
       const chunk = rowsToInsert.slice(index, index + chunkSize);
-      const { error } = await supabase.from("medicines").insert(chunk as any);
+      const { error } = await supabase.from("medicines").insert(chunk);
       if (error) {
         return { error: error.message };
       }
@@ -805,7 +810,7 @@ export async function getCatalogSyncStatus() {
   const supabase = await createClient();
   const user = await getCurrentUser();
 
-  if (!user || user.role !== "admin") {
+  if (!user || !hasPermission(user.role, "sync_catalog")) {
     return { error: "Admin access required" };
   }
 

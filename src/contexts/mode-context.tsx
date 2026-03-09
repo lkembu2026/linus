@@ -1,8 +1,18 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import type { AppMode } from "@/types";
-import { MODE_STORAGE_KEY, normalizeMode, resolveAllowedMode } from "@/lib/mode";
+import {
+  MODE_STORAGE_KEY,
+  normalizeMode,
+  resolveAllowedMode,
+} from "@/lib/mode";
 
 interface ModeContextValue {
   mode: AppMode;
@@ -70,7 +80,11 @@ export function ModeProvider({
 
   return (
     <ModeContext.Provider
-      value={{ mode: resolvedMode, allowedModes: normalizedAllowedModes, setMode }}
+      value={{
+        mode: resolvedMode,
+        allowedModes: normalizedAllowedModes,
+        setMode,
+      }}
     >
       {children}
     </ModeContext.Provider>

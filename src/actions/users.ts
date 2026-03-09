@@ -3,12 +3,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/actions/auth";
 import { revalidatePath } from "next/cache";
+import { hasPermission } from "@/lib/permissions";
 import type { UserRole } from "@/types/database";
 
 export async function getUsers() {
   const supabase = await createClient();
   const user = await getCurrentUser();
-  if (!user || user.role !== "admin") return [];
+  if (!user || !hasPermission(user.role, "manage_users")) return [];
 
   const { data, error } = await supabase
     .from("users")
@@ -26,7 +27,9 @@ export async function getUsers() {
 export async function updateUserRole(userId: string, role: string) {
   const supabase = await createClient();
   const user = await getCurrentUser();
-  if (!user || user.role !== "admin") return { error: "Admin access required" };
+  if (!user || !hasPermission(user.role, "manage_users")) {
+    return { error: "Admin access required" };
+  }
 
   const { error } = await supabase
     .from("users")
@@ -48,7 +51,9 @@ export async function updateUserRole(userId: string, role: string) {
 export async function updateUserBranch(userId: string, branchId: string) {
   const supabase = await createClient();
   const user = await getCurrentUser();
-  if (!user || user.role !== "admin") return { error: "Admin access required" };
+  if (!user || !hasPermission(user.role, "manage_users")) {
+    return { error: "Admin access required" };
+  }
 
   const { error } = await supabase
     .from("users")
@@ -70,7 +75,9 @@ export async function updateUserBranch(userId: string, branchId: string) {
 export async function toggleUserActive(userId: string, isActive: boolean) {
   const supabase = await createClient();
   const user = await getCurrentUser();
-  if (!user || user.role !== "admin") return { error: "Admin access required" };
+  if (!user || !hasPermission(user.role, "manage_users")) {
+    return { error: "Admin access required" };
+  }
 
   const { error } = await supabase
     .from("users")

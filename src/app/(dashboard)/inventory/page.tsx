@@ -4,10 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { InventoryClient } from "./inventory-client";
 
-import {
-  MODE_STORAGE_KEY,
-  getCategoriesForMode,
-} from "@/lib/mode";
+import { MODE_STORAGE_KEY, getCategoriesForMode } from "@/lib/mode";
 import { resolveCurrentBranchMode } from "@/lib/mode-server";
 
 export default async function InventoryPage() {

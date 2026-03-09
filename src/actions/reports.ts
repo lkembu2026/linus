@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/actions/auth";
 import { sendReportEmail } from "@/lib/email";
+import { hasPermission } from "@/lib/permissions";
 
 type SaleRow = {
   id: string;
@@ -21,7 +22,9 @@ type SaleItemRow = {
 export async function getDailySalesReport(date: string) {
   const supabase = await createClient();
   const user = await getCurrentUser();
-  if (!user) return { sales: [], summary: null };
+  if (!user || !hasPermission(user.role, "view_reports")) {
+    return { sales: [], summary: null };
+  }
 
   const startOfDay = `${date}T00:00:00`;
   const endOfDay = `${date}T23:59:59`;
@@ -70,7 +73,9 @@ export async function getDailySalesReport(date: string) {
 export async function getMonthlySalesReport(year: number, month: number) {
   const supabase = await createClient();
   const user = await getCurrentUser();
-  if (!user) return { dailyData: [], summary: null };
+  if (!user || !hasPermission(user.role, "view_reports")) {
+    return { dailyData: [], summary: null };
+  }
 
   const startDate = `${year}-${String(month).padStart(2, "0")}-01T00:00:00`;
   const lastDay = new Date(year, month, 0).getDate();
@@ -139,7 +144,7 @@ export async function getTopSellingReport(
 ) {
   const supabase = await createClient();
   const user = await getCurrentUser();
-  if (!user) return [];
+  if (!user || !hasPermission(user.role, "view_reports")) return [];
 
   // Get non-voided sale IDs in date range
   let salesQuery = supabase
@@ -223,6 +228,9 @@ export async function saveReport(data: {
   const supabase = await createClient();
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
+  if (!hasPermission(user.role, "save_reports")) {
+    return { error: "Insufficient permissions" };
+  }
 
   const { error } = await supabase.from("saved_reports").insert({
     report_type: data.report_type,
@@ -251,7 +259,7 @@ export async function saveReport(data: {
 export async function getSavedReports() {
   const supabase = await createClient();
   const user = await getCurrentUser();
-  if (!user) return [];
+  if (!user || !hasPermission(user.role, "view_reports")) return [];
 
   let query = supabase
     .from("saved_reports")
@@ -271,7 +279,7 @@ export async function getSavedReports() {
 export async function getBranchComparisonReport(year: number, month: number) {
   const supabase = await createClient();
   const user = await getCurrentUser();
-  if (!user || user.role !== "admin") return [];
+  if (!user || !hasPermission(user.role, "view_branch_comparison")) return [];
 
   const startDate = `${year}-${String(month).padStart(2, "0")}-01T00:00:00`;
   const lastDay = new Date(year, month, 0).getDate();

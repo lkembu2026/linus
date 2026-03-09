@@ -5,13 +5,23 @@ import { getCurrentUser } from "@/actions/auth";
 import { revalidatePath } from "next/cache";
 import { sendTransferEmail } from "@/lib/email";
 import { getEffectiveBranchId } from "@/lib/branch-server";
-import type { StockTransfer } from "@/types/database";
+import { hasPermission } from "@/lib/permissions";
+import type { Branch, StockTransfer } from "@/types/database";
 
-export async function getTransfers(categories?: string[]) {
+export type TransferRecord = StockTransfer & {
+  medicine: { id: string; name: string } | null;
+  from_branch: { id: string; name: string } | null;
+  to_branch: { id: string; name: string } | null;
+  requested_by_user: { id: string; full_name: string } | null;
+};
+
+export type TransferBranchOption = Pick<Branch, "id" | "name">;
+
+export async function getTransfers(categories?: string[]): Promise<TransferRecord[]> {
   const supabase = await createClient();
   const user = await getCurrentUser();
   const branchId = await getEffectiveBranchId(user);
-  if (!user) return [] as StockTransfer[];
+  if (!user) return [];
 
   let validMedIds: string[] | undefined;
   if (categories && categories.length > 0) {
@@ -23,7 +33,7 @@ export async function getTransfers(categories?: string[]) {
       (m) => m.id,
     );
     if (validMedIds.length === 0) {
-      return [] as StockTransfer[];
+      return [];
     }
   }
 
@@ -57,12 +67,7 @@ export async function getTransfers(categories?: string[]) {
     return [];
   }
 
-  return (data ?? []) as unknown as (StockTransfer & {
-    medicine: { id: string; name: string } | null;
-    from_branch: { id: string; name: string } | null;
-    to_branch: { id: string; name: string } | null;
-    requested_by_user: { id: string; full_name: string } | null;
-  })[];
+  return (data ?? []) as TransferRecord[];
 }
 
 export async function createTransfer(formData: {
@@ -74,6 +79,13 @@ export async function createTransfer(formData: {
   const supabase = await createClient();
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
+  if (!hasPermission(user.role, "create_transfer")) {
+    return { error: "Insufficient permissions" };
+  }
+
+  if (user.role !== "admin" && formData.from_branch_id !== user.branch_id) {
+    return { error: "You can only transfer stock from your assigned branch" };
+  }
 
   if (formData.from_branch_id === formData.to_branch_id) {
     return { error: "Cannot transfer to the same branch" };
@@ -144,7 +156,9 @@ export async function createTransfer(formData: {
 export async function approveTransfer(transferId: string) {
   const supabase = await createClient();
   const user = await getCurrentUser();
-  if (!user || user.role !== "admin") return { error: "Admin access required" };
+  if (!user || !hasPermission(user.role, "approve_transfer")) {
+    return { error: "Admin access required" };
+  }
 
   // Get transfer details
   const { data: transferData } = await supabase
@@ -247,7 +261,9 @@ export async function approveTransfer(transferId: string) {
 export async function rejectTransfer(transferId: string) {
   const supabase = await createClient();
   const user = await getCurrentUser();
-  if (!user || user.role !== "admin") return { error: "Admin access required" };
+  if (!user || !hasPermission(user.role, "approve_transfer")) {
+    return { error: "Admin access required" };
+  }
 
   const { error } = await supabase
     .from("stock_transfers")

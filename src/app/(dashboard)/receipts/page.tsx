@@ -1,10 +1,7 @@
 import { getCurrentUser } from "@/actions/auth";
 import { getReceipts } from "@/actions/receipts";
 import { cookies } from "next/headers";
-import {
-  MODE_STORAGE_KEY,
-  getCategoriesForMode,
-} from "@/lib/mode";
+import { MODE_STORAGE_KEY, getCategoriesForMode } from "@/lib/mode";
 import { resolveCurrentBranchMode } from "@/lib/mode-server";
 import { redirect } from "next/navigation";
 import { ReceiptsClient } from "./receipts-client";

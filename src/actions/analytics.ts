@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/actions/auth";
+import { hasPermission } from "@/lib/permissions";
 import type {
   AnalyticsFilters,
   AnalyticsOverview,
@@ -52,6 +53,17 @@ export async function getAnalyticsOverview(
 ): Promise<AnalyticsOverview> {
   const supabase = await createClient();
   const user = await getCurrentUser();
+  if (!user || !hasPermission(user.role, "view_analytics")) {
+    return {
+      totalRevenue: 0,
+      totalSales: 0,
+      avgOrderValue: 0,
+      totalUnitsSold: 0,
+      totalProfit: 0,
+      profitMargin: 0,
+      revenueByDay: [],
+    };
+  }
   const isAdmin = user?.role === "admin" || user?.role === "supervisor";
   const branchId =
     isAdmin && filters.branchId ? filters.branchId : user?.branch_id;
@@ -157,6 +169,14 @@ export async function getAnalyticsSalesBreakdown(
 ): Promise<SalesBreakdown> {
   const supabase = await createClient();
   const user = await getCurrentUser();
+  if (!user || !hasPermission(user.role, "view_analytics")) {
+    return {
+      byPaymentMethod: [],
+      byHour: [],
+      byDayOfWeek: [],
+      byCashier: [],
+    };
+  }
   const isAdmin = user?.role === "admin" || user?.role === "supervisor";
   const branchId =
     isAdmin && filters.branchId ? filters.branchId : user?.branch_id;
@@ -252,6 +272,16 @@ export async function getAnalyticsInventoryHealth(
 ): Promise<InventoryHealth> {
   const supabase = await createClient();
   const user = await getCurrentUser();
+  if (!user || !hasPermission(user.role, "view_analytics")) {
+    return {
+      totalStockValue: 0,
+      totalCostValue: 0,
+      potentialProfit: 0,
+      totalUnits: 0,
+      categorySummary: [],
+      nearExpiry: [],
+    };
+  }
   const isAdmin = user?.role === "admin" || user?.role === "supervisor";
   const effectiveBranchId = isAdmin && branchId ? branchId : user?.branch_id;
 
@@ -343,6 +373,13 @@ export async function getAnalyticsMedicinePerformance(
 ): Promise<MedicinePerformance> {
   const supabase = await createClient();
   const user = await getCurrentUser();
+  if (!user || !hasPermission(user.role, "view_analytics")) {
+    return {
+      topSellers: [],
+      slowMovers: [],
+      categoryPerformance: [],
+    };
+  }
   const isAdmin = user?.role === "admin" || user?.role === "supervisor";
   const branchId =
     isAdmin && filters.branchId ? filters.branchId : user?.branch_id;

@@ -33,9 +33,12 @@ import {
   rejectTransfer,
   getTransfers,
   createTransfer,
+  type TransferBranchOption,
+  type TransferRecord,
 } from "@/actions/transfers";
 import { getMedicines } from "@/actions/inventory";
 import { useMode } from "@/contexts/mode-context";
+import { usePermissions } from "@/hooks/use-permissions";
 import { MEDICINE_CATEGORIES, BEAUTY_CATEGORIES } from "@/lib/constants";
 import { formatDateTime } from "@/lib/utils";
 import {
@@ -48,7 +51,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import type { AppMode } from "@/types";
-import type { User, Branch, Medicine, StockTransfer } from "@/types/database";
+import type { User, Medicine } from "@/types/database";
 
 const modeCategoriesMap = {
   pharmacy: [...MEDICINE_CATEGORIES],
@@ -58,15 +61,8 @@ const modeCategoriesMap = {
 interface TransfersClientProps {
   user: User & { branch?: { name: string } | null };
   transfers: TransferRecord[];
-  branches: Branch[];
+  branches: TransferBranchOption[];
 }
-
-type TransferRecord = StockTransfer & {
-  medicine: { id: string; name: string } | null;
-  from_branch: { id: string; name: string } | null;
-  to_branch: { id: string; name: string } | null;
-  requested_by_user: { id: string; full_name: string } | null;
-};
 
 export function TransfersClient({
   user,
@@ -74,6 +70,7 @@ export function TransfersClient({
   branches,
 }: TransfersClientProps) {
   const { mode } = useMode();
+  const { can } = usePermissions(user.role);
   const modeCategories = [...modeCategoriesMap[mode]];
   const itemLabel = mode === "beauty" ? "Product" : "Medicine";
   const cachedByModeRef = useRef<Record<AppMode, TransferRecord[] | undefined>>(
@@ -222,13 +219,15 @@ export function TransfersClient({
             </p>
           )}
         </div>
-        <Button
-          onClick={handleOpenDialog}
-          className="bg-primary text-primary-foreground hover:bg-[#00B8A9]"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          New Transfer
-        </Button>
+        {can("create_transfer") && (
+          <Button
+            onClick={handleOpenDialog}
+            className="bg-primary text-primary-foreground hover:bg-[#00B8A9]"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            New Transfer
+          </Button>
+        )}
       </div>
 
       <Card className="glass-card">
@@ -275,7 +274,7 @@ export function TransfersClient({
                         </span>{" "}
                         · {formatDateTime(t.created_at)}
                       </p>
-                      {user.role === "admin" && t.status === "pending" && (
+                      {can("approve_transfer") && t.status === "pending" && (
                         <div className="flex gap-2 pt-1">
                           <Button
                             variant="ghost"
@@ -329,7 +328,7 @@ export function TransfersClient({
                       <TableHead className="text-muted-foreground">
                         Status
                       </TableHead>
-                      {user.role === "admin" && (
+                      {can("approve_transfer") && (
                         <TableHead className="text-muted-foreground text-right">
                           Actions
                         </TableHead>
@@ -370,7 +369,7 @@ export function TransfersClient({
                               {t.status}
                             </Badge>
                           </TableCell>
-                          {user.role === "admin" && (
+                          {can("approve_transfer") && (
                             <TableCell className="text-right">
                               {t.status === "pending" && (
                                 <div className="flex gap-1 justify-end">
@@ -451,7 +450,10 @@ export function TransfersClient({
                 From Branch
               </Label>
               <Select value={fromBranch} onValueChange={setFromBranch}>
-                <SelectTrigger className="bg-background border-border text-white mt-1">
+                <SelectTrigger
+                  className="bg-background border-border text-white mt-1"
+                  disabled={!can("view_all_branches")}
+                >
                   <SelectValue placeholder="Source branch" />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border">

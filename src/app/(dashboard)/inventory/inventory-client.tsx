@@ -311,40 +311,40 @@ export function InventoryClient({
             </p>
           )}
         </div>
-        {can("add_medicine") && (
-          <div className="flex flex-wrap gap-2 justify-end">
-            <Button
-              variant="outline"
-              className="border-border text-muted-foreground"
-              onClick={() =>
-                exportToCSV(
-                  medicines.map((m) => ({
-                    name: m.name,
-                    generic_name: m.generic_name ?? "",
-                    category: m.category,
-                    unit_price: m.unit_price,
-                    quantity_in_stock: m.quantity_in_stock,
-                    barcode: m.barcode ?? "",
-                    branch: m.branch?.name ?? "",
-                    expiry_date: m.expiry_date ?? "",
-                  })),
-                  "inventory-export",
-                  [
-                    { key: "name", label: "Name" },
-                    { key: "generic_name", label: "Generic Name" },
-                    { key: "category", label: "Category" },
-                    { key: "unit_price", label: "Unit Price" },
-                    { key: "quantity_in_stock", label: "Stock" },
-                    { key: "barcode", label: "Barcode" },
-                    { key: "branch", label: "Branch" },
-                    { key: "expiry_date", label: "Expiry Date" },
-                  ],
-                )
-              }
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export CSV
-            </Button>
+        <div className="flex flex-wrap gap-2 justify-end">
+          <Button
+            variant="outline"
+            className="border-border text-muted-foreground"
+            onClick={() =>
+              exportToCSV(
+                medicines.map((m) => ({
+                  name: m.name,
+                  generic_name: m.generic_name ?? "",
+                  category: m.category,
+                  unit_price: m.unit_price,
+                  quantity_in_stock: m.quantity_in_stock,
+                  barcode: m.barcode ?? "",
+                  branch: m.branch?.name ?? "",
+                  expiry_date: m.expiry_date ?? "",
+                })),
+                "inventory-export",
+                [
+                  { key: "name", label: "Name" },
+                  { key: "generic_name", label: "Generic Name" },
+                  { key: "category", label: "Category" },
+                  { key: "unit_price", label: "Unit Price" },
+                  { key: "quantity_in_stock", label: "Stock" },
+                  { key: "barcode", label: "Barcode" },
+                  { key: "branch", label: "Branch" },
+                  { key: "expiry_date", label: "Expiry Date" },
+                ],
+              )
+            }
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
+          </Button>
+          {can("import_medicines") && (
             <Button
               variant="outline"
               onClick={() => setImportOpen(true)}
@@ -353,31 +353,33 @@ export function InventoryClient({
               <FileSpreadsheet className="h-4 w-4 mr-2" />
               Import
             </Button>
-            {can("adjust_stock") && (
-              <Button
-                variant="outline"
-                onClick={() => setBulkStockOpen(true)}
-                className="border-primary/40 text-primary hover:bg-primary/10"
-              >
-                <Package className="h-4 w-4 mr-2" />
-                Set Opening Stock
-              </Button>
-            )}
-            {user.role === "admin" && (
-              <Button
-                variant="outline"
-                onClick={handleSyncCatalog}
-                disabled={isSyncingCatalog}
-                className="border-primary/40 text-primary hover:bg-primary/10"
-              >
-                {isSyncingCatalog ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                )}
-                Sync All Branches
-              </Button>
-            )}
+          )}
+          {can("bulk_opening_stock") && (
+            <Button
+              variant="outline"
+              onClick={() => setBulkStockOpen(true)}
+              className="border-primary/40 text-primary hover:bg-primary/10"
+            >
+              <Package className="h-4 w-4 mr-2" />
+              Set Opening Stock
+            </Button>
+          )}
+          {can("sync_catalog") && (
+            <Button
+              variant="outline"
+              onClick={handleSyncCatalog}
+              disabled={isSyncingCatalog}
+              className="border-primary/40 text-primary hover:bg-primary/10"
+            >
+              {isSyncingCatalog ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-2" />
+              )}
+              Sync All Branches
+            </Button>
+          )}
+          {can("add_medicine") && (
             <Button
               onClick={() => setFormOpen(true)}
               className="bg-primary text-primary-foreground hover:bg-[#00B8A9]"
@@ -385,11 +387,11 @@ export function InventoryClient({
               <Plus className="h-4 w-4 mr-2" />
               Add {itemLabel}
             </Button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
-      {user.role === "admin" && (
+      {can("sync_catalog") && (
         <Card className="glass-card">
           <CardContent className="pt-6">
             <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -657,7 +659,7 @@ export function InventoryClient({
                               align="end"
                               className="bg-card border-border"
                             >
-                              {can("adjust_stock") && (
+                              {can("edit_medicine") && (
                                 <>
                                   <DropdownMenuItem
                                     className="text-white focus:bg-primary/10 cursor-pointer"
@@ -671,19 +673,21 @@ export function InventoryClient({
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
                                     className="text-white focus:bg-primary/10 cursor-pointer"
-                                    onClick={() => setAdjustMedicine(med)}
-                                  >
-                                    <Package className="h-4 w-4 mr-2" />
-                                    Adjust Stock
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    className="text-white focus:bg-primary/10 cursor-pointer"
                                     onClick={() => setLabelMedicine(med)}
                                   >
                                     <ScanBarcode className="h-4 w-4 mr-2" />
                                     Print Barcode Label
                                   </DropdownMenuItem>
                                 </>
+                              )}
+                              {can("adjust_stock") && (
+                                <DropdownMenuItem
+                                  className="text-white focus:bg-primary/10 cursor-pointer"
+                                  onClick={() => setAdjustMedicine(med)}
+                                >
+                                  <Package className="h-4 w-4 mr-2" />
+                                  Adjust Stock
+                                </DropdownMenuItem>
                               )}
                               {user.role === "admin" && (
                                 <DropdownMenuItem

@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/actions/auth";
 import { revalidatePath } from "next/cache";
+import { hasPermission } from "@/lib/permissions";
 import { generateReceiptNumber } from "@/lib/utils";
 import {
   sendReceiptEmail,
@@ -313,7 +314,7 @@ export async function voidSale(saleId: string) {
   const supabase = await createClient();
   const user = await getCurrentUser();
 
-  if (!user || user.role !== "admin") {
+  if (!user || !hasPermission(user.role, "void_sale")) {
     return { error: "Only admins can void sales" };
   }
 

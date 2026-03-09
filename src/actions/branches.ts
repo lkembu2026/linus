@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/actions/auth";
 import { revalidatePath } from "next/cache";
+import { hasPermission } from "@/lib/permissions";
 import type { Branch } from "@/types/database";
 
 type BranchModePayload = {
@@ -17,7 +18,9 @@ function hasAtLeastOneModeEnabled(payload: BranchModePayload) {
 export async function getBranches() {
   const supabase = await createClient();
   const user = await getCurrentUser();
-  if (!user || user.role !== "admin") return [] as Branch[];
+  if (!user || !hasPermission(user.role, "manage_branches")) {
+    return [] as Branch[];
+  }
 
   const { data, error } = await supabase
     .from("branches")
@@ -32,6 +35,26 @@ export async function getBranches() {
   return (data ?? []) as unknown as Branch[];
 }
 
+export async function getTransferBranches() {
+  const supabase = await createClient();
+  const user = await getCurrentUser();
+  if (!user || !hasPermission(user.role, "create_transfer")) {
+    return [] as Pick<Branch, "id" | "name">[];
+  }
+
+  const { data, error } = await supabase
+    .from("branches")
+    .select("id, name")
+    .order("name", { ascending: true });
+
+  if (error) {
+    console.error("getTransferBranches error:", error);
+    return [] as Pick<Branch, "id" | "name">[];
+  }
+
+  return (data ?? []) as Pick<Branch, "id" | "name">[];
+}
+
 export async function createBranch(formData: {
   name: string;
   location?: string;
@@ -41,7 +64,9 @@ export async function createBranch(formData: {
 }) {
   const supabase = await createClient();
   const user = await getCurrentUser();
-  if (!user || user.role !== "admin") return { error: "Admin access required" };
+  if (!user || !hasPermission(user.role, "manage_branches")) {
+    return { error: "Admin access required" };
+  }
 
   if (!hasAtLeastOneModeEnabled(formData)) {
     return { error: "A branch must have at least one mode enabled" };
@@ -73,7 +98,9 @@ export async function updateBranch(
 ) {
   const supabase = await createClient();
   const user = await getCurrentUser();
-  if (!user || user.role !== "admin") return { error: "Admin access required" };
+  if (!user || !hasPermission(user.role, "manage_branches")) {
+    return { error: "Admin access required" };
+  }
 
   if (
     formData.enable_pharmacy !== undefined ||
@@ -117,7 +144,9 @@ export async function updateBranch(
 export async function deleteBranch(id: string) {
   const supabase = await createClient();
   const user = await getCurrentUser();
-  if (!user || user.role !== "admin") return { error: "Admin access required" };
+  if (!user || !hasPermission(user.role, "manage_branches")) {
+    return { error: "Admin access required" };
+  }
 
   const { error } = await supabase.from("branches").delete().eq("id", id);
 

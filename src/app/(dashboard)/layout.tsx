@@ -55,7 +55,9 @@ export default async function DashboardLayout({
         .from("branches")
         .select("id, name, enable_pharmacy, enable_beauty")
         .eq("id", selectedBranchId)
-        .single<Pick<Branch, "id" | "name" | "enable_pharmacy" | "enable_beauty">>();
+        .single<
+          Pick<Branch, "id" | "name" | "enable_pharmacy" | "enable_beauty">
+        >();
 
       if (selectedBranch) {
         branchName = selectedBranch.name;
