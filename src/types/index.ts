@@ -17,6 +17,7 @@ export type {
   AppMode,
   SaleWithItems,
   AuditLogWithUser,
+  ReportSettings,
   Database,
 } from "./database";
 

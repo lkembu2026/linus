@@ -12,15 +12,21 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 function todayEAT(): string {
-  // EAT = UTC + 3 hours
-  const nowEAT = new Date(Date.now() + 3 * 60 * 60 * 1000);
-  return nowEAT.toISOString().slice(0, 10); // YYYY-MM-DD
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Africa/Nairobi",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 }
 
 export async function GET(req: NextRequest) {
   // ── Security: verify Vercel cron secret ──────────────────────────────────
   const auth = req.headers.get("authorization");
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (
+    !process.env.CRON_SECRET ||
+    auth !== `Bearer ${process.env.CRON_SECRET}`
+  ) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -30,6 +36,18 @@ export async function GET(req: NextRequest) {
   const endOfDay = `${date}T23:59:59+03:00`;
 
   try {
+    const { data: existingReport } = await supabase
+      .from("saved_reports")
+      .select("id")
+      .eq("report_type", "daily_auto_email")
+      .eq("period", date)
+      .limit(1)
+      .maybeSingle();
+
+    if (existingReport) {
+      return NextResponse.json({ ok: true, skipped: true, date });
+    }
+
     // ── 1. Fetch today's sales ─────────────────────────────────────────────
     const { data: salesData } = await supabase
       .from("sales")
@@ -102,15 +120,36 @@ export async function GET(req: NextRequest) {
       .select("id", { count: "exact", head: true })
       .eq("status", "pending");
 
-    // ── 5. Send email ──────────────────────────────────────────────────────
-    await sendDailySummaryEmail({
-      date,
+    const summary = {
       totalSales: activeSales.length,
       totalRevenue,
       lowStockCount: lowStockCount ?? 0,
       transfersPending: transfersPending ?? 0,
+    };
+
+    // ── 5. Send email ──────────────────────────────────────────────────────
+    await sendDailySummaryEmail({
+      date,
+      totalSales: summary.totalSales,
+      totalRevenue: summary.totalRevenue,
+      lowStockCount: summary.lowStockCount,
+      transfersPending: summary.transfersPending,
       topItems,
     });
+
+    const { error: saveError } = await supabase.from("saved_reports").insert({
+      report_type: "daily_auto_email",
+      title: "Automated Daily Summary",
+      period: date,
+      summary,
+      data: topItems,
+      generated_by: null,
+      branch_id: null,
+    });
+
+    if (saveError) {
+      throw saveError;
+    }
 
     console.log(`[Cron] Daily report sent for ${date}`);
     return NextResponse.json({ ok: true, date, totalRevenue });

@@ -46,7 +46,10 @@ function previousMonthRange(): {
 export async function GET(req: NextRequest) {
   // ── Security ───────────────────────────────────────────────────────────
   const auth = req.headers.get("authorization");
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (
+    !process.env.CRON_SECRET ||
+    auth !== `Bearer ${process.env.CRON_SECRET}`
+  ) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -54,6 +57,18 @@ export async function GET(req: NextRequest) {
   const { year, month, monthLabel, startTs, endTs } = previousMonthRange();
 
   try {
+    const { data: existingReport } = await supabase
+      .from("saved_reports")
+      .select("id")
+      .eq("report_type", "monthly_auto_email")
+      .eq("period", monthLabel)
+      .limit(1)
+      .maybeSingle();
+
+    if (existingReport) {
+      return NextResponse.json({ ok: true, skipped: true, monthLabel });
+    }
+
     // ── 1. Sales for the month ─────────────────────────────────────────────
     const { data: salesData } = await supabase
       .from("sales")
@@ -170,6 +185,30 @@ export async function GET(req: NextRequest) {
       topItems,
       branchBreakdown,
     });
+
+    const { error: saveError } = await supabase.from("saved_reports").insert({
+      report_type: "monthly_auto_email",
+      title: "Automated Monthly Summary",
+      period: monthLabel,
+      summary: {
+        totalSales: activeSales.length,
+        totalRevenue,
+        totalVoided: voidedSales.length,
+        avgDailyRevenue,
+        bestDay: { date: bestDay[0], revenue: bestDay[1] },
+        paymentBreakdown,
+      },
+      data: {
+        topItems,
+        branchBreakdown,
+      },
+      generated_by: null,
+      branch_id: null,
+    });
+
+    if (saveError) {
+      throw saveError;
+    }
 
     console.log(`[Cron] Monthly report sent for ${monthLabel}`);
     return NextResponse.json({ ok: true, monthLabel, totalRevenue });

@@ -26,7 +26,10 @@ function currentWeekEAT(): { start: string; end: string } {
 export async function GET(req: NextRequest) {
   // ── Security ───────────────────────────────────────────────────────────
   const auth = req.headers.get("authorization");
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (
+    !process.env.CRON_SECRET ||
+    auth !== `Bearer ${process.env.CRON_SECRET}`
+  ) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -36,6 +39,24 @@ export async function GET(req: NextRequest) {
   const endTs = `${end}T23:59:59+03:00`;
 
   try {
+    const period = `${start} to ${end}`;
+    const { data: existingReport } = await supabase
+      .from("saved_reports")
+      .select("id")
+      .eq("report_type", "weekly_auto_email")
+      .eq("period", period)
+      .limit(1)
+      .maybeSingle();
+
+    if (existingReport) {
+      return NextResponse.json({
+        ok: true,
+        skipped: true,
+        weekStart: start,
+        weekEnd: end,
+      });
+    }
+
     // ── 1. Sales for the week ──────────────────────────────────────────────
     const { data: salesData } = await supabase
       .from("sales")
@@ -140,6 +161,29 @@ export async function GET(req: NextRequest) {
       topItems,
       branchBreakdown,
     });
+
+    const { error: saveError } = await supabase.from("saved_reports").insert({
+      report_type: "weekly_auto_email",
+      title: "Automated Weekly Summary",
+      period,
+      summary: {
+        totalSales: activeSales.length,
+        totalRevenue,
+        totalVoided: voidedSales.length,
+        avgDailyRevenue,
+        paymentBreakdown,
+      },
+      data: {
+        topItems,
+        branchBreakdown,
+      },
+      generated_by: null,
+      branch_id: null,
+    });
+
+    if (saveError) {
+      throw saveError;
+    }
 
     console.log(`[Cron] Weekly report sent for ${start} → ${end}`);
     return NextResponse.json({

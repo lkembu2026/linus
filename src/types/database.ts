@@ -139,6 +139,14 @@ export type ReceiptRecord = {
   created_at: string;
 };
 
+// ---- REPORT SETTINGS ----
+export type ReportSettings = {
+  key: string;
+  recipients: string[];
+  updated_by: string | null;
+  updated_at: string;
+};
+
 // =============================================
 // JOIN / VIEW TYPES (for queries with relations)
 // =============================================
@@ -315,6 +323,17 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<Credit>;
+        Relationships: [];
+      };
+      report_settings: {
+        Row: ReportSettings;
+        Insert: {
+          key?: string;
+          recipients?: string[];
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: Partial<ReportSettings>;
         Relationships: [];
       };
     };

@@ -3,6 +3,7 @@
 // =============================================
 
 import { Resend } from "resend";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -10,6 +11,49 @@ const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "admin@lkpharmacare.com";
 const FROM_EMAIL = "LK PharmaCare <onboarding@resend.dev>";
 
 // ---- Helpers ----
+
+function getFallbackReportRecipients(): string[] {
+  const configured = process.env.REPORT_EMAILS ?? process.env.ADMIN_EMAIL ?? "";
+  const recipients = configured
+    .split(",")
+    .map((email) => email.trim())
+    .filter(Boolean);
+
+  return recipients.length > 0 ? recipients : [ADMIN_EMAIL];
+}
+
+async function getReportRecipients(): Promise<string[]> {
+  try {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+      .from("report_settings")
+      .select("recipients")
+      .eq("key", "default")
+      .maybeSingle();
+
+    if (error) {
+      console.warn(
+        "[Email] Failed to load report settings. Using fallback recipients.",
+        error.message,
+      );
+      return getFallbackReportRecipients();
+    }
+
+    const recipients = (data?.recipients ?? [])
+      .map((email) => email.trim())
+      .filter(Boolean);
+
+    return recipients.length > 0
+      ? recipients
+      : getFallbackReportRecipients();
+  } catch (error) {
+    console.warn(
+      "[Email] Report settings unavailable. Using fallback recipients.",
+      error,
+    );
+    return getFallbackReportRecipients();
+  }
+}
 
 function formatKES(amount: number): string {
   return `KES ${amount.toLocaleString("en-KE", { minimumFractionDigits: 2 })}`;
@@ -482,6 +526,13 @@ export async function sendReportEmail(data: {
   generatedBy: string;
 }) {
   try {
+    if (!process.env.RESEND_API_KEY) {
+      console.warn(
+        "[Email] RESEND_API_KEY is not configured. Skipping report email.",
+      );
+      return;
+    }
+
     const summaryRows = Object.entries(data.summary)
       .map(
         ([k, v]) =>
@@ -513,7 +564,7 @@ export async function sendReportEmail(data: {
 
     await resend.emails.send({
       from: FROM_EMAIL,
-      to: ADMIN_EMAIL,
+      to: await getReportRecipients(),
       subject: `${typeLabel[data.reportType] ?? "📋 Report"}: ${data.title} — ${data.period}`,
       html: wrapHtml(data.title, body),
     });
@@ -534,6 +585,13 @@ export async function sendDailySummaryEmail(data: {
   topItems: { name: string; quantity: number; revenue: number }[];
 }) {
   try {
+    if (!process.env.RESEND_API_KEY) {
+      console.warn(
+        "[Email] RESEND_API_KEY is not configured. Skipping daily summary email.",
+      );
+      return;
+    }
+
     const topRows = data.topItems
       .slice(0, 5)
       .map(
@@ -569,7 +627,7 @@ export async function sendDailySummaryEmail(data: {
 
     await resend.emails.send({
       from: FROM_EMAIL,
-      to: ADMIN_EMAIL,
+      to: await getReportRecipients(),
       subject: `📊 Daily Summary: ${formatKES(data.totalRevenue)} revenue, ${data.totalSales} sales — ${data.date}`,
       html: wrapHtml(`Daily Summary — ${data.date}`, body),
     });
@@ -593,6 +651,13 @@ export async function sendWeeklySummaryEmail(data: {
   branchBreakdown: { name: string; revenue: number; salesCount: number }[];
 }) {
   try {
+    if (!process.env.RESEND_API_KEY) {
+      console.warn(
+        "[Email] RESEND_API_KEY is not configured. Skipping weekly summary email.",
+      );
+      return;
+    }
+
     const topRows = data.topItems
       .slice(0, 10)
       .map(
@@ -662,7 +727,7 @@ export async function sendWeeklySummaryEmail(data: {
 
     await resend.emails.send({
       from: FROM_EMAIL,
-      to: ADMIN_EMAIL,
+      to: await getReportRecipients(),
       subject: `📅 Weekly Summary (${data.weekStart} – ${data.weekEnd}): ${formatKES(data.totalRevenue)} | ${data.totalSales} sales`,
       html: wrapHtml(
         `Weekly Summary — ${data.weekStart} to ${data.weekEnd}`,
@@ -689,6 +754,13 @@ export async function sendMonthlySummaryEmail(data: {
   branchBreakdown: { name: string; revenue: number; salesCount: number }[];
 }) {
   try {
+    if (!process.env.RESEND_API_KEY) {
+      console.warn(
+        "[Email] RESEND_API_KEY is not configured. Skipping monthly summary email.",
+      );
+      return;
+    }
+
     const topRows = data.topItems
       .slice(0, 10)
       .map(
@@ -761,7 +833,7 @@ export async function sendMonthlySummaryEmail(data: {
 
     await resend.emails.send({
       from: FROM_EMAIL,
-      to: ADMIN_EMAIL,
+      to: await getReportRecipients(),
       subject: `📊 Monthly Report — ${data.monthLabel}: ${formatKES(data.totalRevenue)} | ${data.totalSales} sales`,
       html: wrapHtml(`Monthly Report — ${data.monthLabel}`, body),
     });

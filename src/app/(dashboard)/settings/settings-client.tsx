@@ -9,8 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { createClient } from "@/lib/supabase/client";
 import { APP_NAME } from "@/lib/constants";
+import { formatDateTime } from "@/lib/utils";
 import {
-  Settings,
   User,
   Shield,
   Building2,
@@ -19,22 +19,44 @@ import {
   Wifi,
   WifiOff,
   Monitor,
+  Mail,
+  Send,
   Save,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { updateProfile } from "@/actions/auth";
+import {
+  sendTestDailyReportNow,
+  updateReportAutomationSettings,
+} from "@/actions/reports";
 import type { User as UserType } from "@/types/database";
 
 interface SettingsClientProps {
   user: UserType & { branch?: { name: string } | null };
+  initialReportSettings: {
+    recipients: string[];
+    updated_at: string | null;
+    source: "database" | "environment";
+  };
 }
 
-export function SettingsClient({ user }: SettingsClientProps) {
+export function SettingsClient({
+  user,
+  initialReportSettings,
+}: SettingsClientProps) {
   const isOnline = useOnlineStatus();
   const [isPending, startTransition] = useTransition();
+  const [isReportsPending, startReportsTransition] = useTransition();
+  const [isTestPending, startTestTransition] = useTransition();
   const [fullName, setFullName] = useState(user.full_name ?? "");
   const [nameChanged, setNameChanged] = useState(false);
+  const [reportRecipients, setReportRecipients] = useState(
+    initialReportSettings.recipients.join(", "),
+  );
+  const [reportSettingsMeta, setReportSettingsMeta] = useState(
+    initialReportSettings,
+  );
   const [passwords, setPasswords] = useState({
     current: "",
     newPass: "",
@@ -89,6 +111,37 @@ export function SettingsClient({ user }: SettingsClientProps) {
 
       toast.success("Password updated successfully");
       setPasswords({ current: "", newPass: "", confirm: "" });
+    });
+  }
+
+  function handleSaveReportRecipients() {
+    startReportsTransition(async () => {
+      const result = await updateReportAutomationSettings(reportRecipients);
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+
+      if (result.settings) {
+        setReportSettingsMeta(result.settings);
+        setReportRecipients(result.settings.recipients.join(", "));
+      }
+
+      toast.success("Report recipients updated");
+    });
+  }
+
+  function handleSendTestReport() {
+    startTestTransition(async () => {
+      const result = await sendTestDailyReportNow();
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+
+      toast.success(
+        `Test daily report sent to ${result.recipients.length} recipient${result.recipients.length === 1 ? "" : "s"}`,
+      );
     });
   }
 
@@ -226,6 +279,98 @@ export function SettingsClient({ user }: SettingsClientProps) {
               "Update Password"
             )}
           </Button>
+        </CardContent>
+      </Card>
+
+      <Card className="glass-card">
+        <CardHeader>
+          <CardTitle className="text-base text-white flex items-center gap-2">
+            <Mail className="h-4 w-4 text-primary" />
+            Reports Automation
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label className="text-muted-foreground">Report Recipients</Label>
+            <textarea
+              value={reportRecipients}
+              onChange={(e) => setReportRecipients(e.target.value)}
+              rows={4}
+              placeholder="owner@lkpharmacare.com, manager@lkpharmacare.com"
+              className="flex min-h-[104px] w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-white outline-none placeholder:text-muted-foreground"
+            />
+            <p className="text-xs text-muted-foreground">
+              Use commas or new lines. Leave blank to fall back to configured environment emails.
+            </p>
+          </div>
+
+          <div className="rounded-lg border border-border bg-background/40 p-3 space-y-2">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <span className="text-sm text-muted-foreground">Recipient Source</span>
+              <Badge
+                variant="outline"
+                className={
+                  reportSettingsMeta.source === "database"
+                    ? "border-primary text-primary"
+                    : "border-border text-muted-foreground"
+                }
+              >
+                {reportSettingsMeta.source === "database"
+                  ? "Database override"
+                  : "Environment fallback"}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <span className="text-sm text-muted-foreground">Daily Schedule</span>
+              <span className="text-sm text-white">10:20 PM EAT</span>
+            </div>
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <span className="text-sm text-muted-foreground">Last Updated</span>
+              <span className="text-sm text-white">
+                {reportSettingsMeta.updated_at
+                  ? formatDateTime(reportSettingsMeta.updated_at)
+                  : "Not saved in app yet"}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              onClick={handleSaveReportRecipients}
+              disabled={isReportsPending}
+              className="bg-primary text-primary-foreground hover:bg-[#00B8A9]"
+            >
+              {isReportsPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Recipients
+                </>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleSendTestReport}
+              disabled={isTestPending}
+              className="border-primary/40 text-primary hover:bg-primary/10"
+            >
+              {isTestPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Sending Test...
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4 mr-2" />
+                  Send Test Daily Report Now
+                </>
+              )}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 

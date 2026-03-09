@@ -1,9 +1,11 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUser } from "@/actions/auth";
-import { sendReportEmail } from "@/lib/email";
+import { sendDailySummaryEmail, sendReportEmail } from "@/lib/email";
 import { hasPermission } from "@/lib/permissions";
+import type { ReportSettings } from "@/types";
 
 type SaleRow = {
   id: string;
@@ -18,6 +20,290 @@ type SaleItemRow = {
   quantity: number;
   unit_price: number;
 };
+
+type ReportAutomationSettingsResult = {
+  recipients: string[];
+  updated_at: string | null;
+  source: "database" | "environment";
+};
+
+function getFallbackReportRecipients(): string[] {
+  const configured = process.env.REPORT_EMAILS ?? process.env.ADMIN_EMAIL ?? "";
+  const recipients = configured
+    .split(",")
+    .map((email) => email.trim())
+    .filter(Boolean);
+
+  return recipients.length > 0
+    ? recipients
+    : [process.env.ADMIN_EMAIL ?? "admin@lkpharmacare.com"];
+}
+
+function getTodayEAT(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Africa/Nairobi",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
+function parseRecipients(value: string): string[] {
+  return value
+    .split(/[\n,]/)
+    .map((email) => email.trim())
+    .filter(Boolean);
+}
+
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+export async function getReportAutomationSettings(): Promise<ReportAutomationSettingsResult> {
+  const user = await getCurrentUser();
+  if (!user || !hasPermission(user.role, "manage_settings")) {
+    return {
+      recipients: getFallbackReportRecipients(),
+      updated_at: null,
+      source: "environment",
+    };
+  }
+
+  try {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+      .from("report_settings")
+      .select("key, recipients, updated_at")
+      .eq("key", "default")
+      .maybeSingle();
+
+    if (error) {
+      console.warn("getReportAutomationSettings fallback:", error.message);
+      return {
+        recipients: getFallbackReportRecipients(),
+        updated_at: null,
+        source: "environment",
+      };
+    }
+
+    const settings = data as Pick<ReportSettings, "recipients" | "updated_at"> | null;
+    const recipients = (settings?.recipients ?? []).filter(Boolean);
+
+    return {
+      recipients:
+        recipients.length > 0 ? recipients : getFallbackReportRecipients(),
+      updated_at: settings?.updated_at ?? null,
+      source: recipients.length > 0 ? "database" : "environment",
+    };
+  } catch (error) {
+    console.warn("getReportAutomationSettings fallback:", error);
+    return {
+      recipients: getFallbackReportRecipients(),
+      updated_at: null,
+      source: "environment",
+    };
+  }
+}
+
+export async function updateReportAutomationSettings(rawRecipients: string) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+  if (!hasPermission(user.role, "manage_settings")) {
+    return { error: "Insufficient permissions" };
+  }
+
+  const recipients = parseRecipients(rawRecipients);
+  const invalidRecipients = recipients.filter((email) => !isValidEmail(email));
+  if (invalidRecipients.length > 0) {
+    return { error: `Invalid email address: ${invalidRecipients[0]}` };
+  }
+
+  try {
+    const supabase = createAdminClient();
+    const updated_at = new Date().toISOString();
+    const { error } = await supabase.from("report_settings").upsert(
+      {
+        key: "default",
+        recipients,
+        updated_by: user.id,
+        updated_at,
+      },
+      { onConflict: "key" },
+    );
+
+    if (error) {
+      return {
+        error:
+          error.code === "42P01"
+            ? "Report settings table is missing. Run the latest Supabase migration first."
+            : error.message,
+      };
+    }
+
+    return {
+      success: true,
+      settings: {
+        recipients,
+        updated_at,
+        source: recipients.length > 0 ? "database" : "environment",
+      } as ReportAutomationSettingsResult,
+    };
+  } catch (error) {
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to update report settings",
+    };
+  }
+}
+
+export async function sendTestDailyReportNow() {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+  if (!hasPermission(user.role, "manage_settings")) {
+    return { error: "Insufficient permissions" };
+  }
+  if (!process.env.RESEND_API_KEY) {
+    return { error: "RESEND_API_KEY is not configured" };
+  }
+
+  const supabase = createAdminClient();
+  const date = getTodayEAT();
+  const startOfDay = `${date}T00:00:00+03:00`;
+  const endOfDay = `${date}T23:59:59+03:00`;
+
+  try {
+    const { data: salesData, error: salesError } = await supabase
+      .from("sales")
+      .select("id, total_amount, payment_method, is_voided")
+      .gte("created_at", startOfDay)
+      .lte("created_at", endOfDay);
+
+    if (salesError) {
+      return { error: salesError.message };
+    }
+
+    const sales = salesData ?? [];
+    const activeSales = sales.filter((sale) => !sale.is_voided);
+    const totalRevenue = activeSales.reduce(
+      (sum, sale) => sum + Number(sale.total_amount ?? 0),
+      0,
+    );
+
+    const saleIds = activeSales.map((sale) => String(sale.id));
+    let topItems: { name: string; quantity: number; revenue: number }[] = [];
+
+    if (saleIds.length > 0) {
+      const { data: itemsData, error: itemsError } = await supabase
+        .from("sale_items")
+        .select("medicine_id, quantity, unit_price")
+        .in("sale_id", saleIds);
+
+      if (itemsError) {
+        return { error: itemsError.message };
+      }
+
+      const items = itemsData ?? [];
+      const medicineIds = [...new Set(items.map((item) => String(item.medicine_id)))];
+      const { data: medicinesData, error: medicinesError } = await supabase
+        .from("medicines")
+        .select("id, name")
+        .in("id", medicineIds);
+
+      if (medicinesError) {
+        return { error: medicinesError.message };
+      }
+
+      const nameMap = new Map(
+        (medicinesData ?? []).map((medicine) => [
+          String(medicine.id),
+          String(medicine.name),
+        ]),
+      );
+
+      const itemMap = new Map<
+        string,
+        { name: string; quantity: number; revenue: number }
+      >();
+
+      for (const item of items) {
+        const medicineId = String(item.medicine_id);
+        const existing = itemMap.get(medicineId) ?? {
+          name: nameMap.get(medicineId) ?? "Unknown",
+          quantity: 0,
+          revenue: 0,
+        };
+        existing.quantity += Number(item.quantity ?? 0);
+        existing.revenue +=
+          Number(item.quantity ?? 0) * Number(item.unit_price ?? 0);
+        itemMap.set(medicineId, existing);
+      }
+
+      topItems = Array.from(itemMap.values())
+        .sort((left, right) => right.revenue - left.revenue)
+        .slice(0, 5);
+    }
+
+    const { count: lowStockCount } = await supabase
+      .from("medicines")
+      .select("id", { count: "exact", head: true })
+      .lte("quantity_in_stock", 10)
+      .gt("quantity_in_stock", 0);
+
+    const { count: transfersPending } = await supabase
+      .from("transfers")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "pending");
+
+    const summary = {
+      totalSales: activeSales.length,
+      totalRevenue,
+      lowStockCount: lowStockCount ?? 0,
+      transfersPending: transfersPending ?? 0,
+      testSend: true,
+    };
+
+    await sendDailySummaryEmail({
+      date,
+      totalSales: summary.totalSales,
+      totalRevenue: summary.totalRevenue,
+      lowStockCount: summary.lowStockCount,
+      transfersPending: summary.transfersPending,
+      topItems,
+    });
+
+    const period = `${date} test ${new Date().toISOString()}`;
+    const { error: saveError } = await supabase.from("saved_reports").insert({
+      report_type: "daily_test_email",
+      title: "Manual Test Daily Summary",
+      period,
+      summary,
+      data: topItems,
+      generated_by: user.id,
+      branch_id: null,
+    });
+
+    if (saveError) {
+      console.error("sendTestDailyReportNow save error:", saveError);
+    }
+
+    const settings = await getReportAutomationSettings();
+
+    return {
+      success: true,
+      date,
+      recipients: settings.recipients,
+    };
+  } catch (error) {
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to send test daily report",
+    };
+  }
+}
 
 export async function getDailySalesReport(date: string) {
   const supabase = await createClient();
