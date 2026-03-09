@@ -26,7 +26,7 @@ export function MedicineCategoryBreakdownCard({
   return (
     <div className="glass-card p-6">
       {/* Header */}
-      <div className="flex items-start justify-between mb-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-5">
         <div>
           <h3 className="text-base font-semibold font-[family-name:var(--font-sans)] text-white">
             Stock & Sales <span className="text-primary">by Category</span>
@@ -36,7 +36,7 @@ export function MedicineCategoryBreakdownCard({
             remaining · {totalSold.toLocaleString()} sold
           </p>
         </div>
-        <div className="flex gap-4 text-xs text-muted-foreground">
+        <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
             <Package className="h-3.5 w-3.5 text-primary" /> Remaining
           </span>
@@ -57,13 +57,13 @@ export function MedicineCategoryBreakdownCard({
             const pct = Math.round((item.remaining_stock / maxStock) * 100);
             return (
               <div key={item.category}>
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-1">
                   <span
                     className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${colour}`}
                   >
                     {item.category}
                   </span>
-                  <div className="flex items-center gap-4 text-xs">
+                  <div className="flex flex-wrap items-center gap-3 text-xs">
                     <span className="text-muted-foreground">
                       <span className="font-semibold text-white">
                         {item.remaining_stock.toLocaleString()}

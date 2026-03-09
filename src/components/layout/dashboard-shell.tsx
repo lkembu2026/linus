@@ -6,6 +6,8 @@ import { Header } from "@/components/layout/header";
 import { IdleSessionManager } from "@/components/layout/idle-session-manager";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { startAutoSync } from "@/lib/offline/sync-queue";
+import { NAV_ITEMS } from "@/lib/constants";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { UserRole } from "@/types";
 
@@ -26,8 +28,21 @@ export function DashboardShell({
   branchId,
   branchSelection,
 }: DashboardShellProps) {
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    const allowedItems = NAV_ITEMS.filter((item) =>
+      (item.roles as readonly string[]).includes(userRole),
+    );
+
+    for (const item of allowedItems) {
+      router.prefetch(item.href);
+    }
+
+    router.prefetch("/dashboard");
+  }, [router, userRole]);
 
   // Start auto-sync for offline sales when coming back online
   useEffect(() => {
@@ -61,7 +76,7 @@ export function DashboardShell({
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent
           side="left"
-          className="w-64 p-0 bg-[#0A0A0A] border-r border-border"
+          className="w-64 p-0 bg-[#0A0A0A] border-r border-border data-[state=closed]:duration-200 data-[state=open]:duration-200"
         >
           <Sidebar
             userRole={userRole}

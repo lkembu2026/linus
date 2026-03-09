@@ -8,7 +8,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "admin@lkpharmacare.com";
-const FROM_EMAIL = "LK PharmaCare <onboarding@resend.dev>";
+const FROM_EMAIL =
+  process.env.RESEND_FROM_EMAIL ??
+  process.env.FROM_EMAIL ??
+  "LK PharmaCare <onboarding@resend.dev>";
 
 // ---- Helpers ----
 
@@ -43,9 +46,7 @@ async function getReportRecipients(): Promise<string[]> {
       .map((email) => email.trim())
       .filter(Boolean);
 
-    return recipients.length > 0
-      ? recipients
-      : getFallbackReportRecipients();
+    return recipients.length > 0 ? recipients : getFallbackReportRecipients();
   } catch (error) {
     console.warn(
       "[Email] Report settings unavailable. Using fallback recipients.",

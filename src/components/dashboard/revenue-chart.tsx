@@ -53,11 +53,14 @@ export function RevenueChart({ data }: RevenueChartProps) {
               axisLine={false}
               tickLine={false}
               tick={{ fill: "#B4B4B4", fontSize: 12 }}
+              minTickGap={20}
+              tickMargin={8}
             />
             <YAxis
               axisLine={false}
               tickLine={false}
               tick={{ fill: "#B4B4B4", fontSize: 12 }}
+              width={44}
               tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
             />
             <Tooltip content={<CustomTooltip />} />

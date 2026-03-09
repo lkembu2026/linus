@@ -24,13 +24,15 @@ export function LowStockAlert({ items }: LowStockAlertProps) {
           {items.map((item) => (
             <div
               key={item.id}
-              className="flex items-center justify-between py-2 px-3 rounded-lg bg-background/50 border border-yellow-400/20"
+              className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between py-2 px-3 rounded-lg bg-background/50 border border-yellow-400/20"
             >
-              <div>
-                <p className="text-sm font-medium text-white">{item.name}</p>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-white break-words leading-tight">
+                  {item.name}
+                </p>
                 <p className="text-xs text-muted-foreground">{item.category}</p>
               </div>
-              <div className="text-right">
+              <div className="text-left sm:text-right">
                 <span
                   className={`text-sm font-bold ${
                     item.quantity_in_stock === 0

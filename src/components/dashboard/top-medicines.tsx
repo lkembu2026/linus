@@ -28,14 +28,14 @@ export function TopMedicines({
           {medicines.map((med, index) => (
             <div
               key={med.medicine_id}
-              className="flex items-center justify-between py-2 px-3 rounded-lg bg-background/50 border border-border"
+              className="flex items-start justify-between gap-3 py-2 px-3 rounded-lg bg-background/50 border border-border"
             >
-              <div className="flex items-center gap-3">
+              <div className="flex min-w-0 items-start gap-3">
                 <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">
                   {index + 1}
                 </span>
-                <div>
-                  <p className="text-sm font-medium text-white">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-white break-words leading-tight">
                     {med.medicine_name}
                   </p>
                   <p className="text-xs text-muted-foreground">
@@ -43,7 +43,7 @@ export function TopMedicines({
                   </p>
                 </div>
               </div>
-              <span className="text-sm font-semibold text-primary">
+              <span className="shrink-0 text-sm font-semibold text-primary text-right">
                 {formatCurrency(med.total_revenue)}
               </span>
             </div>

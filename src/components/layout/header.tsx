@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { logout } from "@/actions/auth";
 import { getBranches } from "@/actions/branches";
@@ -63,6 +63,7 @@ export function Header({
   onMenuClick,
 }: HeaderProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const isOnline = useOnlineStatus();
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -94,6 +95,21 @@ export function Header({
   useEffect(() => {
     if (userRole !== "admin") return;
 
+    const cachedBranches = window.sessionStorage.getItem("lk-admin-branches");
+    if (cachedBranches) {
+      try {
+        const parsed = JSON.parse(cachedBranches) as {
+          id: string;
+          name: string;
+        }[];
+        if (parsed.length > 0) {
+          setBranches(parsed);
+        }
+      } catch {
+        window.sessionStorage.removeItem("lk-admin-branches");
+      }
+    }
+
     let isMounted = true;
 
     (async () => {
@@ -106,6 +122,10 @@ export function Header({
       }));
 
       setBranches(branchOptions);
+      window.sessionStorage.setItem(
+        "lk-admin-branches",
+        JSON.stringify(branchOptions),
+      );
     })();
 
     return () => {
@@ -126,6 +146,8 @@ export function Header({
     const nextUrl = params.toString()
       ? `${pathname}?${params.toString()}`
       : pathname;
+
+    router.prefetch(nextUrl);
     window.location.assign(nextUrl);
   }
 

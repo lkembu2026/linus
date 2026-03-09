@@ -52,7 +52,7 @@ export function DailySalesChart({ data }: DailySalesChartProps) {
 
   return (
     <div className="glass-card p-6">
-      <div className="flex items-start justify-between mb-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-4">
         <div>
           <h3 className="text-base font-semibold font-[family-name:var(--font-sans)] text-white">
             Units Sold <span className="text-primary">Per Day</span>
@@ -61,7 +61,7 @@ export function DailySalesChart({ data }: DailySalesChartProps) {
             Last 14 days · {totalUnits.toLocaleString()} total units
           </p>
         </div>
-        <div className="text-right">
+        <div className="text-left sm:text-right">
           <p className="text-2xl font-bold text-primary">
             {todayUnits.toLocaleString()}
           </p>
@@ -89,6 +89,8 @@ export function DailySalesChart({ data }: DailySalesChartProps) {
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: "#B4B4B4", fontSize: 11 }}
+                minTickGap={16}
+                tickMargin={8}
                 interval={1}
               />
               <YAxis

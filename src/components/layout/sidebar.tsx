@@ -147,6 +147,8 @@ export function Sidebar({
               key={item.href}
               href={item.href}
               onClick={onNavigate}
+              onTouchStart={() => prefetchRoute(item.href)}
+              onPointerDown={() => prefetchRoute(item.href)}
               onMouseEnter={() => prefetchRoute(item.href)}
               onFocus={() => prefetchRoute(item.href)}
               className={cn(

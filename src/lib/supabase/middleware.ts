@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { ACTIVE_BRANCH_COOKIE, ALL_BRANCHES_VALUE } from "@/lib/branch";
 
 // Route restrictions: path prefix → allowed roles
 const ROUTE_ROLES: Record<string, string[]> = {
@@ -15,6 +16,26 @@ export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   });
+
+  const requestedBranch = request.nextUrl.searchParams.get("branch");
+  if (requestedBranch) {
+    request.cookies.set(ACTIVE_BRANCH_COOKIE, requestedBranch);
+    supabaseResponse.cookies.set(ACTIVE_BRANCH_COOKIE, requestedBranch, {
+      path: "/",
+      maxAge: 31536000,
+      sameSite: "lax",
+    });
+  } else if (
+    request.nextUrl.pathname.startsWith("/") &&
+    request.cookies.get(ACTIVE_BRANCH_COOKIE)?.value === ALL_BRANCHES_VALUE
+  ) {
+    request.cookies.set(ACTIVE_BRANCH_COOKIE, ALL_BRANCHES_VALUE);
+    supabaseResponse.cookies.set(ACTIVE_BRANCH_COOKIE, ALL_BRANCHES_VALUE, {
+      path: "/",
+      maxAge: 31536000,
+      sameSite: "lax",
+    });
+  }
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
