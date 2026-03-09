@@ -1,9 +1,46 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { sendPasswordResetNotifyEmail, sendAuditEmail } from "@/lib/email";
 import { cache } from "react";
+
+function normalizeSiteUrl(siteUrl: string) {
+  return siteUrl.replace(/\/+$/, "");
+}
+
+async function getSiteUrl() {
+  const requestHeaders = await headers();
+  const origin = requestHeaders.get("origin");
+
+  if (origin) {
+    return normalizeSiteUrl(origin);
+  }
+
+  const forwardedHost =
+    requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
+  const forwardedProto =
+    requestHeaders.get("x-forwarded-proto") ??
+    (forwardedHost?.includes("localhost") ? "http" : "https");
+
+  if (forwardedHost) {
+    return normalizeSiteUrl(`${forwardedProto}://${forwardedHost}`);
+  }
+
+  if (process.env.NEXT_PUBLIC_SITE_URL) {
+    return normalizeSiteUrl(process.env.NEXT_PUBLIC_SITE_URL);
+  }
+
+  const vercelUrl =
+    process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL;
+
+  if (vercelUrl) {
+    return normalizeSiteUrl(`https://${vercelUrl}`);
+  }
+
+  return "http://localhost:3000";
+}
 
 export async function login(formData: FormData) {
   const supabase = await createClient();
@@ -122,9 +159,10 @@ export async function registerUser(data: {
 
 export async function resetPassword(email: string) {
   const supabase = await createClient();
+  const siteUrl = await getSiteUrl();
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"}/login`,
+    redirectTo: `${siteUrl}/auth/callback?next=/reset-password`,
   });
 
   if (error) {
@@ -133,6 +171,25 @@ export async function resetPassword(email: string) {
 
   // Notify admin about password reset request
   sendPasswordResetNotifyEmail(email).catch(() => {});
+
+  return { success: true };
+}
+
+export async function completePasswordReset(password: string) {
+  if (password.length < 6) {
+    return { error: "Password must be at least 6 characters long." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.updateUser({
+    password,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  await supabase.auth.signOut();
 
   return { success: true };
 }

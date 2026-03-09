@@ -3,6 +3,7 @@ import { LoginForm } from "@/components/auth/login-form";
 type LoginPageProps = {
   searchParams: Promise<{
     reason?: string;
+    reset?: string;
   }>;
 };
 
@@ -11,6 +12,12 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const timeoutMessage =
     params.reason === "timeout"
       ? "Your session expired after inactivity. Please sign in again."
+      : params.reason === "recovery_error"
+        ? "This password reset link is invalid or has expired. Request a new one from the sign-in screen."
+        : null;
+  const noticeMessage =
+    params.reset === "success"
+      ? "Password updated successfully. Sign in with your new password."
       : null;
 
   return (
@@ -25,7 +32,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         />
       </div>
 
-      <LoginForm timeoutMessage={timeoutMessage} />
+      <LoginForm
+        timeoutMessage={timeoutMessage}
+        noticeMessage={noticeMessage}
+      />
     </div>
   );
 }

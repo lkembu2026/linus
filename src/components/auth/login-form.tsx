@@ -5,15 +5,19 @@ import { login, resetPassword } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, Loader2, ArrowLeft } from "lucide-react";
+import { AlertCircle, ArrowLeft, CheckCircle2, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
 
 interface LoginFormProps {
   timeoutMessage?: string | null;
+  noticeMessage?: string | null;
 }
 
-export function LoginForm({ timeoutMessage = null }: LoginFormProps) {
+export function LoginForm({
+  timeoutMessage = null,
+  noticeMessage = null,
+}: LoginFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [forgotMode, setForgotMode] = useState(false);
@@ -132,6 +136,13 @@ export function LoginForm({ timeoutMessage = null }: LoginFormProps) {
                 </div>
               )}
 
+              {noticeMessage && !error && !timeoutMessage && (
+                <div className="flex items-center gap-2 p-3 rounded-md border border-primary/20 bg-primary/10 text-primary text-sm">
+                  <CheckCircle2 className="h-4 w-4 shrink-0" />
+                  {noticeMessage}
+                </div>
+              )}
+
               <Button
                 type="submit"
                 disabled={loading}
@@ -192,6 +203,13 @@ export function LoginForm({ timeoutMessage = null }: LoginFormProps) {
                 <div className="flex items-center gap-2 p-3 rounded-md bg-destructive/10 border border-destructive/20 text-destructive text-sm">
                   <AlertCircle className="w-4 h-4 shrink-0" />
                   {error ?? timeoutMessage}
+                </div>
+              )}
+
+              {noticeMessage && !error && !timeoutMessage && (
+                <div className="flex items-center gap-2 p-3 rounded-md border border-primary/20 bg-primary/10 text-primary text-sm">
+                  <CheckCircle2 className="h-4 w-4 shrink-0" />
+                  {noticeMessage}
                 </div>
               )}
 
