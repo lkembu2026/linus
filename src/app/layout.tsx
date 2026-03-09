@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Poppins, Roboto, JetBrains_Mono } from "next/font/google";
+import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ServiceWorkerRegistration } from "@/components/sw-register";
@@ -32,6 +33,11 @@ export const metadata: Metadata = {
   description:
     "Multi-Branch, Offline-First Pharmacy Operating System. Real-time POS, inventory management, and analytics.",
   manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "LK PharmaCare",
+  },
 };
 
 export default function RootLayout({
@@ -46,6 +52,7 @@ export default function RootLayout({
       >
         <TooltipProvider>{children}</TooltipProvider>
         <ServiceWorkerRegistration />
+        <PWAInstallPrompt />
         <Toaster
           position="top-right"
           toastOptions={{
