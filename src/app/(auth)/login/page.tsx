@@ -1,7 +1,12 @@
 import { LoginForm } from "@/components/auth/login-form";
+import { redirect } from "next/navigation";
 
 type LoginPageProps = {
   searchParams: Promise<{
+    code?: string;
+    token_hash?: string;
+    type?: string;
+    next?: string;
     reason?: string;
     reset?: string;
   }>;
@@ -9,6 +14,27 @@ type LoginPageProps = {
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
+
+  if (params.code || (params.token_hash && params.type)) {
+    const callbackParams = new URLSearchParams();
+
+    if (params.code) {
+      callbackParams.set("code", params.code);
+    }
+
+    if (params.token_hash) {
+      callbackParams.set("token_hash", params.token_hash);
+    }
+
+    if (params.type) {
+      callbackParams.set("type", params.type);
+    }
+
+    callbackParams.set("next", params.next ?? "/reset-password");
+
+    redirect(`/auth/callback?${callbackParams.toString()}`);
+  }
+
   const timeoutMessage =
     params.reason === "timeout"
       ? "Your session expired after inactivity. Please sign in again."
