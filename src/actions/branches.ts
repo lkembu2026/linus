@@ -142,17 +142,60 @@ export async function updateBranch(
 }
 
 export async function deleteBranch(id: string) {
-  const supabase = await createClient();
   const user = await getCurrentUser();
   if (!user || !hasPermission(user.role, "manage_branches")) {
     return { error: "Admin access required" };
   }
 
-  const { error } = await supabase.from("branches").delete().eq("id", id);
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const adminSupabase = createAdminClient();
+
+  // Get all medicine IDs for this branch (needed to clean sale_items & transfers)
+  const { data: medicines } = await adminSupabase
+    .from("medicines")
+    .select("id")
+    .eq("branch_id", id);
+  const medicineIds = (medicines ?? []).map((m: { id: string }) => m.id);
+
+  // 1. Delete sale_items that reference this branch's medicines
+  if (medicineIds.length > 0) {
+    await adminSupabase
+      .from("sale_items")
+      .delete()
+      .in("medicine_id", medicineIds);
+  }
+
+  // 2. Delete stock_transfers referencing this branch (from or to)
+  await adminSupabase
+    .from("stock_transfers")
+    .delete()
+    .or(`from_branch_id.eq.${id},to_branch_id.eq.${id}`);
+
+  // 3. Delete sales for this branch
+  await adminSupabase.from("sales").delete().eq("branch_id", id);
+
+  // 4. Delete medicines for this branch
+  await adminSupabase.from("medicines").delete().eq("branch_id", id);
+
+  // 5. Delete notifications for this branch
+  await adminSupabase.from("notifications").delete().eq("branch_id", id);
+
+  // 6. Delete saved_reports for this branch
+  await adminSupabase.from("saved_reports").delete().eq("branch_id", id);
+
+  // 7. Unlink users from this branch (set branch_id to null)
+  await adminSupabase
+    .from("users")
+    .update({ branch_id: null })
+    .eq("branch_id", id);
+
+  // 8. Delete the branch itself
+  const { error } = await adminSupabase.from("branches").delete().eq("id", id);
 
   if (error) return { error: error.message };
 
-  await supabase.from("audit_logs").insert({
+  // 9. Log the deletion
+  await adminSupabase.from("audit_logs").insert({
     user_id: user.id,
     action: "delete_branch",
     details: { branch_id: id },
