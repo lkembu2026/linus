@@ -109,7 +109,10 @@ export async function registerUser(data: {
 
   // Only admins can register new users
   const currentUser = await getCurrentUser();
-  if (!currentUser || (currentUser.role !== "admin" && currentUser.role !== "super_admin")) {
+  if (
+    !currentUser ||
+    (currentUser.role !== "admin" && currentUser.role !== "super_admin")
+  ) {
     return { error: "Only administrators can create new users" };
   }
 
@@ -136,8 +139,8 @@ export async function registerUser(data: {
     return { error: authError.message };
   }
 
-  // Create user profile
-  const { error: profileError } = await supabase.from("users").insert({
+  // Create user profile (use admin client to bypass RLS)
+  const { error: profileError } = await adminSupabase.from("users").insert({
     id: authData.user.id,
     branch_id: branch_id || null,
     full_name,
