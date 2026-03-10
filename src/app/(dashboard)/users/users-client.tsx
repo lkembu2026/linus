@@ -46,6 +46,8 @@ import {
   Loader2,
   UserCheck,
   UserX,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { User, Branch } from "@/types/database";
@@ -68,6 +70,7 @@ export function UsersClient({
   const PAGE_SIZE = 20;
   const totalPages = Math.ceil(users.length / PAGE_SIZE);
   const pagedUsers = users.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const [showPassword, setShowPassword] = useState(false);
   const [regForm, setRegForm] = useState({
     email: "",
     password: "",
@@ -118,11 +121,12 @@ export function UsersClient({
   }
 
   function handleRegister() {
+    const isAdminReg = regForm.role === "admin";
     if (
       !regForm.email ||
       !regForm.password ||
       !regForm.full_name ||
-      !regForm.branch_id
+      (!isAdminReg && !regForm.branch_id)
     ) {
       toast.error("Please fill all required fields");
       return;
@@ -389,15 +393,30 @@ export function UsersClient({
             </div>
             <div>
               <Label className="text-muted-foreground">Password *</Label>
-              <Input
-                type="password"
-                value={regForm.password}
-                onChange={(e) =>
-                  setRegForm({ ...regForm, password: e.target.value })
-                }
-                className="bg-background border-border text-white mt-1"
-                placeholder="Min 6 characters"
-              />
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  value={regForm.password}
+                  onChange={(e) =>
+                    setRegForm({ ...regForm, password: e.target.value })
+                  }
+                  className="bg-background border-border text-white mt-1 pr-10"
+                  placeholder="Min 6 characters"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-1 h-8 w-8 px-0 text-muted-foreground hover:text-white"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
             </div>
             <div>
               <Label className="text-muted-foreground">Role</Label>
@@ -421,28 +440,35 @@ export function UsersClient({
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label className="text-muted-foreground">Branch *</Label>
-              <Select
-                value={regForm.branch_id}
-                onValueChange={(v) => setRegForm({ ...regForm, branch_id: v })}
-              >
-                <SelectTrigger className="bg-background border-border text-white mt-1">
-                  <SelectValue placeholder="Select branch" />
-                </SelectTrigger>
-                <SelectContent className="bg-card border-border">
-                  {branches.map((b) => (
-                    <SelectItem
-                      key={b.id}
-                      value={b.id}
-                      className="text-white focus:bg-primary/10"
-                    >
-                      {b.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {regForm.role !== "admin" && (
+              <div>
+                <Label className="text-muted-foreground">Branch *</Label>
+                <Select
+                  value={regForm.branch_id}
+                  onValueChange={(v) => setRegForm({ ...regForm, branch_id: v })}
+                >
+                  <SelectTrigger className="bg-background border-border text-white mt-1">
+                    <SelectValue placeholder="Select branch" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border">
+                    {branches.map((b) => (
+                      <SelectItem
+                        key={b.id}
+                        value={b.id}
+                        className="text-white focus:bg-primary/10"
+                      >
+                        {b.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {regForm.role === "admin" && (
+              <p className="text-xs text-muted-foreground">
+                Admins have access to all branches.
+              </p>
+            )}
           </div>
           <DialogFooter>
             <Button
