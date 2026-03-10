@@ -68,19 +68,30 @@ export async function updateSession(request: NextRequest) {
   // Protected routes: redirect to login if not authenticated
   const isAuthPage =
     request.nextUrl.pathname.startsWith("/login") ||
-    request.nextUrl.pathname.startsWith("/register");
-  const isDashboardPage = !isAuthPage && request.nextUrl.pathname !== "/";
+    request.nextUrl.pathname.startsWith("/register") ||
+    request.nextUrl.pathname.startsWith("/reset-password");
+  const isPublicRoute =
+    isAuthPage ||
+    request.nextUrl.pathname === "/" ||
+    request.nextUrl.pathname.startsWith("/auth/callback");
+  const isDashboardPage = !isPublicRoute;
 
   if (!user && isDashboardPage) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
+    url.search = "";
     return NextResponse.redirect(url);
   }
 
-  // If logged in and on auth page, redirect to dashboard
-  if (user && isAuthPage) {
+  // If logged in and on auth page (but NOT reset-password), redirect to dashboard
+  if (
+    user &&
+    isAuthPage &&
+    !request.nextUrl.pathname.startsWith("/reset-password")
+  ) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
+    url.search = "";
     return NextResponse.redirect(url);
   }
 
