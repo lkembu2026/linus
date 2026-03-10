@@ -120,9 +120,13 @@ export async function registerUser(data: {
     return { error: "Not authorized" };
   }
 
+  // Use admin client (service role) for creating auth users
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const adminSupabase = createAdminClient();
+
   // Create auth user
   const { data: authData, error: authError } =
-    await supabase.auth.admin.createUser({
+    await adminSupabase.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
