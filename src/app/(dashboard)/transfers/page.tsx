@@ -19,7 +19,7 @@ export default async function TransfersPage() {
 
   const [transfers, branches] = await Promise.all([
     getTransfers(categories),
-    user.role === "admin" || user.role === "supervisor"
+    user.role === "admin" || user.role === "supervisor" || user.role === "super_admin"
       ? getTransferBranches()
       : Promise.resolve([]),
   ]);

@@ -109,11 +109,16 @@ export async function registerUser(data: {
 
   // Only admins can register new users
   const currentUser = await getCurrentUser();
-  if (!currentUser || currentUser.role !== "admin") {
+  if (!currentUser || (currentUser.role !== "admin" && currentUser.role !== "super_admin")) {
     return { error: "Only administrators can create new users" };
   }
 
   const { email, password, full_name, role, branch_id } = data;
+
+  // Only super_admin can create another super_admin
+  if (role === "super_admin" && currentUser.role !== "super_admin") {
+    return { error: "Not authorized" };
+  }
 
   // Create auth user
   const { data: authData, error: authError } =

@@ -21,6 +21,11 @@ export type {
   Database,
 } from "./database";
 
+/** Returns true when the role has admin-level privileges (admin or super_admin). */
+export function isAdminRole(role: string | undefined | null): boolean {
+  return role === "admin" || role === "super_admin";
+}
+
 // ---- POS Cart Types ----
 export interface CartItem {
   medicine_id: string;

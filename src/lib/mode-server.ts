@@ -5,6 +5,7 @@ import {
   normalizeMode,
   resolveAllowedMode,
 } from "@/lib/mode";
+import { isAdminRole } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
 import type { AppMode, Branch } from "@/types";
 
@@ -15,7 +16,7 @@ export async function getAllowedModesForCurrentBranch(): Promise<AppMode[]> {
     return ["pharmacy", "beauty"];
   }
 
-  if (user.role === "admin") {
+  if (isAdminRole(user.role)) {
     const branchId = await getEffectiveBranchId(user);
     if (!branchId) {
       return ["pharmacy", "beauty"];

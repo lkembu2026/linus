@@ -64,7 +64,7 @@ export async function getAnalyticsOverview(
       revenueByDay: [],
     };
   }
-  const isAdmin = user?.role === "admin" || user?.role === "supervisor";
+  const isAdmin = user?.role === "admin" || user?.role === "supervisor" || user?.role === "super_admin";
   const branchId =
     isAdmin && filters.branchId ? filters.branchId : user?.branch_id;
   const { from, to } = buildRange(filters);
@@ -177,7 +177,7 @@ export async function getAnalyticsSalesBreakdown(
       byCashier: [],
     };
   }
-  const isAdmin = user?.role === "admin" || user?.role === "supervisor";
+  const isAdmin = user?.role === "admin" || user?.role === "supervisor" || user?.role === "super_admin";
   const branchId =
     isAdmin && filters.branchId ? filters.branchId : user?.branch_id;
   const { from, to } = buildRange(filters);
@@ -282,7 +282,7 @@ export async function getAnalyticsInventoryHealth(
       nearExpiry: [],
     };
   }
-  const isAdmin = user?.role === "admin" || user?.role === "supervisor";
+  const isAdmin = user?.role === "admin" || user?.role === "supervisor" || user?.role === "super_admin";
   const effectiveBranchId = isAdmin && branchId ? branchId : user?.branch_id;
 
   let q = supabase
@@ -380,7 +380,7 @@ export async function getAnalyticsMedicinePerformance(
       categoryPerformance: [],
     };
   }
-  const isAdmin = user?.role === "admin" || user?.role === "supervisor";
+  const isAdmin = user?.role === "admin" || user?.role === "supervisor" || user?.role === "super_admin";
   const branchId =
     isAdmin && filters.branchId ? filters.branchId : user?.branch_id;
   const { from, to } = buildRange(filters);

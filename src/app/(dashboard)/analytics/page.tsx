@@ -12,7 +12,7 @@ export default async function AnalyticsPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const isAdmin = user.role === "admin" || user.role === "supervisor";
+  const isAdmin = user.role === "admin" || user.role === "supervisor" || user.role === "super_admin";
   if (!isAdmin) redirect("/dashboard");
 
   const branches = await getAnalyticsBranches();

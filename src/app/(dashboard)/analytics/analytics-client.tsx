@@ -153,7 +153,7 @@ function ChartTooltip({ active, payload, label, currency }: any) {
 }
 
 export function AnalyticsClient({ user, branches }: AnalyticsClientProps) {
-  const isAdmin = user.role === "admin" || user.role === "supervisor";
+  const isAdmin = user.role === "admin" || user.role === "supervisor" || user.role === "super_admin";
   const { mode } = useMode();
   const today = new Date().toISOString().split("T")[0];
   const monthStart = new Date(new Date().setDate(1))

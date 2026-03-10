@@ -194,7 +194,7 @@ export function SalesHistoryClient({
                     <p className="text-xs text-muted-foreground capitalize">
                       {sale.payment_method} · {formatDateTime(sale.created_at)}
                     </p>
-                    {userRole === "admin" && !sale.is_voided && (
+                    {(userRole === "admin" || userRole === "super_admin") && !sale.is_voided && (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -231,7 +231,7 @@ export function SalesHistoryClient({
                       <TableHead className="text-muted-foreground">
                         Status
                       </TableHead>
-                      {userRole === "admin" && (
+                      {(userRole === "admin" || userRole === "super_admin") && (
                         <TableHead className="text-muted-foreground text-right">
                           Action
                         </TableHead>
@@ -271,7 +271,7 @@ export function SalesHistoryClient({
                             {sale.is_voided ? "Voided" : "Completed"}
                           </Badge>
                         </TableCell>
-                        {userRole === "admin" && (
+                        {(userRole === "admin" || userRole === "super_admin") && (
                           <TableCell className="text-right">
                             {!sale.is_voided && (
                               <Button

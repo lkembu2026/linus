@@ -300,13 +300,16 @@ export function SettingsClient({
               className="flex min-h-[104px] w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-white outline-none placeholder:text-muted-foreground"
             />
             <p className="text-xs text-muted-foreground">
-              Use commas or new lines. Leave blank to fall back to configured environment emails.
+              Use commas or new lines. Leave blank to fall back to configured
+              environment emails.
             </p>
           </div>
 
           <div className="rounded-lg border border-border bg-background/40 p-3 space-y-2">
             <div className="flex items-center justify-between gap-3 flex-wrap">
-              <span className="text-sm text-muted-foreground">Recipient Source</span>
+              <span className="text-sm text-muted-foreground">
+                Recipient Source
+              </span>
               <Badge
                 variant="outline"
                 className={
@@ -321,11 +324,15 @@ export function SettingsClient({
               </Badge>
             </div>
             <div className="flex items-center justify-between gap-3 flex-wrap">
-              <span className="text-sm text-muted-foreground">Daily Schedule</span>
+              <span className="text-sm text-muted-foreground">
+                Daily Schedule
+              </span>
               <span className="text-sm text-white">10:20 PM EAT</span>
             </div>
             <div className="flex items-center justify-between gap-3 flex-wrap">
-              <span className="text-sm text-muted-foreground">Last Updated</span>
+              <span className="text-sm text-muted-foreground">
+                Last Updated
+              </span>
               <span className="text-sm text-white">
                 {reportSettingsMeta.updated_at
                   ? formatDateTime(reportSettingsMeta.updated_at)

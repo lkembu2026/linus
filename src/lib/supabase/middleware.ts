@@ -4,12 +4,12 @@ import { ACTIVE_BRANCH_COOKIE, ALL_BRANCHES_VALUE } from "@/lib/branch";
 
 // Route restrictions: path prefix → allowed roles
 const ROUTE_ROLES: Record<string, string[]> = {
-  "/branches": ["admin"],
-  "/users": ["admin"],
-  "/audit": ["admin"],
-  "/settings": ["admin"],
-  "/transfers": ["admin", "supervisor"],
-  "/analytics": ["admin", "supervisor"],
+  "/branches": ["super_admin", "admin"],
+  "/users": ["super_admin", "admin"],
+  "/audit": ["super_admin", "admin"],
+  "/settings": ["super_admin", "admin"],
+  "/transfers": ["super_admin", "admin", "supervisor"],
+  "/analytics": ["super_admin", "admin", "supervisor"],
 };
 
 export async function updateSession(request: NextRequest) {

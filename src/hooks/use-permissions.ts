@@ -11,10 +11,11 @@ export function usePermissions(role: UserRole | undefined) {
     };
   }, [role]);
 
-  const isAdmin = role === "admin";
+  const isSuperAdmin = role === "super_admin";
+  const isAdmin = role === "admin" || role === "super_admin";
   const isSupervisor = role === "supervisor";
   const isPharmacist = role === "pharmacist";
   const isCashier = role === "cashier";
 
-  return { can, isAdmin, isSupervisor, isPharmacist, isCashier };
+  return { can, isSuperAdmin, isAdmin, isSupervisor, isPharmacist, isCashier };
 }

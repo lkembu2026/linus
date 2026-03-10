@@ -15,6 +15,9 @@ export const ROLES = {
   CASHIER: "cashier",
 } as const;
 
+// Visible roles for admin UI (super_admin is intentionally excluded)
+export const VISIBLE_ROLES = ROLES;
+
 // Navigation items with role-based access
 export const NAV_ITEMS = [
   {
@@ -57,25 +60,25 @@ export const NAV_ITEMS = [
     title: "Branches",
     href: "/branches",
     icon: "Building2",
-    roles: ["admin"],
+    roles: ["super_admin", "admin"],
   },
   {
     title: "Users",
     href: "/users",
     icon: "Users",
-    roles: ["admin"],
+    roles: ["super_admin", "admin"],
   },
   {
     title: "Transfers",
     href: "/transfers",
     icon: "ArrowLeftRight",
-    roles: ["admin", "supervisor"],
+    roles: ["super_admin", "admin", "supervisor"],
   },
   {
     title: "Audit Log",
     href: "/audit",
     icon: "FileText",
-    roles: ["admin"],
+    roles: ["super_admin", "admin"],
   },
   {
     title: "Receipts",
@@ -87,13 +90,13 @@ export const NAV_ITEMS = [
     title: "Analytics",
     href: "/analytics",
     icon: "Activity",
-    roles: ["admin", "supervisor"],
+    roles: ["super_admin", "admin", "supervisor"],
   },
   {
     title: "Settings",
     href: "/settings",
     icon: "Settings",
-    roles: ["admin"],
+    roles: ["super_admin", "admin"],
   },
 ] as const;
 

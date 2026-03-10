@@ -11,10 +11,17 @@ export async function getUsers() {
   const user = await getCurrentUser();
   if (!user || !hasPermission(user.role, "manage_users")) return [];
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("users")
     .select("*")
     .order("full_name", { ascending: true });
+
+  // Hide super_admin users from non-super_admin callers
+  if (user.role !== "super_admin") {
+    query = query.neq("role", "super_admin");
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error("getUsers error:", error);
@@ -29,6 +36,11 @@ export async function updateUserRole(userId: string, role: string) {
   const user = await getCurrentUser();
   if (!user || !hasPermission(user.role, "manage_users")) {
     return { error: "Admin access required" };
+  }
+
+  // Only super_admin can assign or remove super_admin role
+  if (role === "super_admin" && user.role !== "super_admin") {
+    return { error: "Not authorized" };
   }
 
   const { error } = await supabase

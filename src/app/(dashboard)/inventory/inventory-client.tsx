@@ -535,7 +535,7 @@ export function InventoryClient({
                     <TableHead className="text-muted-foreground hidden lg:table-cell">
                       Expiry
                     </TableHead>
-                    {user.role === "admin" && (
+                    {(user.role === "admin" || user.role === "super_admin") && (
                       <TableHead className="text-muted-foreground hidden md:table-cell">
                         Branch
                       </TableHead>
@@ -639,7 +639,7 @@ export function InventoryClient({
                             <span className="text-muted-foreground">—</span>
                           )}
                         </TableCell>
-                        {user.role === "admin" && (
+                        {(user.role === "admin" || user.role === "super_admin") && (
                           <TableCell className="text-muted-foreground text-xs hidden md:table-cell">
                             {med.branch?.name ?? "—"}
                           </TableCell>
@@ -689,7 +689,7 @@ export function InventoryClient({
                                   Adjust Stock
                                 </DropdownMenuItem>
                               )}
-                              {user.role === "admin" && (
+                              {(user.role === "admin" || user.role === "super_admin") && (
                                 <DropdownMenuItem
                                   className="text-destructive focus:bg-destructive/10 cursor-pointer"
                                   onClick={() => handleDelete(med.id, med.name)}

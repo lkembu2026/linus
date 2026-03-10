@@ -82,7 +82,7 @@ export function RecentSales({
                   <TableHead className="text-muted-foreground">
                     Status
                   </TableHead>
-                  {userRole === "admin" && (
+                  {(userRole === "admin" || userRole === "super_admin") && (
                     <TableHead className="text-muted-foreground text-right">
                       Action
                     </TableHead>
@@ -122,7 +122,7 @@ export function RecentSales({
                         {sale.is_voided ? "Voided" : "OK"}
                       </Badge>
                     </TableCell>
-                    {userRole === "admin" && (
+                    {(userRole === "admin" || userRole === "super_admin") && (
                       <TableCell className="text-right">
                         {!sale.is_voided && (
                           <Button

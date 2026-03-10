@@ -5,7 +5,7 @@ import { getCurrentUser } from "@/actions/auth";
 import { revalidatePath } from "next/cache";
 import { sendAuditEmail, sendLowStockEmail } from "@/lib/email";
 import { getEffectiveBranchId } from "@/lib/branch-server";
-import { hasPermission } from "@/lib/permissions";
+import { hasPermission, isAdminRole } from "@/lib/permissions";
 import type { Database, Medicine } from "@/types/database";
 
 type MedicineInsert = Database["public"]["Tables"]["medicines"]["Insert"];
@@ -191,7 +191,7 @@ export async function createMedicine(formData: {
 
   // Admin quick-sync: create same item in all other branches with 0 stock
   // so staff only define an item once, then adjust quantities per branch.
-  if (user.role === "admin") {
+  if (isAdminRole(user.role)) {
     const { data: branchData } = await supabase.from("branches").select("id");
     const otherBranchIds = ((branchData ?? []) as unknown as { id: string }[])
       .map((branch) => branch.id)
@@ -231,7 +231,7 @@ export async function createMedicine(formData: {
     action: "create_medicine",
     details: {
       medicine_name: formData.name,
-      propagated_to_all_branches: user.role === "admin",
+      propagated_to_all_branches: isAdminRole(user.role),
     },
   });
 
@@ -425,7 +425,7 @@ export async function bulkSetOpeningStock(
 
   let resolvedBranchId = branchId;
 
-  if (!resolvedBranchId && user.role === "admin") {
+  if (!resolvedBranchId && isAdminRole(user.role)) {
     const { data: branchesData, error: branchesError } = await supabase
       .from("branches")
       .select("id")
@@ -611,7 +611,7 @@ export async function bulkCreateMedicines(
 
   let resolvedBranchId = branchId;
   if (!resolvedBranchId) {
-    if (user.role === "admin") {
+    if (isAdminRole(user.role)) {
       const { data: branchesData, error: branchesError } = await supabase
         .from("branches")
         .select("id")

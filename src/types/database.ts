@@ -5,7 +5,7 @@
 // Record<string, unknown> required by Supabase SDK.
 // =============================================
 
-export type UserRole = "admin" | "supervisor" | "pharmacist" | "cashier";
+export type UserRole = "super_admin" | "admin" | "supervisor" | "pharmacist" | "cashier";
 export type PaymentMethod = "cash" | "mpesa" | "credit";
 export type TransferStatus = "pending" | "approved" | "rejected";
 export type AppMode = "pharmacy" | "beauty";

@@ -461,7 +461,7 @@ export function ReportsClient({ user }: ReportsClientProps) {
               <TrendingUp className="h-4 w-4 mr-1.5" />
               Top Selling
             </TabsTrigger>
-            {user.role === "admin" && (
+            {(user.role === "admin" || user.role === "super_admin") && (
               <TabsTrigger
                 value="branches"
                 className="shrink-0 data-[state=active]:bg-primary/10 data-[state=active]:text-primary text-xs sm:text-sm"
@@ -969,7 +969,7 @@ export function ReportsClient({ user }: ReportsClientProps) {
         </TabsContent>
 
         {/* ── Branch Comparison ─────────────────────────────── */}
-        {user.role === "admin" && (
+        {(user.role === "admin" || user.role === "super_admin") && (
           <TabsContent value="branches" className="space-y-4">
             <Card className="glass-card">
               <CardContent className="pt-6">

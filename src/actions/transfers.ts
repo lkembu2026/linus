@@ -17,7 +17,9 @@ export type TransferRecord = StockTransfer & {
 
 export type TransferBranchOption = Pick<Branch, "id" | "name">;
 
-export async function getTransfers(categories?: string[]): Promise<TransferRecord[]> {
+export async function getTransfers(
+  categories?: string[],
+): Promise<TransferRecord[]> {
   const supabase = await createClient();
   const user = await getCurrentUser();
   const branchId = await getEffectiveBranchId(user);

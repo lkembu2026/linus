@@ -10,6 +10,7 @@ import {
   resolveAllowedMode,
 } from "@/lib/mode";
 import { ACTIVE_BRANCH_COOKIE, ALL_BRANCHES_VALUE } from "@/lib/branch";
+import { isAdminRole } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
 import type { Branch } from "@/types";
 
@@ -41,7 +42,7 @@ export default async function DashboardLayout({
     enable_beauty: true,
   });
 
-  if (user.role === "admin") {
+  if (isAdminRole(user.role)) {
     const selectedBranchId = cookieStore.get(ACTIVE_BRANCH_COOKIE)?.value;
 
     if (!selectedBranchId || selectedBranchId === ALL_BRANCHES_VALUE) {

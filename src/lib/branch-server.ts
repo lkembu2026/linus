@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { ACTIVE_BRANCH_COOKIE, ALL_BRANCHES_VALUE } from "@/lib/branch";
+import { isAdminRole } from "@/lib/permissions";
 
 export type BranchScopedUser = {
   role?: string;
@@ -11,7 +12,7 @@ export async function getEffectiveBranchId(
 ): Promise<string | null> {
   if (!user) return null;
 
-  if (user.role === "admin") {
+  if (isAdminRole(user.role)) {
     const cookieStore = await cookies();
     const selectedBranchId = cookieStore.get(ACTIVE_BRANCH_COOKIE)?.value;
     if (selectedBranchId === ALL_BRANCHES_VALUE) return null;

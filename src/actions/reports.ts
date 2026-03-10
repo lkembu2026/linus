@@ -86,7 +86,10 @@ export async function getReportAutomationSettings(): Promise<ReportAutomationSet
       };
     }
 
-    const settings = data as Pick<ReportSettings, "recipients" | "updated_at"> | null;
+    const settings = data as Pick<
+      ReportSettings,
+      "recipients" | "updated_at"
+    > | null;
     const recipients = (settings?.recipients ?? []).filter(Boolean);
 
     return {
@@ -205,7 +208,9 @@ export async function sendTestDailyReportNow() {
       }
 
       const items = itemsData ?? [];
-      const medicineIds = [...new Set(items.map((item) => String(item.medicine_id)))];
+      const medicineIds = [
+        ...new Set(items.map((item) => String(item.medicine_id))),
+      ];
       const { data: medicinesData, error: medicinesError } = await supabase
         .from("medicines")
         .select("id, name")

@@ -93,7 +93,7 @@ export function Header({
   }, [fetchNotifications]);
 
   useEffect(() => {
-    if (userRole !== "admin") return;
+    if (userRole !== "admin" && userRole !== "super_admin") return;
 
     const cachedBranches = window.sessionStorage.getItem("lk-admin-branches");
     if (cachedBranches) {
@@ -202,7 +202,7 @@ export function Header({
             <Menu className="h-5 w-5" />
           </Button>
 
-          {userRole === "admin" && branches.length > 0 ? (
+          {(userRole === "admin" || userRole === "super_admin") && branches.length > 0 ? (
             <div className="hidden sm:flex items-center gap-2 px-2 py-1 rounded-lg bg-card border border-border">
               <span className="text-xs text-muted-foreground">Branch:</span>
               <Select value={activeBranchId} onValueChange={handleBranchChange}>
@@ -363,7 +363,7 @@ export function Header({
       </div>
 
       <div className="sm:hidden border-t border-border/80 px-4 py-2 space-y-2">
-        {userRole === "admin" && branches.length > 0 ? (
+        {(userRole === "admin" || userRole === "super_admin") && branches.length > 0 ? (
           <div className="flex items-center gap-2 rounded-lg bg-card border border-border px-2 py-1.5">
             <span className="text-[11px] text-muted-foreground">Branch:</span>
             <Select value={activeBranchId} onValueChange={handleBranchChange}>
