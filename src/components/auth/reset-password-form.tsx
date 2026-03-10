@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { completePasswordReset } from "@/actions/auth";
+import { createClient } from "@/lib/supabase/client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,11 +13,15 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 
 type ResetPasswordFormProps = {
-  hasRecoverySession: boolean;
+  code?: string;
+  tokenHash?: string;
+  tokenType?: string;
 };
 
 export function ResetPasswordForm({
-  hasRecoverySession,
+  code,
+  tokenHash,
+  tokenType,
 }: ResetPasswordFormProps) {
   const router = useRouter();
   const [password, setPassword] = useState("");
@@ -24,14 +29,53 @@ export function ResetPasswordForm({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [hasRecoverySession, setHasRecoverySession] = useState(false);
+  const [exchanging, setExchanging] = useState(Boolean(code || tokenHash));
+
+  // Exchange the code/token on the CLIENT side where browser cookies
+  // (including the PKCE code_verifier) are reliably available
+  useEffect(() => {
+    if (!code && !tokenHash) {
+      setExchanging(false);
+      return;
+    }
+
+    const supabase = createClient();
+
+    async function exchangeToken() {
+      try {
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (!error) {
+            setHasRecoverySession(true);
+            window.history.replaceState({}, "", "/reset-password");
+          } else {
+            setError("This reset link is invalid or has expired. Request a new one from the sign-in screen.");
+          }
+        } else if (tokenHash && tokenType) {
+          const { error } = await supabase.auth.verifyOtp({
+            type: tokenType as "recovery",
+            token_hash: tokenHash,
+          });
+          if (!error) {
+            setHasRecoverySession(true);
+            window.history.replaceState({}, "", "/reset-password");
+          } else {
+            setError("This reset link is invalid or has expired. Request a new one from the sign-in screen.");
+          }
+        }
+      } catch {
+        setError("Something went wrong. Please request a new reset link.");
+      } finally {
+        setExchanging(false);
+      }
+    }
+
+    exchangeToken();
+  }, [code, tokenHash, tokenType]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
-    if (!hasRecoverySession) {
-      setError("This reset link is invalid or has expired. Request a new one.");
-      return;
-    }
 
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
@@ -84,7 +128,14 @@ export function ResetPasswordForm({
           </p>
         </div>
 
-        {!hasRecoverySession && (
+        {exchanging && (
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <span className="ml-2 text-sm text-muted-foreground">Verifying reset link…</span>
+          </div>
+        )}
+
+        {!exchanging && !hasRecoverySession && !success && (
           <Alert variant="destructive">
             <TriangleAlert />
             <AlertTitle>Reset link unavailable</AlertTitle>
@@ -120,7 +171,7 @@ export function ResetPasswordForm({
                 placeholder="Enter a new password"
                 minLength={6}
                 required
-                disabled={!hasRecoverySession || loading}
+                disabled={exchanging || !hasRecoverySession || loading}
                 className="bg-background/50 border-border focus:border-primary focus:ring-primary/20"
               />
             </div>
@@ -140,7 +191,7 @@ export function ResetPasswordForm({
                 placeholder="Repeat your new password"
                 minLength={6}
                 required
-                disabled={!hasRecoverySession || loading}
+                disabled={exchanging || !hasRecoverySession || loading}
                 className="bg-background/50 border-border focus:border-primary focus:ring-primary/20"
               />
             </div>
@@ -155,7 +206,7 @@ export function ResetPasswordForm({
 
             <Button
               type="submit"
-              disabled={!hasRecoverySession || loading}
+              disabled={exchanging || !hasRecoverySession || loading}
               className="w-full bg-primary text-primary-foreground hover:bg-[#00B8A9] font-semibold uppercase tracking-wider text-sm h-12 transition-all duration-300"
               style={{
                 boxShadow: "0 4px 15px rgba(0, 255, 224, 0.3)",

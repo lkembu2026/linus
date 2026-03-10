@@ -1,11 +1,13 @@
 import { ResetPasswordForm } from "@/components/auth/reset-password-form";
-import { createClient } from "@/lib/supabase/server";
 
-export default async function ResetPasswordPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+type ResetPasswordPageProps = {
+  searchParams: Promise<{ code?: string; token_hash?: string; type?: string }>;
+};
+
+export default async function ResetPasswordPage({
+  searchParams,
+}: ResetPasswordPageProps) {
+  const params = await searchParams;
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -18,7 +20,11 @@ export default async function ResetPasswordPage() {
         />
       </div>
 
-      <ResetPasswordForm hasRecoverySession={Boolean(user)} />
+      <ResetPasswordForm
+        code={params.code}
+        tokenHash={params.token_hash}
+        tokenType={params.type}
+      />
     </div>
   );
 }

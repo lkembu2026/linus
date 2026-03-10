@@ -16,22 +16,24 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
 
   if (params.code || (params.token_hash && params.type)) {
+    const next = params.next ?? "/reset-password";
+
+    // Password reset: send code directly to reset-password page
+    // so the client-side can exchange it (PKCE code_verifier lives in browser cookies)
+    if (next === "/reset-password") {
+      const resetParams = new URLSearchParams();
+      if (params.code) resetParams.set("code", params.code);
+      if (params.token_hash) resetParams.set("token_hash", params.token_hash);
+      if (params.type) resetParams.set("type", params.type);
+      redirect(`/reset-password?${resetParams.toString()}`);
+    }
+
+    // Other auth flows (signup confirmation, etc.) → use server callback
     const callbackParams = new URLSearchParams();
-
-    if (params.code) {
-      callbackParams.set("code", params.code);
-    }
-
-    if (params.token_hash) {
-      callbackParams.set("token_hash", params.token_hash);
-    }
-
-    if (params.type) {
-      callbackParams.set("type", params.type);
-    }
-
-    callbackParams.set("next", params.next ?? "/reset-password");
-
+    if (params.code) callbackParams.set("code", params.code);
+    if (params.token_hash) callbackParams.set("token_hash", params.token_hash);
+    if (params.type) callbackParams.set("type", params.type);
+    callbackParams.set("next", next);
     redirect(`/auth/callback?${callbackParams.toString()}`);
   }
 
