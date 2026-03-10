@@ -332,6 +332,63 @@ CREATE POLICY "report_settings_update" ON report_settings
   USING (get_user_role() IN ('admin','super_admin'))
   WITH CHECK (get_user_role() IN ('admin','super_admin'));
 
+-- --------------------------------------------------------
+-- CREDITS (credit sales / buy-now-pay-later)
+-- --------------------------------------------------------
+CREATE TABLE credits (
+  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  branch_id       UUID NOT NULL REFERENCES branches(id),
+  sale_id         UUID REFERENCES sales(id),
+  created_by      UUID REFERENCES users(id),
+  customer_name   TEXT NOT NULL,
+  customer_phone  TEXT,
+  amount          NUMERIC(10,2) NOT NULL DEFAULT 0,
+  amount_paid     NUMERIC(10,2) NOT NULL DEFAULT 0,
+  medicine_details TEXT,
+  notes           TEXT,
+  is_settled      BOOLEAN DEFAULT false,
+  settled_at      TIMESTAMPTZ,
+  settled_by      UUID REFERENCES users(id),
+  created_at      TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE credits ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "credits_select" ON credits
+  FOR SELECT TO authenticated
+  USING (get_user_role() IN ('admin','super_admin') OR branch_id = get_user_branch_id());
+
+CREATE POLICY "credits_insert" ON credits
+  FOR INSERT TO authenticated WITH CHECK (true);
+
+CREATE POLICY "credits_update" ON credits
+  FOR UPDATE TO authenticated
+  USING (get_user_role() IN ('admin','super_admin','pharmacist','cashier'));
+
+-- --------------------------------------------------------
+-- RECEIPTS (saved receipt HTML for reprinting)
+-- --------------------------------------------------------
+CREATE TABLE receipts (
+  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  sale_id         UUID REFERENCES sales(id),
+  receipt_number  TEXT NOT NULL,
+  receipt_html    TEXT NOT NULL,
+  total_amount    NUMERIC(10,2) NOT NULL DEFAULT 0,
+  payment_method  TEXT NOT NULL DEFAULT 'cash',
+  cashier_name    TEXT,
+  branch_name     TEXT,
+  items_summary   TEXT,
+  created_at      TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE receipts ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "receipts_select" ON receipts
+  FOR SELECT TO authenticated USING (true);
+
+CREATE POLICY "receipts_insert" ON receipts
+  FOR INSERT TO authenticated WITH CHECK (true);
+
 -- ========================================================
 -- SEED DATA (optional — remove in production)
 -- ========================================================
