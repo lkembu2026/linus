@@ -21,6 +21,21 @@ export async function syncOfflineData() {
 
     for (const sale of unsyncedSales) {
       try {
+        // Check if this sale was already partially synced (e.g. connection
+        // dropped after insert but before markSaleSynced)
+        const { data: existing } = await supabase
+          .from("sales")
+          .select("id")
+          .eq("receipt_number", sale.id)
+          .maybeSingle();
+
+        if (existing) {
+          // Sale already exists on server — just mark it synced locally
+          await markSaleSynced(sale.id);
+          synced++;
+          continue;
+        }
+
         // Insert sale
         const { data: saleRecord, error: saleError } = await supabase
           .from("sales")
