@@ -58,6 +58,27 @@ export async function syncOfflineData() {
 
         if (itemsError) throw itemsError;
 
+        // Deduct stock for each item sold
+        for (const item of sale.items) {
+          const { data: med } = await supabase
+            .from("medicines")
+            .select("quantity_in_stock")
+            .eq("id", item.medicine_id)
+            .single();
+
+          if (med) {
+            const newStock = Math.max(
+              0,
+              (med as { quantity_in_stock: number }).quantity_in_stock -
+                item.quantity,
+            );
+            await supabase
+              .from("medicines")
+              .update({ quantity_in_stock: newStock })
+              .eq("id", item.medicine_id);
+          }
+        }
+
         await markSaleSynced(sale.id);
         synced++;
       } catch (err) {

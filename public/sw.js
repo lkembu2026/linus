@@ -1,10 +1,10 @@
 // =============================================
-// LK PharmaCare — Service Worker v2
+// LK PharmaCare — Service Worker v3
 // Offline-first for static assets / app shell
 // Network-first for all other requests
 // =============================================
 
-const CACHE_VERSION = "lk-pharmacare-v2";
+const CACHE_VERSION = "lk-pharmacare-v3";
 
 // App-shell routes to pre-cache on install
 const APP_SHELL = [
@@ -13,6 +13,11 @@ const APP_SHELL = [
   "/sales",
   "/inventory",
   "/reports",
+  "/transfers",
+  "/branches",
+  "/users",
+  "/settings",
+  "/audit",
   "/manifest.json",
   "/LKL.webp",
 ];
@@ -23,7 +28,6 @@ self.addEventListener("install", (event) => {
     caches
       .open(CACHE_VERSION)
       .then((cache) =>
-        // addAll fails if ANY request fails — use individual puts instead
         Promise.allSettled(
           APP_SHELL.map((url) =>
             fetch(url)
@@ -66,14 +70,10 @@ self.addEventListener("fetch", (event) => {
   // Skip the connectivity probe so it never returns a stale cached result
   if (url.pathname === "/api/ping") return;
 
-  // Skip Supabase and Next.js internal requests
-  if (
-    url.pathname.startsWith("/_next/data/") ||
-    url.hostname.includes("supabase")
-  )
-    return;
+  // Skip Supabase REST/auth requests
+  if (url.hostname.includes("supabase")) return;
 
-  // _next/static — cache-first (these are content-addressed, never change)
+  // _next/static — cache-first (content-addressed, never change)
   if (url.pathname.startsWith("/_next/static/")) {
     event.respondWith(
       caches.match(request).then(
@@ -87,6 +87,27 @@ self.addEventListener("fetch", (event) => {
             return res;
           }),
       ),
+    );
+    return;
+  }
+
+  // RSC data requests — network first, cache fallback so pages render offline
+  if (url.pathname.startsWith("/_next/data/") || url.searchParams.has("_rsc")) {
+    event.respondWith(
+      fetch(request)
+        .then((res) => {
+          if (res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE_VERSION).then((c) => c.put(request, clone));
+          }
+          return res;
+        })
+        .catch(() =>
+          caches.match(request).then((cached) => cached || new Response("{}", {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          })),
+        ),
     );
     return;
   }
@@ -109,9 +130,9 @@ self.addEventListener("fetch", (event) => {
             return caches.match("/").then(
               (root) =>
                 root ||
-                new Response("Offline — please reload when connected", {
-                  status: 503,
-                  headers: { "Content-Type": "text/plain" },
+                new Response(OFFLINE_PAGE, {
+                  status: 200,
+                  headers: { "Content-Type": "text/html" },
                 }),
             );
           }
@@ -123,3 +144,32 @@ self.addEventListener("fetch", (event) => {
       ),
   );
 });
+
+// Minimal offline fallback HTML
+const OFFLINE_PAGE = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LK PharmaCare — Offline</title>
+  <style>
+    body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+    background:#0D0D0D;color:#fff;font-family:system-ui,sans-serif;text-align:center;padding:2rem}
+    .box{max-width:400px}
+    h1{color:#00FFE0;margin-bottom:.5rem}
+    p{color:#999;line-height:1.6}
+    button{margin-top:1.5rem;padding:.75rem 2rem;background:#00FFE0;color:#0D0D0D;
+    border:none;border-radius:8px;font-weight:600;font-size:1rem;cursor:pointer}
+    button:hover{background:#00B8A9}
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>You're Offline</h1>
+    <p>LK PharmaCare needs to load at least once while online. 
+       The POS (sales) page works offline after that first load.</p>
+    <p>Check your internet connection and try again.</p>
+    <button onclick="location.reload()">Retry</button>
+  </div>
+</body>
+</html>`;
