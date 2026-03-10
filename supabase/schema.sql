@@ -185,49 +185,49 @@ CREATE POLICY "branches_select" ON branches
   FOR SELECT TO authenticated USING (true);
 
 CREATE POLICY "branches_admin_insert" ON branches
-  FOR INSERT TO authenticated WITH CHECK (get_user_role() = 'admin');
+  FOR INSERT TO authenticated WITH CHECK (get_user_role() IN ('admin','super_admin'));
 
 CREATE POLICY "branches_admin_update" ON branches
-  FOR UPDATE TO authenticated USING (get_user_role() = 'admin');
+  FOR UPDATE TO authenticated USING (get_user_role() IN ('admin','super_admin'));
 
 CREATE POLICY "branches_admin_delete" ON branches
-  FOR DELETE TO authenticated USING (get_user_role() = 'admin');
+  FOR DELETE TO authenticated USING (get_user_role() IN ('admin','super_admin'));
 
 -- USERS: all authenticated can read, only admin can write
 CREATE POLICY "users_select" ON users
   FOR SELECT TO authenticated USING (true);
 
 CREATE POLICY "users_admin_insert" ON users
-  FOR INSERT TO authenticated WITH CHECK (get_user_role() = 'admin');
+  FOR INSERT TO authenticated WITH CHECK (get_user_role() IN ('admin','super_admin'));
 
 CREATE POLICY "users_admin_update" ON users
-  FOR UPDATE TO authenticated USING (get_user_role() = 'admin' OR id = auth.uid());
+  FOR UPDATE TO authenticated USING (get_user_role() IN ('admin','super_admin') OR id = auth.uid());
 
 -- MEDICINES: admin sees all, others see own branch
 CREATE POLICY "medicines_select" ON medicines
   FOR SELECT TO authenticated
   USING (
-    get_user_role() = 'admin'
+    get_user_role() IN ('admin','super_admin')
     OR branch_id = get_user_branch_id()
   );
 
 CREATE POLICY "medicines_insert" ON medicines
   FOR INSERT TO authenticated
-  WITH CHECK (get_user_role() IN ('admin','pharmacist'));
+  WITH CHECK (get_user_role() IN ('admin','super_admin','pharmacist'));
 
 CREATE POLICY "medicines_update" ON medicines
   FOR UPDATE TO authenticated
-  USING (get_user_role() IN ('admin','pharmacist'));
+  USING (get_user_role() IN ('admin','super_admin','pharmacist'));
 
 CREATE POLICY "medicines_delete" ON medicines
   FOR DELETE TO authenticated
-  USING (get_user_role() = 'admin');
+  USING (get_user_role() IN ('admin','super_admin'));
 
 -- SALES: admin sees all, others see own branch
 CREATE POLICY "sales_select" ON sales
   FOR SELECT TO authenticated
   USING (
-    get_user_role() = 'admin'
+    get_user_role() IN ('admin','super_admin')
     OR branch_id = get_user_branch_id()
   );
 
@@ -236,7 +236,7 @@ CREATE POLICY "sales_insert" ON sales
 
 CREATE POLICY "sales_update" ON sales
   FOR UPDATE TO authenticated
-  USING (get_user_role() = 'admin');
+  USING (get_user_role() IN ('admin','super_admin'));
 
 -- SALE ITEMS: follow parent sale access
 CREATE POLICY "sale_items_select" ON sale_items
@@ -249,7 +249,7 @@ CREATE POLICY "sale_items_insert" ON sale_items
 CREATE POLICY "transfers_select" ON stock_transfers
   FOR SELECT TO authenticated
   USING (
-    get_user_role() = 'admin'
+    get_user_role() IN ('admin','super_admin')
     OR from_branch_id = get_user_branch_id()
     OR to_branch_id = get_user_branch_id()
   );
@@ -259,12 +259,12 @@ CREATE POLICY "transfers_insert" ON stock_transfers
 
 CREATE POLICY "transfers_update" ON stock_transfers
   FOR UPDATE TO authenticated
-  USING (get_user_role() = 'admin');
+  USING (get_user_role() IN ('admin','super_admin'));
 
 -- AUDIT LOGS: only admin can read, all can insert
 CREATE POLICY "audit_select" ON audit_logs
   FOR SELECT TO authenticated
-  USING (get_user_role() = 'admin');
+  USING (get_user_role() IN ('admin','super_admin'));
 
 CREATE POLICY "audit_insert" ON audit_logs
   FOR INSERT TO authenticated WITH CHECK (true);
@@ -300,15 +300,15 @@ ALTER TABLE saved_reports ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "saved_reports_select" ON saved_reports
   FOR SELECT TO authenticated
-  USING (get_user_role() = 'admin' OR branch_id = get_user_branch_id());
+  USING (get_user_role() IN ('admin','super_admin') OR branch_id = get_user_branch_id());
 
 CREATE POLICY "saved_reports_insert" ON saved_reports
   FOR INSERT TO authenticated
-  WITH CHECK (get_user_role() IN ('admin','pharmacist'));
+  WITH CHECK (get_user_role() IN ('admin','super_admin','pharmacist'));
 
 CREATE POLICY "saved_reports_delete" ON saved_reports
   FOR DELETE TO authenticated
-  USING (get_user_role() = 'admin');
+  USING (get_user_role() IN ('admin','super_admin'));
 
 CREATE TABLE report_settings (
   key           TEXT PRIMARY KEY DEFAULT 'default',
@@ -321,16 +321,16 @@ ALTER TABLE report_settings ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "report_settings_select" ON report_settings
   FOR SELECT TO authenticated
-  USING (get_user_role() = 'admin');
+  USING (get_user_role() IN ('admin','super_admin'));
 
 CREATE POLICY "report_settings_insert" ON report_settings
   FOR INSERT TO authenticated
-  WITH CHECK (get_user_role() = 'admin');
+  WITH CHECK (get_user_role() IN ('admin','super_admin'));
 
 CREATE POLICY "report_settings_update" ON report_settings
   FOR UPDATE TO authenticated
-  USING (get_user_role() = 'admin')
-  WITH CHECK (get_user_role() = 'admin');
+  USING (get_user_role() IN ('admin','super_admin'))
+  WITH CHECK (get_user_role() IN ('admin','super_admin'));
 
 -- ========================================================
 -- SEED DATA (optional — remove in production)

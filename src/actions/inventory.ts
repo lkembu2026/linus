@@ -300,7 +300,7 @@ export async function deleteMedicine(id: string) {
   const supabase = await createClient();
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
-  if (user.role !== "admin") {
+  if (!isAdminRole(user.role)) {
     return { error: "Only admins can delete medicines" };
   }
 
@@ -661,12 +661,14 @@ export async function bulkCreateMedicines(
 }
 
 export async function syncCatalogAcrossBranches() {
-  const supabase = await createClient();
   const user = await getCurrentUser();
 
   if (!user || !hasPermission(user.role, "sync_catalog")) {
     return { error: "Admin access required" };
   }
+
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const supabase = createAdminClient();
 
   const { data: branchesData, error: branchError } = await supabase
     .from("branches")
@@ -807,12 +809,14 @@ export async function syncCatalogAcrossBranches() {
 }
 
 export async function getCatalogSyncStatus() {
-  const supabase = await createClient();
   const user = await getCurrentUser();
 
   if (!user || !hasPermission(user.role, "sync_catalog")) {
     return { error: "Admin access required" };
   }
+
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const supabase = createAdminClient();
 
   const { data: branchesData, error: branchError } = await supabase
     .from("branches")
