@@ -1,4 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
+import { createClient as createAdminClientRaw } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 import { ACTIVE_BRANCH_COOKIE, ALL_BRANCHES_VALUE } from "@/lib/branch";
 
@@ -104,8 +105,12 @@ export async function updateSession(request: NextRequest) {
 
     if (restrictedRoute) {
       const [, allowedRoles] = restrictedRoute;
-      // Fetch user role from the users table
-      const { data: userData } = await supabase
+      // Use service-role client to bypass RLS for role lookup
+      const adminSupabase = createAdminClientRaw(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      );
+      const { data: userData } = await adminSupabase
         .from("users")
         .select("role")
         .eq("id", user.id)
