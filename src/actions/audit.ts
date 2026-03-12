@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/actions/auth";
 import type { AuditLog } from "@/types/database";
+import { isAdminRole } from "@/types";
 
 interface AuditFilters {
   action?: string;
@@ -19,7 +20,7 @@ export async function getAuditLogs(
 ) {
   const supabase = await createClient();
   const user = await getCurrentUser();
-  if (!user || user.role !== "admin")
+  if (!user || !isAdminRole(user.role))
     return { logs: [] as AuditLog[], total: 0 };
 
   const from = (page - 1) * limit;
@@ -63,7 +64,7 @@ export async function getAuditLogs(
 export async function getAuditUsers() {
   const supabase = await createClient();
   const user = await getCurrentUser();
-  if (!user || user.role !== "admin") return [];
+  if (!user || !isAdminRole(user.role)) return [];
 
   const { data } = await supabase
     .from("users")
