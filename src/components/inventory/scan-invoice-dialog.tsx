@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -48,7 +48,7 @@ import {
   type InvoiceMedicineRow,
 } from "@/lib/ocr/parse-invoice";
 
-type Step = "capture" | "processing" | "review";
+type Step = "capture" | "camera" | "processing" | "review";
 
 interface ScanInvoiceDialogProps {
   open: boolean;
@@ -74,9 +74,20 @@ export function ScanInvoiceDialog({
   const [rows, setRows] = useState<InvoiceMedicineRow[]>([]);
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  // Stop camera stream when leaving camera step or closing dialog
+  const stopCamera = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+  }, []);
 
   function reset() {
+    stopCamera();
     setStep("capture");
     setImagePreview(null);
     setOcrProgress(0);
@@ -90,7 +101,52 @@ export function ScanInvoiceDialog({
     onOpenChange(isOpen);
   }
 
-  const processImage = useCallback(async (file: File) => {
+  // Open the live camera viewfinder
+  async function openCamera() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } },
+        audio: false,
+      });
+      streamRef.current = stream;
+      setStep("camera");
+      // Attach stream to video element after React renders
+      requestAnimationFrame(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      });
+    } catch {
+      // Camera not available — fall back to file picker
+      toast.info("Camera not available — please upload an image instead");
+      fileInputRef.current?.click();
+    }
+  }
+
+  // Capture a frame from the live camera
+  function capturePhoto() {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) return;
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0);
+
+    stopCamera();
+
+    canvas.toBlob(
+      (blob) => {
+        if (blob) processImage(blob);
+      },
+      "image/jpeg",
+      0.92,
+    );
+  }
+
+  const processImage = useCallback(async (file: File | Blob) => {
     // Show preview
     const reader = new FileReader();
     reader.onload = (e) => setImagePreview(e.target?.result as string);
@@ -168,11 +224,13 @@ export function ScanInvoiceDialog({
     e.target.value = "";
   }
 
-  function updateRow(index: number, field: keyof InvoiceMedicineRow, value: string | number) {
+  function updateRow(
+    index: number,
+    field: keyof InvoiceMedicineRow,
+    value: string | number,
+  ) {
     setRows((prev) =>
-      prev.map((row, i) =>
-        i === index ? { ...row, [field]: value } : row,
-      ),
+      prev.map((row, i) => (i === index ? { ...row, [field]: value } : row)),
     );
   }
 
@@ -229,19 +287,24 @@ export function ScanInvoiceDialog({
         className={
           step === "review"
             ? "max-w-5xl max-h-[90vh] flex flex-col"
-            : "max-w-lg"
+            : step === "camera"
+              ? "max-w-md max-h-[90vh]"
+              : "max-w-lg"
         }
       >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ScanLine className="h-5 w-5 text-primary" />
             {step === "capture" && "Scan Supplier Invoice"}
+            {step === "camera" && "Point at Invoice"}
             {step === "processing" && "Processing Invoice…"}
             {step === "review" && "Review Scanned Items"}
           </DialogTitle>
           <DialogDescription>
             {step === "capture" &&
               "Take a photo of the supplier invoice or upload an image to automatically extract medicine data."}
+            {step === "camera" &&
+              "Position the invoice in the frame so all text is clear and readable."}
             {step === "processing" &&
               "Reading the invoice using OCR. This may take a moment…"}
             {step === "review" &&
@@ -253,26 +316,18 @@ export function ScanInvoiceDialog({
         {step === "capture" && (
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Camera capture (mobile) */}
+              {/* Camera capture — opens live viewfinder */}
               <Button
                 variant="outline"
                 className="h-28 flex-col gap-2 border-dashed border-2 border-primary/30 hover:border-primary/60 hover:bg-primary/5"
-                onClick={() => cameraInputRef.current?.click()}
+                onClick={openCamera}
               >
                 <Camera className="h-8 w-8 text-primary" />
                 <span className="text-sm font-medium">Take Photo</span>
                 <span className="text-xs text-muted-foreground">
-                  Use phone camera
+                  Open camera
                 </span>
               </Button>
-              <input
-                ref={cameraInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={handleFileSelect}
-              />
 
               {/* File upload */}
               <Button
@@ -306,6 +361,45 @@ export function ScanInvoiceDialog({
                 <li>Ensure all text is sharp and readable</li>
                 <li>You can always edit extracted data before importing</li>
               </ul>
+            </div>
+          </div>
+        )}
+
+        {/* ─── Step 1b: Live Camera Viewfinder ─── */}
+        {step === "camera" && (
+          <div className="space-y-3 py-2">
+            <div className="relative w-full aspect-[3/4] max-h-[60vh] rounded-lg overflow-hidden border border-border bg-black">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover"
+              />
+              {/* Hidden canvas for capture */}
+              <canvas ref={canvasRef} className="hidden" />
+            </div>
+            <p className="text-xs text-center text-muted-foreground">
+              Position the invoice so all text is visible, then tap Capture
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  stopCamera();
+                  setStep("capture");
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1 bg-primary text-primary-foreground hover:bg-[#00B8A9]"
+                onClick={capturePhoto}
+              >
+                <Camera className="h-4 w-4 mr-2" />
+                Capture
+              </Button>
             </div>
           </div>
         )}
@@ -368,7 +462,9 @@ export function ScanInvoiceDialog({
                 <TableHeader>
                   <TableRow className="bg-muted/30">
                     <TableHead className="w-8 text-center">#</TableHead>
-                    <TableHead className="min-w-[200px]">Medicine Name</TableHead>
+                    <TableHead className="min-w-[200px]">
+                      Medicine Name
+                    </TableHead>
                     <TableHead className="w-[120px]">Batch No</TableHead>
                     <TableHead className="w-[70px]">Qty</TableHead>
                     <TableHead className="w-[120px]">Expiry Date</TableHead>
@@ -406,7 +502,11 @@ export function ScanInvoiceDialog({
                           type="number"
                           value={row.quantity}
                           onChange={(e) =>
-                            updateRow(idx, "quantity", parseInt(e.target.value) || 0)
+                            updateRow(
+                              idx,
+                              "quantity",
+                              parseInt(e.target.value) || 0,
+                            )
                           }
                           className="h-8 text-sm w-16"
                           min={0}

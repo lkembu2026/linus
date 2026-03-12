@@ -67,7 +67,10 @@ function parseNumber(raw: string): number {
  * Main parser: takes OCR text and returns structured rows.
  */
 export function parseInvoiceText(ocrText: string): InvoiceMedicineRow[] {
-  const lines = ocrText.split("\n").map((l) => l.trim()).filter(Boolean);
+  const lines = ocrText
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
   const results: InvoiceMedicineRow[] = [];
 
   // Find the header line to understand column positions
@@ -77,7 +80,9 @@ export function parseInvoiceText(ocrText: string): InvoiceMedicineRow[] {
     const upper = lines[i].toUpperCase();
     if (
       (upper.includes("DESCRIPTION") || upper.includes("ITEM")) &&
-      (upper.includes("PRICE") || upper.includes("TOTAL") || upper.includes("QTY"))
+      (upper.includes("PRICE") ||
+        upper.includes("TOTAL") ||
+        upper.includes("QTY"))
     ) {
       headerIndex = i;
       break;
@@ -100,7 +105,7 @@ export function parseInvoiceText(ocrText: string): InvoiceMedicineRow[] {
       upper.includes("INVOICE") ||
       upper.includes("PAGE") ||
       upper.includes("REFERENCE") ||
-      upper.includes("TOTAL") && !upper.match(/\d{2,}/) ||
+      (upper.includes("TOTAL") && !upper.match(/\d{2,}/)) ||
       line.length < 10
     ) {
       continue;
@@ -110,9 +115,7 @@ export function parseInvoiceText(ocrText: string): InvoiceMedicineRow[] {
     // The line typically follows: NAME ... BATCHNO ... QTYOUT ... EXPDATE ... QTY ... PRICE ... TOTAL
 
     // Find date pattern (expiry date)
-    const dateMatch = line.match(
-      /(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/
-    );
+    const dateMatch = line.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/);
 
     if (!dateMatch) {
       // No date found — might be a continuation line or non-medicine row
@@ -206,7 +209,7 @@ export function parseInvoiceText(ocrText: string): InvoiceMedicineRow[] {
     }
 
     // Use QTY from after date if available, else from before
-    const finalQty = qty > 0 ? qty : (qtyOut > 0 ? qtyOut : 1);
+    const finalQty = qty > 0 ? qty : qtyOut > 0 ? qtyOut : 1;
 
     // Clean up the name
     const name = nameRaw
