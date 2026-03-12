@@ -50,7 +50,9 @@ export function ResetPasswordForm({
             setHasRecoverySession(true);
             window.history.replaceState({}, "", "/reset-password");
           } else {
-            setError("This reset link is invalid or has expired. Request a new one from the sign-in screen.");
+            setError(
+              "This reset link is invalid or has expired. Request a new one from the sign-in screen.",
+            );
           }
         } else if (tokenHash && tokenType) {
           const { error } = await supabase.auth.verifyOtp({
@@ -61,7 +63,9 @@ export function ResetPasswordForm({
             setHasRecoverySession(true);
             window.history.replaceState({}, "", "/reset-password");
           } else {
-            setError("This reset link is invalid or has expired. Request a new one from the sign-in screen.");
+            setError(
+              "This reset link is invalid or has expired. Request a new one from the sign-in screen.",
+            );
           }
         }
       } catch {
@@ -131,7 +135,9 @@ export function ResetPasswordForm({
         {exchanging && (
           <div className="flex items-center justify-center py-4">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            <span className="ml-2 text-sm text-muted-foreground">Verifying reset link…</span>
+            <span className="ml-2 text-sm text-muted-foreground">
+              Verifying reset link…
+            </span>
           </div>
         )}
 

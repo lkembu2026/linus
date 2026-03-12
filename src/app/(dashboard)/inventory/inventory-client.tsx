@@ -31,6 +31,7 @@ import { StockAdjustDialog } from "@/components/inventory/stock-adjust-dialog";
 import { BarcodeLabelDialog } from "@/components/inventory/barcode-label-dialog";
 import { ImportMedicinesDialog } from "@/components/inventory/import-medicines-dialog";
 import { BulkOpeningStockDialog } from "@/components/inventory/bulk-opening-stock-dialog";
+import { ScanInvoiceDialog } from "@/components/inventory/scan-invoice-dialog";
 import {
   getMedicines,
   deleteMedicine,
@@ -52,6 +53,7 @@ import {
   Pill,
   Download,
   ScanBarcode,
+  ScanLine,
   FileSpreadsheet,
   Loader2,
   RefreshCw,
@@ -101,6 +103,7 @@ export function InventoryClient({
   const [adjustMedicine, setAdjustMedicine] = useState<Medicine | null>(null);
   const [labelMedicine, setLabelMedicine] = useState<Medicine | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
   const [bulkStockOpen, setBulkStockOpen] = useState(false);
   const [isSyncingCatalog, setIsSyncingCatalog] = useState(false);
   const [isLoadingSyncStatus, setIsLoadingSyncStatus] = useState(false);
@@ -347,11 +350,21 @@ export function InventoryClient({
           {can("import_medicines") && (
             <Button
               variant="outline"
+              onClick={() => setScanOpen(true)}
+              className="border-primary/40 text-primary hover:bg-primary/10"
+            >
+              <ScanLine className="h-4 w-4 mr-2" />
+              Scan Invoice
+            </Button>
+          )}
+          {can("import_medicines") && (
+            <Button
+              variant="outline"
               onClick={() => setImportOpen(true)}
               className="border-primary/40 text-primary hover:bg-primary/10"
             >
               <FileSpreadsheet className="h-4 w-4 mr-2" />
-              Import
+              Import CSV
             </Button>
           )}
           {can("bulk_opening_stock") && (
@@ -782,6 +795,19 @@ export function InventoryClient({
             category || undefined,
             category ? undefined : [...modeCategories],
           );
+          setMedicines(data);
+        }}
+      />
+      <ScanInvoiceDialog
+        open={scanOpen}
+        onOpenChange={setScanOpen}
+        onImportComplete={async () => {
+          const data = await getMedicines(
+            search || undefined,
+            category || undefined,
+            category ? undefined : [...modeCategories],
+          );
+          cachedByModeRef.current[mode] = data;
           setMedicines(data);
         }}
       />
