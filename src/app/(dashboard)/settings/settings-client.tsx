@@ -30,6 +30,7 @@ import {
   sendTestDailyReportNow,
   updateReportAutomationSettings,
 } from "@/actions/reports";
+import { clearAllSalesHistory } from "@/actions/sales";
 import type { User as UserType } from "@/types/database";
 
 interface SettingsClientProps {
@@ -48,6 +49,8 @@ export function SettingsClient({
   const isOnline = useOnlineStatus();
   const [isPending, startTransition] = useTransition();
   const [isReportsPending, startReportsTransition] = useTransition();
+  const [clearingSales, setClearingSales] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
   const [isTestPending, startTestTransition] = useTransition();
   const [fullName, setFullName] = useState(user.full_name ?? "");
   const [nameChanged, setNameChanged] = useState(false);
@@ -437,6 +440,71 @@ export function SettingsClient({
           </div>
         </CardContent>
       </Card>
+
+      {/* Danger Zone — super_admin only */}
+      {user.role === "super_admin" && (
+        <Card className="bg-card border-destructive/30">
+          <CardHeader>
+            <CardTitle className="text-destructive flex items-center gap-2">
+              <Shield className="h-5 w-5" />
+              Danger Zone
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <p className="text-sm text-white font-medium">
+                  Clear All Sales History
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Permanently removes all sales, receipts, sale items, and
+                  credit records.
+                </p>
+              </div>
+              {!confirmClear ? (
+                <Button
+                  variant="outline"
+                  className="border-destructive text-destructive hover:bg-destructive hover:text-white shrink-0"
+                  onClick={() => setConfirmClear(true)}
+                >
+                  Clear Sales History
+                </Button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    className="text-muted-foreground"
+                    onClick={() => setConfirmClear(false)}
+                    disabled={clearingSales}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    disabled={clearingSales}
+                    onClick={async () => {
+                      setClearingSales(true);
+                      const result = await clearAllSalesHistory();
+                      setClearingSales(false);
+                      setConfirmClear(false);
+                      if (result.error) {
+                        toast.error(result.error);
+                      } else {
+                        toast.success("All sales history has been cleared.");
+                      }
+                    }}
+                  >
+                    {clearingSales ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : null}
+                    Yes, Delete Everything
+                  </Button>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

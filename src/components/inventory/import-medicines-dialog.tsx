@@ -667,7 +667,14 @@ export function ImportMedicinesDialog({
       toast.error(result.error);
       return;
     }
-    toast.success(`${result.count} medicines imported successfully!`);
+    const parts: string[] = [];
+    if (result.inserted) parts.push(`${result.inserted} new`);
+    if (result.updated) parts.push(`${result.updated} stock updated`);
+    toast.success(
+      parts.length > 0
+        ? `${result.count} medicines imported (${parts.join(", ")})`
+        : `${result.count} medicines imported successfully!`,
+    );
     setRows([]);
     setFileName("");
     setStep("upload");

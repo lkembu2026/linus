@@ -660,19 +660,91 @@ export async function bulkCreateMedicines(
     created_by: user.id,
   }));
 
-  const { error } = await supabase
+  // Fetch existing medicines in this branch to detect duplicates
+  const { data: existingData } = await supabase
     .from("medicines")
-    .insert(records as MedicineInsert[]);
-  if (error) return { error: error.message };
+    .select("id, name, quantity_in_stock, barcode")
+    .eq("branch_id", resolvedBranchId);
+
+  const existingMedicines = (existingData ?? []) as unknown as {
+    id: string;
+    name: string;
+    quantity_in_stock: number;
+    barcode: string | null;
+  }[];
+
+  // Build lookup maps (case-insensitive name, exact barcode)
+  const byName = new Map<string, (typeof existingMedicines)[0]>();
+  const byBarcode = new Map<string, (typeof existingMedicines)[0]>();
+  for (const med of existingMedicines) {
+    byName.set(med.name.trim().toLowerCase(), med);
+    if (med.barcode) {
+      byBarcode.set(med.barcode.trim().toLowerCase(), med);
+    }
+  }
+
+  const toInsert: (typeof records)[0][] = [];
+  const toUpdate: { id: string; addQty: number; name: string }[] = [];
+
+  for (const rec of records) {
+    // Match by barcode first, then by name
+    const barcodeKey = rec.barcode?.trim().toLowerCase();
+    const nameKey = rec.name.trim().toLowerCase();
+    const match =
+      (barcodeKey ? byBarcode.get(barcodeKey) : undefined) ??
+      byName.get(nameKey);
+
+    if (match) {
+      toUpdate.push({
+        id: match.id,
+        addQty: rec.quantity_in_stock,
+        name: rec.name,
+      });
+    } else {
+      toInsert.push(rec);
+    }
+  }
+
+  let inserted = 0;
+  let updated = 0;
+
+  // Insert new medicines
+  if (toInsert.length > 0) {
+    const { error: insertError } = await supabase
+      .from("medicines")
+      .insert(toInsert as MedicineInsert[]);
+    if (insertError) return { error: insertError.message };
+    inserted = toInsert.length;
+  }
+
+  // Update existing medicines — add quantity
+  if (toUpdate.length > 0) {
+    const BATCH_SIZE = 50;
+    for (let i = 0; i < toUpdate.length; i += BATCH_SIZE) {
+      const batch = toUpdate.slice(i, i + BATCH_SIZE);
+      const existingById = new Map(existingMedicines.map((m) => [m.id, m]));
+      await Promise.all(
+        batch.map((u) => {
+          const existing = existingById.get(u.id);
+          const newQty = (existing?.quantity_in_stock ?? 0) + u.addQty;
+          return supabase
+            .from("medicines")
+            .update({ quantity_in_stock: newQty })
+            .eq("id", u.id);
+        }),
+      );
+    }
+    updated = toUpdate.length;
+  }
 
   await supabase.from("audit_logs").insert({
     user_id: user.id,
     action: "bulk_import_medicines",
-    details: { count: rows.length },
+    details: { count: rows.length, inserted, updated },
   });
 
   revalidatePath("/inventory");
-  return { success: true, count: rows.length };
+  return { success: true, count: rows.length, inserted, updated };
 }
 
 export async function syncCatalogAcrossBranches() {

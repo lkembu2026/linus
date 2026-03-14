@@ -78,12 +78,14 @@ export async function createSale(
       .eq("branch_id", branchId);
 
     const medsById = new Map(
-      ((medsData ?? []) as unknown as {
-        id: string;
-        quantity_in_stock: number;
-        reorder_level: number;
-        category: string;
-      }[]).map((m) => [m.id, m]),
+      (
+        (medsData ?? []) as unknown as {
+          id: string;
+          quantity_in_stock: number;
+          reorder_level: number;
+          category: string;
+        }[]
+      ).map((m) => [m.id, m]),
     );
 
     // Validate all stock availability first
@@ -508,4 +510,59 @@ export async function getRecentSales(
   });
 
   return salesWithItems;
+}
+
+export async function clearAllSalesHistory() {
+  const user = await getCurrentUser();
+  if (!user || user.role !== "super_admin") {
+    return { error: "Only super admin can clear sales history" };
+  }
+
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const supabase = createAdminClient();
+
+  // Delete in correct order: credits (refs sales) → receipts (refs sales) → sale_items (cascade) → sales
+  const { error: creditsErr } = await supabase
+    .from("credits")
+    .delete()
+    .not("id", "is", null); // delete all rows
+
+  if (creditsErr) return { error: `Credits: ${creditsErr.message}` };
+
+  const { error: receiptsErr } = await supabase
+    .from("receipts")
+    .delete()
+    .not("id", "is", null);
+
+  if (receiptsErr) return { error: `Receipts: ${receiptsErr.message}` };
+
+  // sale_items cascade on sales delete, but delete explicitly to be safe
+  const { error: itemsErr } = await supabase
+    .from("sale_items")
+    .delete()
+    .not("id", "is", null);
+
+  if (itemsErr) return { error: `Sale items: ${itemsErr.message}` };
+
+  const { error: salesErr } = await supabase
+    .from("sales")
+    .delete()
+    .not("id", "is", null);
+
+  if (salesErr) return { error: `Sales: ${salesErr.message}` };
+
+  await supabase.from("audit_logs").insert({
+    user_id: user.id,
+    action: "clear_all_sales_history",
+    details: { cleared_at: new Date().toISOString() },
+  });
+
+  revalidatePath("/sales");
+  revalidatePath("/sales-history");
+  revalidatePath("/dashboard");
+  revalidatePath("/reports");
+  revalidatePath("/credits");
+  revalidatePath("/receipts");
+
+  return { success: true };
 }
