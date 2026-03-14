@@ -114,6 +114,9 @@ export const MEDICINE_CATEGORIES = [
   "Dermatology",
   "Gastrointestinal",
   "Eye & Ear",
+  "Antivirals",
+  "Antimalarials",
+  "Hormones & Steroids",
   "Other",
 ] as const;
 

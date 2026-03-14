@@ -244,6 +244,21 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
     "mupirocin",
   ],
   "Eye & Ear": ["eye drop", "ear drop", "timolol"],
+  Antivirals: [
+    "acyclovir", "aciclovir", "valacyclovir", "oseltamivir",
+    "lamivudine", "zidovudine", "efavirenz", "nevirapine",
+    "tenofovir", "abacavir", "ritonavir", "lopinavir",
+  ],
+  Antimalarials: [
+    "fanlar", "artemether", "lumefantrine", "coartem",
+    "quinine", "chloroquine", "mefloquine", "sulfadoxine",
+    "pyrimethamine", "artesunate", "amodiaquine", "duo-cotecxin",
+  ],
+  "Hormones & Steroids": [
+    "dexamethasone", "prednisolone", "prednisone", "methylprednisolone",
+    "triamcinolone", "fludrocortisone", "levothyroxine",
+    "progesterone", "estrogen", "testosterone",
+  ],
 };
 
 const FORM_CATEGORY_HINTS: Record<string, string> = {
