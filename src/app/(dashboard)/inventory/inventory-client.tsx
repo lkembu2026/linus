@@ -59,7 +59,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
-import type { AppMode } from "@/types";
+import { type AppMode, isAdminRole } from "@/types";
 import type { User, Medicine } from "@/types/database";
 
 interface InventoryClientProps {
@@ -233,7 +233,7 @@ export function InventoryClient({
   }
 
   async function loadSyncStatus() {
-    if (user.role !== "admin") return;
+    if (!isAdminRole(user.role)) return;
     setIsLoadingSyncStatus(true);
     const result = await getCatalogSyncStatus();
     setIsLoadingSyncStatus(false);
