@@ -245,19 +245,44 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
   ],
   "Eye & Ear": ["eye drop", "ear drop", "timolol"],
   Antivirals: [
-    "acyclovir", "aciclovir", "valacyclovir", "oseltamivir",
-    "lamivudine", "zidovudine", "efavirenz", "nevirapine",
-    "tenofovir", "abacavir", "ritonavir", "lopinavir",
+    "acyclovir",
+    "aciclovir",
+    "valacyclovir",
+    "oseltamivir",
+    "lamivudine",
+    "zidovudine",
+    "efavirenz",
+    "nevirapine",
+    "tenofovir",
+    "abacavir",
+    "ritonavir",
+    "lopinavir",
   ],
   Antimalarials: [
-    "fanlar", "artemether", "lumefantrine", "coartem",
-    "quinine", "chloroquine", "mefloquine", "sulfadoxine",
-    "pyrimethamine", "artesunate", "amodiaquine", "duo-cotecxin",
+    "fanlar",
+    "artemether",
+    "lumefantrine",
+    "coartem",
+    "quinine",
+    "chloroquine",
+    "mefloquine",
+    "sulfadoxine",
+    "pyrimethamine",
+    "artesunate",
+    "amodiaquine",
+    "duo-cotecxin",
   ],
   "Hormones & Steroids": [
-    "dexamethasone", "prednisolone", "prednisone", "methylprednisolone",
-    "triamcinolone", "fludrocortisone", "levothyroxine",
-    "progesterone", "estrogen", "testosterone",
+    "dexamethasone",
+    "prednisolone",
+    "prednisone",
+    "methylprednisolone",
+    "triamcinolone",
+    "fludrocortisone",
+    "levothyroxine",
+    "progesterone",
+    "estrogen",
+    "testosterone",
   ],
 };
 
@@ -510,10 +535,16 @@ export function ImportMedicinesDialog({
   const [importing, setImporting] = useState(false);
   const [importFormat, setImportFormat] = useState<ImportFormat | null>(null);
   const [step, setStep] = useState<"upload" | "review">("upload");
+  const [customCategories, setCustomCategories] = useState<string[]>([]);
+  const [editingCategoryIdx, setEditingCategoryIdx] = useState<number | null>(
+    null,
+  );
+  const [newCategoryName, setNewCategoryName] = useState("");
 
   const ALL_CATEGORIES = [
     ...MEDICINE_CATEGORIES,
     ...BEAUTY_CATEGORIES,
+    ...customCategories,
   ] as string[];
   const validRows = rows.filter((r) => r._errors.length === 0);
   const errorRows = rows.filter((r) => r._errors.length > 0);
@@ -603,8 +634,8 @@ export function ImportMedicinesDialog({
         // Re-validate after edit
         const errors: string[] = [];
         if (!String(updated.name).trim()) errors.push("name is required");
-        if (!ALL_CATEGORIES.includes(updated.category))
-          errors.push(`category "${updated.category}" not valid`);
+        if (!updated.category || !updated.category.trim())
+          errors.push("category is required");
         if (!updated.unit_price || updated.unit_price <= 0)
           errors.push("unit_price must be > 0");
         if (!updated.cost_price || updated.cost_price <= 0)
@@ -648,6 +679,9 @@ export function ImportMedicinesDialog({
     setFileName("");
     setImportFormat(null);
     setStep("upload");
+    setCustomCategories([]);
+    setEditingCategoryIdx(null);
+    setNewCategoryName("");
     onClose();
   }
 
@@ -859,23 +893,75 @@ export function ImportMedicinesDialog({
                         />
                       </TableCell>
                       <TableCell>
-                        <Select
-                          value={row.category}
-                          onValueChange={(val) =>
-                            updateRow(idx, "category", val)
-                          }
-                        >
-                          <SelectTrigger className="h-8 text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {ALL_CATEGORIES.map((cat) => (
-                              <SelectItem key={cat} value={cat}>
-                                {cat}
+                        {editingCategoryIdx === idx ? (
+                          <Input
+                            autoFocus
+                            value={newCategoryName}
+                            onChange={(e) => setNewCategoryName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && newCategoryName.trim()) {
+                                const name = newCategoryName.trim();
+                                if (!ALL_CATEGORIES.includes(name)) {
+                                  setCustomCategories((prev) => [
+                                    ...prev,
+                                    name,
+                                  ]);
+                                }
+                                updateRow(idx, "category", name);
+                                setEditingCategoryIdx(null);
+                                setNewCategoryName("");
+                              } else if (e.key === "Escape") {
+                                setEditingCategoryIdx(null);
+                                setNewCategoryName("");
+                              }
+                            }}
+                            onBlur={() => {
+                              if (newCategoryName.trim()) {
+                                const name = newCategoryName.trim();
+                                if (!ALL_CATEGORIES.includes(name)) {
+                                  setCustomCategories((prev) => [
+                                    ...prev,
+                                    name,
+                                  ]);
+                                }
+                                updateRow(idx, "category", name);
+                              }
+                              setEditingCategoryIdx(null);
+                              setNewCategoryName("");
+                            }}
+                            className="h-8 text-xs"
+                            placeholder="Type category & press Enter"
+                          />
+                        ) : (
+                          <Select
+                            value={row.category}
+                            onValueChange={(val) => {
+                              if (val === "__add_new__") {
+                                setEditingCategoryIdx(idx);
+                                setNewCategoryName("");
+                              } else {
+                                updateRow(idx, "category", val);
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {ALL_CATEGORIES.map((cat) => (
+                                <SelectItem key={cat} value={cat}>
+                                  {cat}
+                                </SelectItem>
+                              ))}
+                              <SelectItem
+                                value="__add_new__"
+                                className="text-primary font-medium"
+                              >
+                                + Add new category
                               </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                            </SelectContent>
+                          </Select>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Input
