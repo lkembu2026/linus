@@ -157,7 +157,10 @@ export function Sidebar({
                 if (pathname !== item.href) {
                   setNavigatingTo(item.href);
                 }
-                onNavigate?.();
+                // On mobile (Sheet), delay close so the spinner is visible briefly
+                if (onNavigate) {
+                  setTimeout(() => onNavigate(), 200);
+                }
               }}
               onTouchStart={() => prefetchRoute(item.href)}
               onPointerDown={() => prefetchRoute(item.href)}
@@ -176,10 +179,7 @@ export function Sidebar({
                 <Loader2 className="h-5 w-5 shrink-0 text-primary animate-spin" />
               ) : (
                 <Icon
-                  className={cn(
-                    "h-5 w-5 shrink-0",
-                    isActive && "text-primary",
-                  )}
+                  className={cn("h-5 w-5 shrink-0", isActive && "text-primary")}
                 />
               )}
               {!collapsed && <span>{item.title}</span>}
