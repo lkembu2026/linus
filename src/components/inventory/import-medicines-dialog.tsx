@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef } from "react";
-import * as XLSX from "xlsx";
 import {
   Dialog,
   DialogContent,
@@ -553,7 +552,8 @@ export function ImportMedicinesDialog({
   );
 
   // ── Download template ──────────────────────────────────────────────────────
-  function downloadTemplate(format: "csv" | "xlsx") {
+  async function downloadTemplate(format: "csv" | "xlsx") {
+    const XLSX = await import("xlsx");
     const ws = XLSX.utils.aoa_to_sheet([
       TEMPLATE_COLUMNS,
       TEMPLATE_COLUMNS.map((col) => COLUMN_HINTS[col] ?? ""),
@@ -585,7 +585,8 @@ export function ImportMedicinesDialog({
   function handleFile(file: File) {
     setFileName(file.name);
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
+      const XLSX = await import("xlsx");
       const data = new Uint8Array(e.target?.result as ArrayBuffer);
       const wb = XLSX.read(data, { type: "array" });
       const ws = wb.Sheets[wb.SheetNames[0]];

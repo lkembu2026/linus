@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { useMode } from "@/contexts/mode-context";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { AppMode } from "@/types";
@@ -9,15 +10,33 @@ import {
   type DashboardPageData,
 } from "@/actions/dashboard";
 
-// Components
+// Components — static (lightweight, no heavy deps)
 import { StatsCards } from "@/components/dashboard/stats-cards";
-import { RevenueChart } from "@/components/dashboard/revenue-chart";
 import { TopMedicines } from "@/components/dashboard/top-medicines";
 import { LowStockAlert } from "@/components/dashboard/low-stock-alert";
 import { RecentSales } from "@/components/dashboard/recent-sales";
 import { MedicineInventoryCard } from "@/components/dashboard/medicine-inventory-card";
-import { DailySalesChart } from "@/components/dashboard/daily-sales-chart";
 import { MedicineCategoryBreakdownCard } from "@/components/dashboard/medicine-category-breakdown";
+
+// Components — lazy (recharts is ~300KB)
+const RevenueChart = dynamic(
+  () =>
+    import("@/components/dashboard/revenue-chart").then((m) => m.RevenueChart),
+  {
+    ssr: false,
+    loading: () => <Skeleton className="h-[200px] w-full rounded-lg" />,
+  },
+);
+const DailySalesChart = dynamic(
+  () =>
+    import("@/components/dashboard/daily-sales-chart").then(
+      (m) => m.DailySalesChart,
+    ),
+  {
+    ssr: false,
+    loading: () => <Skeleton className="h-[200px] w-full rounded-lg" />,
+  },
+);
 
 interface DashboardClientProps {
   initialData?: DashboardPageData;
@@ -177,7 +196,10 @@ function DashboardSkeleton() {
       {/* Stats cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="rounded-xl border border-border bg-card p-4 space-y-3">
+          <div
+            key={i}
+            className="rounded-xl border border-border bg-card p-4 space-y-3"
+          >
             <div className="flex items-center justify-between">
               <Skeleton className="h-4 w-24 rounded" />
               <Skeleton className="h-5 w-5 rounded" />
@@ -203,7 +225,10 @@ function DashboardSkeleton() {
       {/* Revenue + Top medicines */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {[1, 2].map((i) => (
-          <div key={i} className="rounded-xl border border-border bg-card p-4 space-y-4">
+          <div
+            key={i}
+            className="rounded-xl border border-border bg-card p-4 space-y-4"
+          >
             <Skeleton className="h-5 w-32 rounded" />
             <Skeleton className="h-[200px] w-full rounded-lg" />
           </div>

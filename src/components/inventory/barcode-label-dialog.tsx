@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import JsBarcode from "jsbarcode";
 import {
   Dialog,
   DialogContent,
@@ -53,20 +52,24 @@ export function BarcodeLabelDialog({
   // Render barcode SVG whenever value changes
   useEffect(() => {
     if (!barcode || !svgRef.current) return;
-    try {
-      JsBarcode(svgRef.current, barcode, {
-        format: "CODE128",
-        width: 2,
-        height: 60,
-        displayValue: true,
-        fontSize: 12,
-        margin: 6,
-        background: "#ffffff",
-        lineColor: "#000000",
-      });
-    } catch {
-      // invalid barcode value, ignore
-    }
+    const el = svgRef.current;
+    (async () => {
+      try {
+        const JsBarcode = (await import("jsbarcode")).default;
+        JsBarcode(el, barcode, {
+          format: "CODE128",
+          width: 2,
+          height: 60,
+          displayValue: true,
+          fontSize: 12,
+          margin: 6,
+          background: "#ffffff",
+          lineColor: "#000000",
+        });
+      } catch {
+        // invalid barcode value, ignore
+      }
+    })();
   }, [barcode]);
 
   async function handleSaveBarcode() {

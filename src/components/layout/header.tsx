@@ -191,7 +191,10 @@ export function Header({
     .slice(0, 2);
 
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-[#0A0A0A]/95 backdrop-blur-sm">
+    <header
+      className="sticky top-0 z-30 border-b border-border bg-[#0A0A0A]/95 backdrop-blur-sm will-change-transform"
+      style={{ transform: "translateZ(0)" }}
+    >
       <div className="flex h-16 items-center justify-between px-4 md:px-6">
         {/* Left: Hamburger + Page context */}
         <div className="flex items-center gap-3">
@@ -205,16 +208,22 @@ export function Header({
             <Menu className="h-5 w-5" />
           </Button>
 
-          {(userRole === "admin" || userRole === "super_admin") && branches.length > 0 ? (
+          {(userRole === "admin" || userRole === "super_admin") &&
+          branches.length > 0 ? (
             <div className="hidden sm:flex items-center gap-2 px-2 py-1 rounded-lg bg-card border border-border">
               <span className="text-xs text-muted-foreground">Branch:</span>
               {switchingBranch ? (
                 <div className="flex items-center gap-1.5 px-2 h-7 min-w-[170px]">
                   <Loader2 className="h-3.5 w-3.5 text-primary animate-spin" />
-                  <span className="text-xs text-muted-foreground">Switching…</span>
+                  <span className="text-xs text-muted-foreground">
+                    Switching…
+                  </span>
                 </div>
               ) : (
-                <Select value={activeBranchId} onValueChange={handleBranchChange}>
+                <Select
+                  value={activeBranchId}
+                  onValueChange={handleBranchChange}
+                >
                   <SelectTrigger className="h-7 min-w-[170px] border-0 bg-transparent px-2 text-xs">
                     <SelectValue placeholder="Select branch" />
                   </SelectTrigger>
@@ -373,13 +382,16 @@ export function Header({
       </div>
 
       <div className="sm:hidden border-t border-border/80 px-4 py-2 space-y-2">
-        {(userRole === "admin" || userRole === "super_admin") && branches.length > 0 ? (
+        {(userRole === "admin" || userRole === "super_admin") &&
+        branches.length > 0 ? (
           <div className="flex items-center gap-2 rounded-lg bg-card border border-border px-2 py-1.5">
             <span className="text-[11px] text-muted-foreground">Branch:</span>
             {switchingBranch ? (
               <div className="flex items-center gap-1.5 px-1 h-8 w-full">
                 <Loader2 className="h-3.5 w-3.5 text-primary animate-spin" />
-                <span className="text-xs text-muted-foreground">Switching…</span>
+                <span className="text-xs text-muted-foreground">
+                  Switching…
+                </span>
               </div>
             ) : (
               <Select value={activeBranchId} onValueChange={handleBranchChange}>
@@ -387,7 +399,9 @@ export function Header({
                   <SelectValue placeholder="Select branch" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={ALL_BRANCHES_VALUE}>All Branches</SelectItem>
+                  <SelectItem value={ALL_BRANCHES_VALUE}>
+                    All Branches
+                  </SelectItem>
                   {branches.map((branch) => (
                     <SelectItem key={branch.id} value={branch.id}>
                       {branch.name}

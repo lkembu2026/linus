@@ -7,6 +7,14 @@ const nextConfig: NextConfig = {
     // Type errors are checked in development; skip during build for speed
     ignoreBuildErrors: true,
   },
+  experimental: {
+    optimizePackageImports: [
+      "recharts",
+      "lucide-react",
+      "radix-ui",
+      "date-fns",
+    ],
+  },
 };
 
 export default nextConfig;

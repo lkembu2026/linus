@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState } from "react";
-import * as XLSX from "xlsx";
 import {
   Dialog,
   DialogContent,
@@ -92,7 +91,8 @@ export function BulkOpeningStockDialog({
   const validRows = rows.filter((row) => row._errors.length === 0);
   const errorRows = rows.filter((row) => row._errors.length > 0);
 
-  function downloadTemplate(format: "csv" | "xlsx") {
+  async function downloadTemplate(format: "csv" | "xlsx") {
+    const XLSX = await import("xlsx");
     const ws = XLSX.utils.aoa_to_sheet([
       TEMPLATE_COLUMNS,
       TEMPLATE_COLUMNS.map((col) => COLUMN_HINTS[col] ?? ""),
@@ -115,7 +115,8 @@ export function BulkOpeningStockDialog({
     setFileName(file.name);
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
+      const XLSX = await import("xlsx");
       const data = new Uint8Array(event.target?.result as ArrayBuffer);
       const wb = XLSX.read(data, { type: "array" });
       const ws = wb.Sheets[wb.SheetNames[0]];
