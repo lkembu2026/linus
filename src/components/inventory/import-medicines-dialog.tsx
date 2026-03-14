@@ -20,7 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -99,57 +98,150 @@ type ImportFormat = "template" | "lk-invoice";
 // ── Category auto-detection from medicine name keywords ──────────────────────
 const CATEGORY_KEYWORDS: Record<string, string[]> = {
   Antibiotics: [
-    "amoxicillin", "amoxycillin", "ampiclox", "ampicillin", "ceftriaxone",
-    "ciprofloxacin", "cotrimoxazole", "metronidazole", "azithromycin",
-    "doxycycline", "erythromycin", "cephalexin", "cloxacillin",
-    "flucloxacillin", "gentamicin", "penicillin", "tetracycline",
-    "clarithromycin", "norfloxacin", "nitrofurantoin", "augmentin",
-    "cefuroxime", "cefixime", "clindamycin", "lincomycin",
+    "amoxicillin",
+    "amoxycillin",
+    "ampiclox",
+    "ampicillin",
+    "ceftriaxone",
+    "ciprofloxacin",
+    "cotrimoxazole",
+    "metronidazole",
+    "azithromycin",
+    "doxycycline",
+    "erythromycin",
+    "cephalexin",
+    "cloxacillin",
+    "flucloxacillin",
+    "gentamicin",
+    "penicillin",
+    "tetracycline",
+    "clarithromycin",
+    "norfloxacin",
+    "nitrofurantoin",
+    "augmentin",
+    "cefuroxime",
+    "cefixime",
+    "clindamycin",
+    "lincomycin",
   ],
   Painkillers: [
-    "paracetamol", "ibuprofen", "diclofenac", "aspirin", "brufen",
-    "brustan", "mefenamic", "piroxicam", "celecoxib", "tramadol",
-    "naproxen", "ketoprofen", "indomethacin", "meloxicam", "ibupara",
+    "paracetamol",
+    "ibuprofen",
+    "diclofenac",
+    "aspirin",
+    "brufen",
+    "brustan",
+    "mefenamic",
+    "piroxicam",
+    "celecoxib",
+    "tramadol",
+    "naproxen",
+    "ketoprofen",
+    "indomethacin",
+    "meloxicam",
+    "ibupara",
   ],
   Antihistamines: [
-    "cetirizine", "loratadine", "chlorphenamine", "chlorpheniramine",
-    "promethazine", "diphenhydramine", "fexofenadine", "piriton", "cpm",
+    "cetirizine",
+    "loratadine",
+    "chlorphenamine",
+    "chlorpheniramine",
+    "promethazine",
+    "diphenhydramine",
+    "fexofenadine",
+    "piriton",
+    "cpm",
   ],
   Antacids: [
-    "magnesium trisilicate", "aluminium hydroxide", "gaviscon",
-    "sodium bicarbonate", "calcium carbonate",
+    "magnesium trisilicate",
+    "aluminium hydroxide",
+    "gaviscon",
+    "sodium bicarbonate",
+    "calcium carbonate",
   ],
   Antifungals: [
-    "fluconazole", "clotrimazole", "ketoconazole", "miconazole",
-    "nystatin", "terbinafine", "griseofulvin", "itraconazole",
+    "fluconazole",
+    "clotrimazole",
+    "ketoconazole",
+    "miconazole",
+    "nystatin",
+    "terbinafine",
+    "griseofulvin",
+    "itraconazole",
   ],
   Cardiovascular: [
-    "amlodipine", "atenolol", "losartan", "carditan", "enalapril",
-    "lisinopril", "nifedipine", "propranolol", "captopril", "valsartan",
-    "telmisartan", "ramipril", "furosemide", "frusemide",
-    "hydrochlorothiazide", "spironolactone", "methyldopa", "hydralazine",
+    "amlodipine",
+    "atenolol",
+    "losartan",
+    "carditan",
+    "enalapril",
+    "lisinopril",
+    "nifedipine",
+    "propranolol",
+    "captopril",
+    "valsartan",
+    "telmisartan",
+    "ramipril",
+    "furosemide",
+    "frusemide",
+    "hydrochlorothiazide",
+    "spironolactone",
+    "methyldopa",
+    "hydralazine",
   ],
   Diabetes: [
-    "metformin", "glucomet", "glibenclamide", "gliclazide", "glimepiride",
+    "metformin",
+    "glucomet",
+    "glibenclamide",
+    "gliclazide",
+    "glimepiride",
     "insulin",
   ],
   Respiratory: [
-    "salbutamol", "montelukast", "aminophylline", "theophylline",
-    "beclomethasone", "budesonide", "fluticasone", "ventolin",
+    "salbutamol",
+    "montelukast",
+    "aminophylline",
+    "theophylline",
+    "beclomethasone",
+    "budesonide",
+    "fluticasone",
+    "ventolin",
   ],
   "Vitamins & Supplements": [
-    "vitamin", "multivitamin", "folic acid", "iron sucrose", "ferrous",
-    "calcium ", "zinc", "neurobion", "neurobione", "neuroforte",
-    "b-complex", "ascorbic",
+    "vitamin",
+    "multivitamin",
+    "folic acid",
+    "iron sucrose",
+    "ferrous",
+    "calcium ",
+    "zinc",
+    "neurobion",
+    "neurobione",
+    "neuroforte",
+    "b-complex",
+    "ascorbic",
   ],
   Gastrointestinal: [
-    "omeprazole", "ranitidine", "loperamide", "metoclopramide",
-    "domperidone", "hyoscine", "buscopan", "famotidine", "esomeprazole",
-    "pantoprazole", "lansoprazole",
+    "omeprazole",
+    "ranitidine",
+    "loperamide",
+    "metoclopramide",
+    "domperidone",
+    "hyoscine",
+    "buscopan",
+    "famotidine",
+    "esomeprazole",
+    "pantoprazole",
+    "lansoprazole",
   ],
   Dermatology: [
-    "betamethasone", "betason", "hydrocortisone", "calamine",
-    "silver sulfadiazine", "fusidic", "mupirocin",
+    "betamethasone",
+    "betason",
+    "hydrocortisone",
+    "calamine",
+    "silver sulfadiazine",
+    "fusidic",
+    "mupirocin",
   ],
   "Eye & Ear": ["eye drop", "ear drop", "timolol"],
 };
@@ -547,7 +639,7 @@ export function ImportMedicinesDialog({
   return (
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
       <DialogContent
-        className={`bg-card border-border ${step === "review" ? "max-w-5xl max-h-[90vh] flex flex-col" : "max-w-4xl max-h-[90vh] overflow-y-auto"}`}
+        className={`bg-card border-border ${step === "review" ? "max-w-[95vw] sm:max-w-7xl max-h-[90vh] flex flex-col" : "max-w-4xl max-h-[90vh] overflow-y-auto"}`}
       >
         <DialogHeader>
           <DialogTitle className="text-white font-[family-name:var(--font-sans)] flex items-center gap-2">
@@ -701,7 +793,7 @@ export function ImportMedicinesDialog({
             </div>
 
             {/* Editable table */}
-            <ScrollArea className="h-[55vh] border rounded-lg">
+            <div className="h-[55vh] border rounded-lg overflow-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/30 border-border">
@@ -818,8 +910,7 @@ export function ImportMedicinesDialog({
                         />
                       </TableCell>
                       <TableCell>
-                        {row._expiryOptions &&
-                        row._expiryOptions.length > 1 ? (
+                        {row._expiryOptions && row._expiryOptions.length > 1 ? (
                           <Select
                             value={row.expiry_date ?? ""}
                             onValueChange={(val) =>
@@ -871,7 +962,7 @@ export function ImportMedicinesDialog({
                   ))}
                 </TableBody>
               </Table>
-            </ScrollArea>
+            </div>
 
             {/* Error details */}
             {errorRows.length > 0 && (
