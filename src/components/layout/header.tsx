@@ -33,6 +33,7 @@ import {
   AlertTriangle,
   CheckCircle,
   XCircle,
+  Loader2,
 } from "lucide-react";
 import { ModeToggle } from "@/components/layout/mode-toggle";
 import {
@@ -69,6 +70,7 @@ export function Header({
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
+  const [switchingBranch, setSwitchingBranch] = useState(false);
   const activeBranchId = branchSelection ?? branchId ?? ALL_BRANCHES_VALUE;
 
   const fetchNotifications = useCallback(async () => {
@@ -134,6 +136,7 @@ export function Header({
   }, [userRole]);
 
   function handleBranchChange(nextBranchId: string) {
+    setSwitchingBranch(true);
     document.cookie = `${ACTIVE_BRANCH_COOKIE}=${nextBranchId}; path=/; max-age=31536000; samesite=lax`;
 
     const params = new URLSearchParams(searchParams.toString());
@@ -205,21 +208,28 @@ export function Header({
           {(userRole === "admin" || userRole === "super_admin") && branches.length > 0 ? (
             <div className="hidden sm:flex items-center gap-2 px-2 py-1 rounded-lg bg-card border border-border">
               <span className="text-xs text-muted-foreground">Branch:</span>
-              <Select value={activeBranchId} onValueChange={handleBranchChange}>
-                <SelectTrigger className="h-7 min-w-[170px] border-0 bg-transparent px-2 text-xs">
-                  <SelectValue placeholder="Select branch" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ALL_BRANCHES_VALUE}>
-                    All Branches
-                  </SelectItem>
-                  {branches.map((branch) => (
-                    <SelectItem key={branch.id} value={branch.id}>
-                      {branch.name}
+              {switchingBranch ? (
+                <div className="flex items-center gap-1.5 px-2 h-7 min-w-[170px]">
+                  <Loader2 className="h-3.5 w-3.5 text-primary animate-spin" />
+                  <span className="text-xs text-muted-foreground">Switching…</span>
+                </div>
+              ) : (
+                <Select value={activeBranchId} onValueChange={handleBranchChange}>
+                  <SelectTrigger className="h-7 min-w-[170px] border-0 bg-transparent px-2 text-xs">
+                    <SelectValue placeholder="Select branch" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ALL_BRANCHES_VALUE}>
+                      All Branches
                     </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                    {branches.map((branch) => (
+                      <SelectItem key={branch.id} value={branch.id}>
+                        {branch.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           ) : (
             branchName && (
@@ -366,19 +376,26 @@ export function Header({
         {(userRole === "admin" || userRole === "super_admin") && branches.length > 0 ? (
           <div className="flex items-center gap-2 rounded-lg bg-card border border-border px-2 py-1.5">
             <span className="text-[11px] text-muted-foreground">Branch:</span>
-            <Select value={activeBranchId} onValueChange={handleBranchChange}>
-              <SelectTrigger className="h-8 w-full border-0 bg-transparent px-1 text-xs">
-                <SelectValue placeholder="Select branch" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL_BRANCHES_VALUE}>All Branches</SelectItem>
-                {branches.map((branch) => (
-                  <SelectItem key={branch.id} value={branch.id}>
-                    {branch.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {switchingBranch ? (
+              <div className="flex items-center gap-1.5 px-1 h-8 w-full">
+                <Loader2 className="h-3.5 w-3.5 text-primary animate-spin" />
+                <span className="text-xs text-muted-foreground">Switching…</span>
+              </div>
+            ) : (
+              <Select value={activeBranchId} onValueChange={handleBranchChange}>
+                <SelectTrigger className="h-8 w-full border-0 bg-transparent px-1 text-xs">
+                  <SelectValue placeholder="Select branch" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL_BRANCHES_VALUE}>All Branches</SelectItem>
+                  {branches.map((branch) => (
+                    <SelectItem key={branch.id} value={branch.id}>
+                      {branch.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
         ) : (
           branchName && (

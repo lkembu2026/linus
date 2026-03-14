@@ -19,6 +19,7 @@ import {
   Clock,
   CreditCard,
   Activity,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NAV_ITEMS } from "@/lib/constants";
@@ -61,6 +62,12 @@ export function Sidebar({
   const pathname = usePathname();
   const router = useRouter();
   const [internalCollapsed, setInternalCollapsed] = useState(false);
+  const [navigatingTo, setNavigatingTo] = useState<string | null>(null);
+
+  // Clear spinner when navigation completes (pathname changes)
+  useEffect(() => {
+    setNavigatingTo(null);
+  }, [pathname]);
 
   // Use controlled state from parent if provided, otherwise use internal
   const collapsed = controlledCollapsed ?? internalCollapsed;
@@ -146,7 +153,12 @@ export function Sidebar({
             <Link
               key={item.href}
               href={item.href}
-              onClick={onNavigate}
+              onClick={(e) => {
+                if (pathname !== item.href) {
+                  setNavigatingTo(item.href);
+                }
+                onNavigate?.();
+              }}
               onTouchStart={() => prefetchRoute(item.href)}
               onPointerDown={() => prefetchRoute(item.href)}
               onMouseEnter={() => prefetchRoute(item.href)}
@@ -160,9 +172,16 @@ export function Sidebar({
               )}
               title={collapsed ? item.title : undefined}
             >
-              <Icon
-                className={cn("h-5 w-5 shrink-0", isActive && "text-primary")}
-              />
+              {navigatingTo === item.href ? (
+                <Loader2 className="h-5 w-5 shrink-0 text-primary animate-spin" />
+              ) : (
+                <Icon
+                  className={cn(
+                    "h-5 w-5 shrink-0",
+                    isActive && "text-primary",
+                  )}
+                />
+              )}
               {!collapsed && <span>{item.title}</span>}
             </Link>
           );

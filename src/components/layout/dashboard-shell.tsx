@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { IdleSessionManager } from "@/components/layout/idle-session-manager";
+import { NavigationProgress } from "@/components/layout/navigation-progress";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { startAutoSync } from "@/lib/offline/sync-queue";
 import { NAV_ITEMS } from "@/lib/constants";
@@ -59,6 +60,7 @@ export function DashboardShell({
 
   return (
     <div className="min-h-screen bg-background">
+      <NavigationProgress />
       <IdleSessionManager />
 
       {/* Desktop sidebar — hidden on mobile */}
