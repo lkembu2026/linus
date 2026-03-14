@@ -82,6 +82,8 @@ interface ParsedRow {
   _autoBarcode: boolean;
 }
 
+type ImportFormat = "template" | "lk-invoice";
+
 function generateBarcode(): string {
   const ts = Date.now().toString(36).toUpperCase();
   const rand = Math.random().toString(36).slice(2, 5).toUpperCase();
@@ -150,6 +152,119 @@ function parseRow(raw: Record<string, any>, rowNum: number): ParsedRow {
   };
 }
 
+function normalizeHeader(value: unknown) {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\./g, "")
+    .replace(/\s+/g, " ");
+}
+
+function parseNumeric(value: unknown) {
+  const cleaned = String(value ?? "")
+    .trim()
+    .replace(/,/g, "")
+    .replace(/[^0-9.]/g, "");
+  const parsed = parseFloat(cleaned);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function normalizeExpiryDate(value: unknown) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return undefined;
+
+  const matches = raw.match(/\d{1,2}[/-]\d{1,2}[/-]\d{4}/g);
+  const candidate = matches?.[0] ?? raw;
+  const parts = candidate.split(/[/-]/);
+  if (parts.length !== 3) return undefined;
+
+  const [day, month, year] = parts;
+  if (!day || !month || !year) return undefined;
+
+  return `${year.padStart(4, "0")}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+}
+
+function detectImportFormat(rows: unknown[][]): ImportFormat {
+  const hasTemplateHeader = rows.some((row) =>
+    row.some((cell) => normalizeHeader(cell) === "name"),
+  );
+
+  if (hasTemplateHeader) {
+    return "template";
+  }
+
+  const hasInvoiceHeader = rows.some((row) => {
+    const headers = row.map(normalizeHeader);
+    return (
+      headers.includes("description") &&
+      headers.includes("batch no") &&
+      headers.includes("exp date") &&
+      headers.includes("price")
+    );
+  });
+
+  return hasInvoiceHeader ? "lk-invoice" : "template";
+}
+
+function parseInvoiceRows(sheetRows: unknown[][]): ParsedRow[] {
+  const headerIndex = sheetRows.findIndex((row) => {
+    const headers = row.map(normalizeHeader);
+    return (
+      headers.includes("description") &&
+      headers.includes("batch no") &&
+      headers.includes("exp date") &&
+      headers.includes("price")
+    );
+  });
+
+  if (headerIndex === -1) {
+    return [];
+  }
+
+  const headerRow = sheetRows[headerIndex].map(normalizeHeader);
+  const descriptionIndex = headerRow.indexOf("description");
+  const batchIndex = headerRow.indexOf("batch no");
+  const qtyOutIndex = headerRow.indexOf("qty out");
+  const expDateIndex = headerRow.indexOf("exp date");
+  const qtyIndex = headerRow.indexOf("qty");
+  const priceIndex = headerRow.indexOf("price");
+
+  return sheetRows
+    .slice(headerIndex + 1)
+    .map((row, offset) => {
+      const description = String(row[descriptionIndex] ?? "").trim();
+      const barcodeRaw = String(row[batchIndex] ?? "").trim();
+      const quantity = Math.round(
+        parseNumeric(row[qtyIndex] ?? 0) || parseNumeric(row[qtyOutIndex] ?? 0),
+      );
+      const costPrice = parseNumeric(row[priceIndex] ?? 0);
+      const expiryDate = normalizeExpiryDate(row[expDateIndex]);
+
+      const normalized = parseRow(
+        {
+          name: description,
+          generic_name: "",
+          category: "Other",
+          dispensing_unit: "",
+          unit_price: costPrice,
+          cost_price: costPrice,
+          quantity_in_stock: quantity,
+          reorder_level: 10,
+          expiry_date: expiryDate,
+          barcode: barcodeRaw,
+          requires_prescription: false,
+        },
+        headerIndex + offset + 2,
+      );
+
+      return normalized;
+    })
+    .filter(
+      (row) =>
+        row.name || row.barcode || row.quantity_in_stock || row.cost_price,
+    );
+}
+
 interface ImportMedicinesDialogProps {
   open: boolean;
   onClose: () => void;
@@ -165,6 +280,7 @@ export function ImportMedicinesDialog({
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [fileName, setFileName] = useState("");
   const [importing, setImporting] = useState(false);
+  const [importFormat, setImportFormat] = useState<ImportFormat | null>(null);
 
   const validRows = rows.filter((r) => r._errors.length === 0);
   const errorRows = rows.filter((r) => r._errors.length > 0);
@@ -211,11 +327,25 @@ export function ImportMedicinesDialog({
       const data = new Uint8Array(e.target?.result as ArrayBuffer);
       const wb = XLSX.read(data, { type: "array" });
       const ws = wb.Sheets[wb.SheetNames[0]];
+      const aoa = XLSX.utils.sheet_to_json(ws, {
+        header: 1,
+        defval: "",
+        blankrows: false,
+      }) as unknown[][];
+
+      const detectedFormat = detectImportFormat(aoa);
+      setImportFormat(detectedFormat);
+
+      if (detectedFormat === "lk-invoice") {
+        const parsed = parseInvoiceRows(aoa);
+        setRows(parsed);
+        return;
+      }
+
       const raw: Record<string, any>[] = XLSX.utils.sheet_to_json(ws, {
         defval: "",
       });
 
-      // Skip hint row (if any cell looks like a hint)
       const dataRows = raw.filter((r) => {
         const nameVal = String(r["name"] ?? "")
           .trim()
@@ -254,6 +384,7 @@ export function ImportMedicinesDialog({
   function handleClose() {
     setRows([]);
     setFileName("");
+    setImportFormat(null);
     onClose();
   }
 
@@ -306,6 +437,14 @@ export function ImportMedicinesDialog({
             <p className="text-sm font-medium text-white">
               Step 2 — Upload your filled file
             </p>
+            <p className="text-xs text-muted-foreground">
+              Supports both the standard LK import template and the supplier
+              invoice file with columns like
+              <span className="text-primary"> DESCRIPTION</span>,
+              <span className="text-primary"> BATCH NO.</span>,
+              <span className="text-primary"> EXP DATE</span>, and
+              <span className="text-primary"> PRICE</span>.
+            </p>
             <div
               className="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-lg py-8 cursor-pointer hover:border-primary/50 transition-colors"
               onClick={() => fileInputRef.current?.click()}
@@ -342,6 +481,17 @@ export function ImportMedicinesDialog({
             <div className="space-y-3">
               {/* Summary badges */}
               <div className="flex items-center gap-2 flex-wrap">
+                {importFormat && (
+                  <Badge
+                    variant="outline"
+                    className="border-primary/50 text-primary"
+                  >
+                    Detected:{" "}
+                    {importFormat === "lk-invoice"
+                      ? "LK supplier invoice"
+                      : "standard template"}
+                  </Badge>
+                )}
                 <Badge
                   variant="outline"
                   className="border-green-500 text-green-400"
