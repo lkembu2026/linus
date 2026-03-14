@@ -494,6 +494,9 @@ export async function bulkSetOpeningStock(
   let updated = 0;
   let unchanged = 0;
 
+  // Validate all rows first, collect pending updates
+  const pendingUpdates: { id: string; quantity: number; label: string }[] = [];
+
   for (const row of rows) {
     const barcode = row.barcode?.trim();
     const name = row.name?.trim();
@@ -536,18 +539,30 @@ export async function bulkSetOpeningStock(
       continue;
     }
 
-    const { error: updateError } = await supabase
-      .from("medicines")
-      .update({ quantity_in_stock: quantity })
-      .eq("id", medicine.id)
-      .eq("branch_id", resolvedBranchId);
+    pendingUpdates.push({ id: medicine.id, quantity, label: rowLabel });
+  }
 
-    if (updateError) {
-      errors.push(`${rowLabel}: ${updateError.message}`);
-      continue;
+  // Execute all updates in parallel
+  const BATCH_SIZE = 50;
+  for (let i = 0; i < pendingUpdates.length; i += BATCH_SIZE) {
+    const batch = pendingUpdates.slice(i, i + BATCH_SIZE);
+    const results = await Promise.all(
+      batch.map((u) =>
+        supabase
+          .from("medicines")
+          .update({ quantity_in_stock: u.quantity })
+          .eq("id", u.id)
+          .eq("branch_id", resolvedBranchId)
+          .then(({ error }) => ({ error, label: u.label })),
+      ),
+    );
+    for (const r of results) {
+      if (r.error) {
+        errors.push(`${r.label}: ${r.error.message}`);
+      } else {
+        updated += 1;
+      }
     }
-
-    updated += 1;
   }
 
   await supabase.from("audit_logs").insert({

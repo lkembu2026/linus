@@ -250,16 +250,18 @@ export async function sendTestDailyReportNow() {
         .slice(0, 5);
     }
 
-    const { count: lowStockCount } = await supabase
-      .from("medicines")
-      .select("id", { count: "exact", head: true })
-      .lte("quantity_in_stock", 10)
-      .gt("quantity_in_stock", 0);
-
-    const { count: transfersPending } = await supabase
-      .from("transfers")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "pending");
+    const [{ count: lowStockCount }, { count: transfersPending }] =
+      await Promise.all([
+        supabase
+          .from("medicines")
+          .select("id", { count: "exact", head: true })
+          .lte("quantity_in_stock", 10)
+          .gt("quantity_in_stock", 0),
+        supabase
+          .from("transfers")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "pending"),
+      ]);
 
     const summary = {
       totalSales: activeSales.length,

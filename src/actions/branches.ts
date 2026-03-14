@@ -165,31 +165,23 @@ export async function deleteBranch(id: string) {
       .in("medicine_id", medicineIds);
   }
 
-  // 2. Delete stock_transfers referencing this branch (from or to)
-  await adminSupabase
-    .from("stock_transfers")
-    .delete()
-    .or(`from_branch_id.eq.${id},to_branch_id.eq.${id}`);
+  // 2. Delete dependent records in parallel (all reference branch_id, not each other)
+  await Promise.all([
+    adminSupabase
+      .from("stock_transfers")
+      .delete()
+      .or(`from_branch_id.eq.${id},to_branch_id.eq.${id}`),
+    adminSupabase.from("sales").delete().eq("branch_id", id),
+    adminSupabase.from("medicines").delete().eq("branch_id", id),
+    adminSupabase.from("notifications").delete().eq("branch_id", id),
+    adminSupabase.from("saved_reports").delete().eq("branch_id", id),
+    adminSupabase
+      .from("users")
+      .update({ branch_id: null })
+      .eq("branch_id", id),
+  ]);
 
-  // 3. Delete sales for this branch
-  await adminSupabase.from("sales").delete().eq("branch_id", id);
-
-  // 4. Delete medicines for this branch
-  await adminSupabase.from("medicines").delete().eq("branch_id", id);
-
-  // 5. Delete notifications for this branch
-  await adminSupabase.from("notifications").delete().eq("branch_id", id);
-
-  // 6. Delete saved_reports for this branch
-  await adminSupabase.from("saved_reports").delete().eq("branch_id", id);
-
-  // 7. Unlink users from this branch (set branch_id to null)
-  await adminSupabase
-    .from("users")
-    .update({ branch_id: null })
-    .eq("branch_id", id);
-
-  // 8. Delete the branch itself
+  // 3. Delete the branch itself (must wait for dependents)
   const { error } = await adminSupabase.from("branches").delete().eq("id", id);
 
   if (error) return { error: error.message };

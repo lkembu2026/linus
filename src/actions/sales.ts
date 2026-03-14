@@ -69,49 +69,48 @@ export async function createSale(
 
     if (itemsError) throw itemsError;
 
-    // 3. Deduct stock for each item
-    const lowStockAfterSale: {
-      name: string;
-      category: string;
-      quantity_in_stock: number;
-      reorder_level: number;
-    }[] = [];
-    for (const item of items) {
-      const { data: medicine } = await supabase
-        .from("medicines")
-        .select("quantity_in_stock, reorder_level, category")
-        .eq("id", item.medicine_id)
-        .eq("branch_id", branchId)
-        .single();
+    // 3. Batch-fetch all medicine stock in one query, then validate & deduct
+    const medIds = items.map((i) => i.medicine_id);
+    const { data: medsData } = await supabase
+      .from("medicines")
+      .select("id, quantity_in_stock, reorder_level, category")
+      .in("id", medIds)
+      .eq("branch_id", branchId);
 
-      const med = medicine as {
+    const medsById = new Map(
+      ((medsData ?? []) as unknown as {
+        id: string;
         quantity_in_stock: number;
         reorder_level: number;
         category: string;
-      } | null;
+      }[]).map((m) => [m.id, m]),
+    );
 
+    // Validate all stock availability first
+    for (const item of items) {
+      const med = medsById.get(item.medicine_id);
       if (!med || med.quantity_in_stock < item.quantity) {
-        // Rollback: void the sale
         await supabase
           .from("sales")
           .update({ is_voided: true, voided_by: user.id })
           .eq("id", saleData.id);
         return { error: `Insufficient stock for ${item.name}` };
       }
+    }
 
-      const { error: stockError } = await supabase
-        .from("medicines")
-        .update({
-          quantity_in_stock: med.quantity_in_stock - item.quantity,
-        })
-        .eq("id", item.medicine_id)
-        .eq("branch_id", branchId);
+    // All stock is valid — deduct in parallel
+    const lowStockAfterSale: {
+      name: string;
+      category: string;
+      quantity_in_stock: number;
+      reorder_level: number;
+    }[] = [];
 
-      if (stockError) throw stockError;
-
-      // Check if the deduction pushed this item below reorder level
+    const stockUpdates = items.map((item) => {
+      const med = medsById.get(item.medicine_id)!;
       const newQty = med.quantity_in_stock - item.quantity;
-      if (med && newQty <= med.reorder_level) {
+
+      if (newQty <= med.reorder_level) {
         lowStockAfterSale.push({
           name: item.name,
           category: med.category ?? "Other",
@@ -119,7 +118,17 @@ export async function createSale(
           reorder_level: med.reorder_level,
         });
       }
-    }
+
+      return supabase
+        .from("medicines")
+        .update({ quantity_in_stock: newQty })
+        .eq("id", item.medicine_id)
+        .eq("branch_id", branchId);
+    });
+
+    const stockResults = await Promise.all(stockUpdates);
+    const stockError = stockResults.find((r) => r.error);
+    if (stockError?.error) throw stockError.error;
 
     // 4. Audit log
     await supabase.from("audit_logs").insert({
