@@ -715,6 +715,50 @@ export async function bulkCreateMedicines(
       .insert(toInsert as MedicineInsert[]);
     if (insertError) return { error: insertError.message };
     inserted = toInsert.length;
+
+    // Auto-sync: clone new medicines to all other branches with 0 stock
+    if (isAdminRole(user.role)) {
+      const { data: branchData } = await supabase.from("branches").select("id");
+      const otherBranchIds = ((branchData ?? []) as unknown as { id: string }[])
+        .map((b) => b.id)
+        .filter((id) => id !== resolvedBranchId);
+
+      if (otherBranchIds.length > 0) {
+        const cloneRows: MedicineInsert[] = [];
+
+        for (const rec of toInsert) {
+          const existingBranchIds = await findExistingBranchesForItem(
+            supabase,
+            otherBranchIds,
+            rec,
+          );
+
+          for (const bid of otherBranchIds) {
+            if (!existingBranchIds.has(bid)) {
+              cloneRows.push({
+                ...rec,
+                quantity_in_stock: 0,
+                branch_id: bid,
+                created_by: user.id,
+              } as MedicineInsert);
+            }
+          }
+        }
+
+        if (cloneRows.length > 0) {
+          const CLONE_BATCH = 500;
+          for (let i = 0; i < cloneRows.length; i += CLONE_BATCH) {
+            const batch = cloneRows.slice(i, i + CLONE_BATCH);
+            const { error: cloneErr } = await supabase
+              .from("medicines")
+              .insert(batch);
+            if (cloneErr) {
+              console.error("bulkCreate branch clone error:", cloneErr);
+            }
+          }
+        }
+      }
+    }
   }
 
   // Update existing medicines — add quantity
