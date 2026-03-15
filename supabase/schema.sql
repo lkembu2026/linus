@@ -313,10 +313,14 @@ CREATE POLICY "saved_reports_delete" ON saved_reports
   USING (get_user_role() IN ('admin','super_admin'));
 
 CREATE TABLE report_settings (
-  key           TEXT PRIMARY KEY DEFAULT 'default',
-  recipients    TEXT[] NOT NULL DEFAULT '{}',
-  updated_by    UUID REFERENCES users(id),
-  updated_at    TIMESTAMPTZ DEFAULT now()
+  key                TEXT PRIMARY KEY DEFAULT 'default',
+  recipients         TEXT[] NOT NULL DEFAULT '{}',
+  daily_report_hour  INTEGER NOT NULL DEFAULT 23,
+  daily_enabled      BOOLEAN NOT NULL DEFAULT true,
+  weekly_enabled     BOOLEAN NOT NULL DEFAULT true,
+  monthly_enabled    BOOLEAN NOT NULL DEFAULT true,
+  updated_by         UUID REFERENCES users(id),
+  updated_at         TIMESTAMPTZ DEFAULT now()
 );
 
 ALTER TABLE report_settings ENABLE ROW LEVEL SECURITY;

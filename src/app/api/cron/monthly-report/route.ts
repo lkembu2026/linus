@@ -54,6 +54,22 @@ export async function GET(req: NextRequest) {
   }
 
   const supabase = createAdminClient();
+
+  // ── Check if monthly reports are enabled ─────────────────────────────────
+  const { data: settings } = await supabase
+    .from("report_settings")
+    .select("monthly_enabled")
+    .eq("key", "default")
+    .maybeSingle();
+
+  if (settings && settings.monthly_enabled === false) {
+    return NextResponse.json({
+      ok: true,
+      skipped: true,
+      reason: "monthly_disabled",
+    });
+  }
+
   const { year, month, monthLabel, startTs, endTs } = previousMonthRange();
 
   try {

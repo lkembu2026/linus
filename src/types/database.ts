@@ -150,6 +150,10 @@ export type ReceiptRecord = {
 export type ReportSettings = {
   key: string;
   recipients: string[];
+  daily_report_hour: number;
+  daily_enabled: boolean;
+  weekly_enabled: boolean;
+  monthly_enabled: boolean;
   updated_by: string | null;
   updated_at: string;
 };

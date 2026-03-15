@@ -23,6 +23,10 @@ type SaleItemRow = {
 
 type ReportAutomationSettingsResult = {
   recipients: string[];
+  daily_report_hour: number;
+  daily_enabled: boolean;
+  weekly_enabled: boolean;
+  monthly_enabled: boolean;
   updated_at: string | null;
   source: "database" | "environment";
 };
@@ -64,6 +68,10 @@ export async function getReportAutomationSettings(): Promise<ReportAutomationSet
   if (!user || !hasPermission(user.role, "manage_settings")) {
     return {
       recipients: getFallbackReportRecipients(),
+      daily_report_hour: 23,
+      daily_enabled: true,
+      weekly_enabled: true,
+      monthly_enabled: true,
       updated_at: null,
       source: "environment",
     };
@@ -73,7 +81,9 @@ export async function getReportAutomationSettings(): Promise<ReportAutomationSet
     const supabase = createAdminClient();
     const { data, error } = await supabase
       .from("report_settings")
-      .select("key, recipients, updated_at")
+      .select(
+        "key, recipients, daily_report_hour, daily_enabled, weekly_enabled, monthly_enabled, updated_at",
+      )
       .eq("key", "default")
       .maybeSingle();
 
@@ -81,6 +91,10 @@ export async function getReportAutomationSettings(): Promise<ReportAutomationSet
       console.warn("getReportAutomationSettings fallback:", error.message);
       return {
         recipients: getFallbackReportRecipients(),
+        daily_report_hour: 23,
+        daily_enabled: true,
+        weekly_enabled: true,
+        monthly_enabled: true,
         updated_at: null,
         source: "environment",
       };
@@ -88,13 +102,22 @@ export async function getReportAutomationSettings(): Promise<ReportAutomationSet
 
     const settings = data as Pick<
       ReportSettings,
-      "recipients" | "updated_at"
+      | "recipients"
+      | "daily_report_hour"
+      | "daily_enabled"
+      | "weekly_enabled"
+      | "monthly_enabled"
+      | "updated_at"
     > | null;
     const recipients = (settings?.recipients ?? []).filter(Boolean);
 
     return {
       recipients:
         recipients.length > 0 ? recipients : getFallbackReportRecipients(),
+      daily_report_hour: settings?.daily_report_hour ?? 23,
+      daily_enabled: settings?.daily_enabled ?? true,
+      weekly_enabled: settings?.weekly_enabled ?? true,
+      monthly_enabled: settings?.monthly_enabled ?? true,
       updated_at: settings?.updated_at ?? null,
       source: recipients.length > 0 ? "database" : "environment",
     };
@@ -102,13 +125,25 @@ export async function getReportAutomationSettings(): Promise<ReportAutomationSet
     console.warn("getReportAutomationSettings fallback:", error);
     return {
       recipients: getFallbackReportRecipients(),
+      daily_report_hour: 23,
+      daily_enabled: true,
+      weekly_enabled: true,
+      monthly_enabled: true,
       updated_at: null,
       source: "environment",
     };
   }
 }
 
-export async function updateReportAutomationSettings(rawRecipients: string) {
+export async function updateReportAutomationSettings(
+  rawRecipients: string,
+  options?: {
+    daily_report_hour?: number;
+    daily_enabled?: boolean;
+    weekly_enabled?: boolean;
+    monthly_enabled?: boolean;
+  },
+) {
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
   if (!hasPermission(user.role, "manage_settings")) {
@@ -121,6 +156,11 @@ export async function updateReportAutomationSettings(rawRecipients: string) {
     return { error: `Invalid email address: ${invalidRecipients[0]}` };
   }
 
+  const hour = options?.daily_report_hour ?? 23;
+  if (hour < 0 || hour > 23 || !Number.isInteger(hour)) {
+    return { error: "Invalid report hour. Must be 0-23." };
+  }
+
   try {
     const supabase = createAdminClient();
     const updated_at = new Date().toISOString();
@@ -128,6 +168,10 @@ export async function updateReportAutomationSettings(rawRecipients: string) {
       {
         key: "default",
         recipients,
+        daily_report_hour: hour,
+        daily_enabled: options?.daily_enabled ?? true,
+        weekly_enabled: options?.weekly_enabled ?? true,
+        monthly_enabled: options?.monthly_enabled ?? true,
         updated_by: user.id,
         updated_at,
       },
@@ -147,6 +191,10 @@ export async function updateReportAutomationSettings(rawRecipients: string) {
       success: true,
       settings: {
         recipients,
+        daily_report_hour: hour,
+        daily_enabled: options?.daily_enabled ?? true,
+        weekly_enabled: options?.weekly_enabled ?? true,
+        monthly_enabled: options?.monthly_enabled ?? true,
         updated_at,
         source: recipients.length > 0 ? "database" : "environment",
       } as ReportAutomationSettingsResult,

@@ -22,6 +22,7 @@ import {
   Mail,
   Send,
   Save,
+  Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useOnlineStatus } from "@/hooks/use-online-status";
@@ -38,6 +39,10 @@ interface SettingsClientProps {
   user: UserType & { branch?: { name: string } | null };
   initialReportSettings: {
     recipients: string[];
+    daily_report_hour: number;
+    daily_enabled: boolean;
+    weekly_enabled: boolean;
+    monthly_enabled: boolean;
     updated_at: string | null;
     source: "database" | "environment";
   };
@@ -62,6 +67,18 @@ export function SettingsClient({
   );
   const [reportSettingsMeta, setReportSettingsMeta] = useState(
     initialReportSettings,
+  );
+  const [dailyReportHour, setDailyReportHour] = useState(
+    initialReportSettings.daily_report_hour,
+  );
+  const [dailyEnabled, setDailyEnabled] = useState(
+    initialReportSettings.daily_enabled,
+  );
+  const [weeklyEnabled, setWeeklyEnabled] = useState(
+    initialReportSettings.weekly_enabled,
+  );
+  const [monthlyEnabled, setMonthlyEnabled] = useState(
+    initialReportSettings.monthly_enabled,
   );
   const [passwords, setPasswords] = useState({
     current: "",
@@ -122,7 +139,12 @@ export function SettingsClient({
 
   function handleSaveReportRecipients() {
     startReportsTransition(async () => {
-      const result = await updateReportAutomationSettings(reportRecipients);
+      const result = await updateReportAutomationSettings(reportRecipients, {
+        daily_report_hour: dailyReportHour,
+        daily_enabled: dailyEnabled,
+        weekly_enabled: weeklyEnabled,
+        monthly_enabled: monthlyEnabled,
+      });
       if (result.error) {
         toast.error(result.error);
         return;
@@ -131,9 +153,13 @@ export function SettingsClient({
       if (result.settings) {
         setReportSettingsMeta(result.settings);
         setReportRecipients(result.settings.recipients.join(", "));
+        setDailyReportHour(result.settings.daily_report_hour);
+        setDailyEnabled(result.settings.daily_enabled);
+        setWeeklyEnabled(result.settings.weekly_enabled);
+        setMonthlyEnabled(result.settings.monthly_enabled);
       }
 
-      toast.success("Report recipients updated");
+      toast.success("Report settings saved");
     });
   }
 
@@ -295,15 +321,16 @@ export function SettingsClient({
             Reports Automation
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-5">
+          {/* Recipients */}
           <div className="space-y-2">
             <Label className="text-muted-foreground">Report Recipients</Label>
             <textarea
               value={reportRecipients}
               onChange={(e) => setReportRecipients(e.target.value)}
-              rows={4}
+              rows={3}
               placeholder="owner@lkpharmacare.com, manager@lkpharmacare.com"
-              className="flex min-h-[104px] w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-white outline-none placeholder:text-muted-foreground"
+              className="flex min-h-[80px] w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-white outline-none placeholder:text-muted-foreground"
             />
             <p className="text-xs text-muted-foreground">
               Use commas or new lines. Leave blank to fall back to configured
@@ -311,6 +338,91 @@ export function SettingsClient({
             </p>
           </div>
 
+          <Separator className="bg-border" />
+
+          {/* Daily Report Time */}
+          <div className="space-y-2">
+            <Label className="text-muted-foreground flex items-center gap-1.5">
+              <Clock className="h-3.5 w-3.5" />
+              Daily Report Schedule (EAT)
+            </Label>
+            <select
+              value={dailyReportHour}
+              onChange={(e) => setDailyReportHour(Number(e.target.value))}
+              className="w-full sm:w-48 h-9 rounded-md border border-border bg-background px-3 text-sm text-white outline-none cursor-pointer"
+            >
+              {Array.from({ length: 24 }, (_, h) => {
+                const ampm = h >= 12 ? "PM" : "AM";
+                const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+                return (
+                  <option key={h} value={h}>
+                    {hour12}:00 {ampm} EAT
+                  </option>
+                );
+              })}
+            </select>
+            <p className="text-xs text-muted-foreground">
+              The daily summary email will be sent at this time every day.
+            </p>
+          </div>
+
+          <Separator className="bg-border" />
+
+          {/* Report Toggles */}
+          <div className="space-y-3">
+            <Label className="text-muted-foreground">Enabled Reports</Label>
+            <div className="space-y-2">
+              {[
+                {
+                  label: "Daily Report",
+                  value: dailyEnabled,
+                  setter: setDailyEnabled,
+                  desc: "End-of-day sales summary",
+                },
+                {
+                  label: "Weekly Report",
+                  value: weeklyEnabled,
+                  setter: setWeeklyEnabled,
+                  desc: "Monday–Sunday weekly summary",
+                },
+                {
+                  label: "Monthly Report",
+                  value: monthlyEnabled,
+                  setter: setMonthlyEnabled,
+                  desc: "Full month summary on the 1st",
+                },
+              ].map(({ label, value, setter, desc }) => (
+                <div
+                  key={label}
+                  className="flex items-center justify-between p-3 rounded-lg border border-border bg-background/40"
+                >
+                  <div>
+                    <p className="text-sm text-white font-medium">{label}</p>
+                    <p className="text-xs text-muted-foreground">{desc}</p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={value}
+                    onClick={() => setter(!value)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+                      value ? "bg-primary" : "bg-border"
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none block h-5 w-5 rounded-full bg-white shadow-lg transition-transform ${
+                        value ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <Separator className="bg-border" />
+
+          {/* Info summary */}
           <div className="rounded-lg border border-border bg-background/40 p-3 space-y-2">
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <span className="text-sm text-muted-foreground">
@@ -331,12 +443,6 @@ export function SettingsClient({
             </div>
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <span className="text-sm text-muted-foreground">
-                Daily Schedule
-              </span>
-              <span className="text-sm text-white">11:00 PM EAT</span>
-            </div>
-            <div className="flex items-center justify-between gap-3 flex-wrap">
-              <span className="text-sm text-muted-foreground">
                 Last Updated
               </span>
               <span className="text-sm text-white">
@@ -347,6 +453,7 @@ export function SettingsClient({
             </div>
           </div>
 
+          {/* Action buttons */}
           <div className="flex gap-2 flex-wrap">
             <Button
               onClick={handleSaveReportRecipients}
@@ -361,7 +468,7 @@ export function SettingsClient({
               ) : (
                 <>
                   <Save className="h-4 w-4 mr-2" />
-                  Save Recipients
+                  Save Settings
                 </>
               )}
             </Button>

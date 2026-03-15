@@ -34,6 +34,22 @@ export async function GET(req: NextRequest) {
   }
 
   const supabase = createAdminClient();
+
+  // ── Check if weekly reports are enabled ──────────────────────────────────
+  const { data: settings } = await supabase
+    .from("report_settings")
+    .select("weekly_enabled")
+    .eq("key", "default")
+    .maybeSingle();
+
+  if (settings && settings.weekly_enabled === false) {
+    return NextResponse.json({
+      ok: true,
+      skipped: true,
+      reason: "weekly_disabled",
+    });
+  }
+
   const { start, end } = currentWeekEAT();
   const startTs = `${start}T00:00:00+03:00`;
   const endTs = `${end}T23:59:59+03:00`;
