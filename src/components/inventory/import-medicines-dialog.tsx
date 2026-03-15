@@ -551,7 +551,8 @@ function parseSmallInvoiceRows(sheetRows: unknown[][]): ParsedRow[] {
     .map((row, offset) => {
       const description = String(row[descIdx] ?? "").trim();
       // Stop at footer rows
-      if (!description || footerKeys.includes(description.toLowerCase())) return null;
+      if (!description || footerKeys.includes(description.toLowerCase()))
+        return null;
 
       const quantity = Math.round(parseNumeric(row[qtyIdx] ?? 0));
       // Use per-unit price if available, otherwise derive from total/qty
