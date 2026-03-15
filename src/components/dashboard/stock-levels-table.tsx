@@ -12,10 +12,22 @@ interface StockLevelsTableProps {
 
 function getStockStatus(med: Medicine) {
   if (med.quantity_in_stock === 0)
-    return { label: "Out of Stock", color: "text-red-400", bg: "bg-red-400/10 border-red-400/20" };
+    return {
+      label: "Out of Stock",
+      color: "text-red-400",
+      bg: "bg-red-400/10 border-red-400/20",
+    };
   if (med.quantity_in_stock <= med.reorder_level)
-    return { label: "Low Stock", color: "text-amber-400", bg: "bg-amber-400/10 border-amber-400/20" };
-  return { label: "In Stock", color: "text-emerald-400", bg: "bg-emerald-400/10 border-emerald-400/20" };
+    return {
+      label: "Low Stock",
+      color: "text-amber-400",
+      bg: "bg-amber-400/10 border-amber-400/20",
+    };
+  return {
+    label: "In Stock",
+    color: "text-emerald-400",
+    bg: "bg-emerald-400/10 border-emerald-400/20",
+  };
 }
 
 export function StockLevelsTable({
@@ -23,7 +35,9 @@ export function StockLevelsTable({
   mode = "pharmacy",
 }: StockLevelsTableProps) {
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"all" | "in_stock" | "low_stock" | "out_of_stock">("all");
+  const [filter, setFilter] = useState<
+    "all" | "in_stock" | "low_stock" | "out_of_stock"
+  >("all");
   const titleLabel = mode === "beauty" ? "Product" : "Medicine";
 
   const filtered = medicines.filter((med) => {
@@ -36,7 +50,9 @@ export function StockLevelsTable({
 
     if (filter === "out_of_stock") return med.quantity_in_stock === 0;
     if (filter === "low_stock")
-      return med.quantity_in_stock > 0 && med.quantity_in_stock <= med.reorder_level;
+      return (
+        med.quantity_in_stock > 0 && med.quantity_in_stock <= med.reorder_level
+      );
     if (filter === "in_stock") return med.quantity_in_stock > med.reorder_level;
     return true;
   });
@@ -46,13 +62,15 @@ export function StockLevelsTable({
     {
       key: "in_stock" as const,
       label: "In Stock",
-      count: medicines.filter((m) => m.quantity_in_stock > m.reorder_level).length,
+      count: medicines.filter((m) => m.quantity_in_stock > m.reorder_level)
+        .length,
     },
     {
       key: "low_stock" as const,
       label: "Low",
       count: medicines.filter(
-        (m) => m.quantity_in_stock > 0 && m.quantity_in_stock <= m.reorder_level,
+        (m) =>
+          m.quantity_in_stock > 0 && m.quantity_in_stock <= m.reorder_level,
       ).length,
     },
     {

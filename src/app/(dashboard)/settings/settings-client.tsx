@@ -517,8 +517,8 @@ export function SettingsClient({
         </CardContent>
       </Card>
 
-      {/* Danger Zone — super_admin only */}
-      {user.role === "super_admin" && (
+      {/* Danger Zone — admin & super_admin */}
+      {(user.role === "super_admin" || user.role === "admin") && (
         <Card className="bg-card border-destructive/30">
           <CardHeader>
             <CardTitle className="text-destructive flex items-center gap-2">
