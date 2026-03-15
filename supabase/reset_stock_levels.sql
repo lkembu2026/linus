@@ -1,9 +1,8 @@
 -- ========================================================
 -- LK PharmaCare — Reset Stock Levels (After Clearing Sales)
 -- ========================================================
--- Run this AFTER clearing sales data to restore medicine
--- stock levels. Sets quantity_in_stock to 50 for all
--- medicines (well above the default reorder_level of 10).
+-- Run this AFTER clearing sales data to zero out medicine
+-- stock levels. Sets quantity_in_stock to 0 for all medicines.
 -- ========================================================
 
 BEGIN;
@@ -16,9 +15,9 @@ SELECT 'before' AS phase,
        COUNT(*) AS total
 FROM public.medicines;
 
--- Reset all stock to 50 units (above default reorder_level of 10)
+-- Reset all stock to 0
 UPDATE public.medicines
-SET quantity_in_stock = 50,
+SET quantity_in_stock = 0,
     updated_at = now();
 
 -- Verify after reset

@@ -7,7 +7,7 @@
 --   - Transfers, notifications, saved reports, audit logs
 --
 -- What this resets:
---   - Medicine stock levels → 50 units each
+--   - Medicine stock levels → 0 (zeroed out)
 --
 -- What this keeps:
 --   - Branches, medicines (with reset stock)
@@ -58,7 +58,7 @@ BEGIN
 
   -- Reset stock levels instead of deleting medicines
   IF to_regclass('public.medicines') IS NOT NULL THEN
-    EXECUTE 'UPDATE public.medicines SET quantity_in_stock = 50, updated_at = now()';
+    EXECUTE 'UPDATE public.medicines SET quantity_in_stock = 0, updated_at = now()';
   END IF;
 END $$;
 
