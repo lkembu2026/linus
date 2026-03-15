@@ -20,7 +20,7 @@ export function useCart() {
             i.medicine_id === item.medicine_id ? { ...i, quantity: newQty } : i,
           );
         }
-        return [...prev, { ...item, quantity: item.quantity || 1 }];
+        return [...prev, { ...item, quantity: item.quantity || 1, discount_percent: 0 }];
       });
     },
     [],
@@ -42,14 +42,34 @@ export function useCart() {
     );
   }, []);
 
+  const updateDiscount = useCallback(
+    (medicineId: string, percent: number) => {
+      setItems((prev) =>
+        prev.map((i) =>
+          i.medicine_id === medicineId
+            ? { ...i, discount_percent: Math.max(0, Math.min(100, percent)) }
+            : i,
+        ),
+      );
+    },
+    [],
+  );
+
   const clearCart = useCallback(() => {
     setItems([]);
   }, []);
 
-  const total = items.reduce(
+  const subtotal = items.reduce(
     (sum, item) => sum + item.unit_price * item.quantity,
     0,
   );
+
+  const totalDiscount = items.reduce((sum, item) => {
+    const disc = item.discount_percent ?? 0;
+    return sum + item.unit_price * item.quantity * (disc / 100);
+  }, 0);
+
+  const total = subtotal - totalDiscount;
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
   return {
@@ -57,7 +77,10 @@ export function useCart() {
     addItem,
     removeItem,
     updateQuantity,
+    updateDiscount,
     clearCart,
+    subtotal,
+    totalDiscount,
     total,
     itemCount,
   };

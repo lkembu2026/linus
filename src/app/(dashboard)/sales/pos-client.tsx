@@ -228,8 +228,11 @@ export function POSClient({ user }: POSClientProps) {
           <Cart
             items={cart.items}
             total={cart.total}
+            subtotal={cart.subtotal}
+            totalDiscount={cart.totalDiscount}
             onRemove={cart.removeItem}
             onUpdateQuantity={cart.updateQuantity}
+            onUpdateDiscount={cart.updateDiscount}
             onCheckout={() => setCheckoutOpen(true)}
           />
         </div>

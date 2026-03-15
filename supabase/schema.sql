@@ -89,12 +89,13 @@ CREATE INDEX idx_sales_date      ON sales(created_at);
 -- 5. SALE ITEMS
 -- --------------------------------------------------------
 CREATE TABLE sale_items (
-  id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  sale_id      UUID NOT NULL REFERENCES sales(id) ON DELETE CASCADE,
-  medicine_id  UUID NOT NULL REFERENCES medicines(id),
-  quantity     INT NOT NULL DEFAULT 1,
-  unit_price   NUMERIC(10,2) NOT NULL DEFAULT 0,
-  created_at   TIMESTAMPTZ DEFAULT now()
+  id               UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  sale_id          UUID NOT NULL REFERENCES sales(id) ON DELETE CASCADE,
+  medicine_id      UUID NOT NULL REFERENCES medicines(id),
+  quantity         INT NOT NULL DEFAULT 1,
+  unit_price       NUMERIC(10,2) NOT NULL DEFAULT 0,
+  discount_percent NUMERIC(5,2) NOT NULL DEFAULT 0,
+  created_at       TIMESTAMPTZ DEFAULT now()
 );
 
 CREATE INDEX idx_sale_items_sale ON sale_items(sale_id);

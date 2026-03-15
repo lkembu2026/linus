@@ -87,6 +87,12 @@ export const NAV_ITEMS = [
     roles: ["super_admin", "admin", "supervisor", "pharmacist", "cashier"],
   },
   {
+    title: "Discounts",
+    href: "/discounts",
+    icon: "Percent",
+    roles: ["super_admin", "admin", "supervisor"],
+  },
+  {
     title: "Analytics",
     href: "/analytics",
     icon: "Activity",

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Minus, Plus, Trash2 } from "lucide-react";
+import { Minus, Plus, Trash2, Percent } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/utils";
@@ -10,7 +10,10 @@ import type { CartItem } from "@/types";
 interface CartProps {
   items: CartItem[];
   total: number;
+  subtotal: number;
+  totalDiscount: number;
   onUpdateQuantity: (medicineId: string, quantity: number) => void;
+  onUpdateDiscount: (medicineId: string, percent: number) => void;
   onRemove: (medicineId: string) => void;
   onCheckout: () => void;
 }
@@ -18,12 +21,17 @@ interface CartProps {
 export function Cart({
   items,
   total,
+  subtotal,
+  totalDiscount,
   onUpdateQuantity,
+  onUpdateDiscount,
   onRemove,
   onCheckout,
 }: CartProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
+  const [discountEditId, setDiscountEditId] = useState<string | null>(null);
+  const [discountValue, setDiscountValue] = useState("");
   return (
     <div className="glass-card flex flex-col h-full">
       {/* Header */}
@@ -49,11 +57,16 @@ export function Cart({
             </p>
           </div>
         ) : (
-          items.map((item) => (
+          items.map((item) => {
+            const disc = item.discount_percent ?? 0;
+            const lineTotal = item.unit_price * item.quantity;
+            const discountedTotal = lineTotal * (1 - disc / 100);
+            return (
             <div
               key={item.medicine_id}
-              className="flex items-center gap-3 p-3 rounded-lg bg-background/50 border border-border"
+              className="p-3 rounded-lg bg-background/50 border border-border space-y-2"
             >
+              <div className="flex items-center gap-3">
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-white truncate">
                   {item.name}
@@ -138,9 +151,20 @@ export function Cart({
 
               {/* Subtotal + Remove */}
               <div className="text-right">
-                <p className="text-sm font-semibold text-primary">
-                  {formatCurrency(item.unit_price * item.quantity)}
-                </p>
+                {disc > 0 ? (
+                  <>
+                    <p className="text-xs text-muted-foreground line-through">
+                      {formatCurrency(lineTotal)}
+                    </p>
+                    <p className="text-sm font-semibold text-primary">
+                      {formatCurrency(discountedTotal)}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm font-semibold text-primary">
+                    {formatCurrency(lineTotal)}
+                  </p>
+                )}
                 <button
                   onClick={() => onRemove(item.medicine_id)}
                   className="text-xs text-destructive hover:underline mt-0.5"
@@ -148,13 +172,89 @@ export function Cart({
                   Remove
                 </button>
               </div>
+              </div>
+
+              {/* Discount row */}
+              <div className="flex items-center gap-2">
+                <Percent className="h-3 w-3 text-muted-foreground shrink-0" />
+                {discountEditId === item.medicine_id ? (
+                  <Input
+                    type="number"
+                    value={discountValue}
+                    autoFocus
+                    min={0}
+                    max={100}
+                    className="w-16 h-6 text-center text-xs bg-background border-primary text-white p-1"
+                    onChange={(e) => setDiscountValue(e.target.value)}
+                    onBlur={() => {
+                      const n = parseFloat(discountValue);
+                      if (!isNaN(n)) onUpdateDiscount(item.medicine_id, n);
+                      setDiscountEditId(null);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        const n = parseFloat(discountValue);
+                        if (!isNaN(n)) onUpdateDiscount(item.medicine_id, n);
+                        setDiscountEditId(null);
+                      }
+                      if (e.key === "Escape") setDiscountEditId(null);
+                    }}
+                  />
+                ) : (
+                  <button
+                    className="text-xs text-muted-foreground hover:text-primary cursor-pointer"
+                    onClick={() => {
+                      setDiscountEditId(item.medicine_id);
+                      setDiscountValue((item.discount_percent ?? 0).toString());
+                    }}
+                  >
+                    {disc > 0 ? (
+                      <span className="text-amber-400 font-medium">{disc}% off</span>
+                    ) : (
+                      "Add discount"
+                    )}
+                  </button>
+                )}
+                <div className="flex gap-1 ml-auto">
+                  {[5, 10, 15, 20].map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => onUpdateDiscount(item.medicine_id, disc === p ? 0 : p)}
+                      className={`text-[10px] px-1.5 py-0.5 rounded border cursor-pointer transition-colors ${
+                        disc === p
+                          ? "border-primary bg-primary/20 text-primary"
+                          : "border-border text-muted-foreground hover:border-primary/50 hover:text-primary/70"
+                      }`}
+                    >
+                      {p}%
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
-          ))
+            );
+          })
         )}
       </div>
 
       {/* Footer: Total + Checkout */}
       <div className="p-4 border-t border-border space-y-3">
+        {totalDiscount > 0 && (
+          <>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Subtotal</span>
+              <span className="text-sm text-muted-foreground">
+                {formatCurrency(subtotal)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-amber-400">Discount</span>
+              <span className="text-sm text-amber-400">
+                -{formatCurrency(totalDiscount)}
+              </span>
+            </div>
+          </>
+        )}
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">Total</span>
           <span className="text-xl font-bold text-primary glow-text">

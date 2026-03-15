@@ -45,17 +45,30 @@ export function Receipt({
 
       {/* Items */}
       <div className="space-y-1">
-        {items.map((item) => (
+        {items.map((item) => {
+          const disc = item.discount_percent ?? 0;
+          const lineTotal = item.unit_price * item.quantity;
+          const discountedTotal = lineTotal * (1 - disc / 100);
+          return (
           <div key={item.medicine_id}>
             <p>{item.name}</p>
             <div className="flex justify-between pl-4">
               <span>
                 {item.quantity} × {formatCurrency(item.unit_price)}
+                {disc > 0 && <span className="text-[10px]"> (-{disc}%)</span>}
               </span>
-              <span>{formatCurrency(item.unit_price * item.quantity)}</span>
+              {disc > 0 ? (
+                <span>
+                  <span className="line-through text-gray-400 text-[10px] mr-1">{formatCurrency(lineTotal)}</span>
+                  {formatCurrency(discountedTotal)}
+                </span>
+              ) : (
+                <span>{formatCurrency(lineTotal)}</span>
+              )}
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="border-t border-dashed border-gray-400 my-2" />

@@ -61,6 +61,7 @@ export async function createSale(
       medicine_id: item.medicine_id,
       quantity: item.quantity,
       unit_price: item.unit_price,
+      discount_percent: item.discount_percent ?? 0,
     }));
 
     const { error: itemsError } = await supabase
@@ -176,6 +177,7 @@ export async function createSale(
         name: i.name,
         quantity: i.quantity,
         unit_price: i.unit_price,
+        discount_percent: i.discount_percent ?? 0,
       })),
       total: totalAmount,
       paymentMethod,

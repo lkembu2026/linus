@@ -78,6 +78,7 @@ export type SaleItem = {
   medicine_id: string;
   quantity: number;
   unit_price: number;
+  discount_percent: number;
   created_at: string;
 };
 
@@ -248,6 +249,7 @@ export interface Database {
           medicine_id: string;
           quantity?: number;
           unit_price?: number;
+          discount_percent?: number;
           created_at?: string;
         };
         Update: Partial<SaleItem>;

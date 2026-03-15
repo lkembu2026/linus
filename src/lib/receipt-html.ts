@@ -4,7 +4,7 @@
 
 export function generateReceiptHtml(data: {
   receiptNo: string;
-  items: { name: string; quantity: number; unit_price: number }[];
+  items: { name: string; quantity: number; unit_price: number; discount_percent?: number }[];
   total: number;
   paymentMethod: string;
   paidAmount?: number;
@@ -17,13 +17,18 @@ export function generateReceiptHtml(data: {
 }) {
   const itemRows = data.items
     .map(
-      (item) => `
+      (item) => {
+        const disc = item.discount_percent ?? 0;
+        const lineTotal = item.unit_price * item.quantity;
+        const discountedTotal = lineTotal * (1 - disc / 100);
+        return `
       <tr>
-        <td style="padding:8px 0;border-bottom:1px solid #1a1a2e;color:#e0e0e0;font-size:13px;">${item.name}</td>
+        <td style="padding:8px 0;border-bottom:1px solid #1a1a2e;color:#e0e0e0;font-size:13px;">${item.name}${disc > 0 ? `<br/><span style="color:#f59e0b;font-size:10px;">-${disc}% discount</span>` : ""}</td>
         <td style="padding:8px 0;border-bottom:1px solid #1a1a2e;text-align:center;color:#a0a0b0;font-size:13px;">${item.quantity}</td>
         <td style="padding:8px 0;border-bottom:1px solid #1a1a2e;text-align:right;color:#a0a0b0;font-size:13px;">KES ${item.unit_price.toLocaleString()}</td>
-        <td style="padding:8px 0;border-bottom:1px solid #1a1a2e;text-align:right;color:#e0e0e0;font-weight:600;font-size:13px;">KES ${(item.unit_price * item.quantity).toLocaleString()}</td>
-      </tr>`,
+        <td style="padding:8px 0;border-bottom:1px solid #1a1a2e;text-align:right;color:#e0e0e0;font-weight:600;font-size:13px;">${disc > 0 ? `<span style="text-decoration:line-through;color:#666;font-size:11px;">KES ${lineTotal.toLocaleString()}</span><br/>` : ""}KES ${(disc > 0 ? discountedTotal : lineTotal).toLocaleString()}</td>
+      </tr>`;
+      },
     )
     .join("");
 

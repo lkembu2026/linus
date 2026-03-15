@@ -20,6 +20,7 @@ import {
   CreditCard,
   Activity,
   Loader2,
+  Percent,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NAV_ITEMS } from "@/lib/constants";
@@ -40,6 +41,7 @@ const iconMap: Record<string, React.ElementType> = {
   Clock,
   CreditCard,
   Activity,
+  Percent,
 };
 
 interface SidebarProps {
