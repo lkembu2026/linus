@@ -1,5 +1,5 @@
 // =============================================
-// LK PHARMACARE — DATABASE TYPES
+// LINMAKS PHARMACARE — DATABASE TYPES
 // Matches Supabase PostgreSQL schema exactly
 // Using `type` (not `interface`) so they satisfy
 // Record<string, unknown> required by Supabase SDK.

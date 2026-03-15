@@ -126,7 +126,7 @@ export function PWAInstallPrompt() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-white">
-                  Install LK PharmaCare
+                  Install Linmaks PharmaCare
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Use the app with a faster, more native experience and offline

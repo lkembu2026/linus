@@ -91,7 +91,7 @@ export function Receipt({
       <div className="text-center text-[10px] mt-4">
         <p>Served by: {cashierName}</p>
         <p className="mt-2">Thank you for your purchase!</p>
-        <p className="mt-1 font-bold">LK PharmaCare</p>
+        <p className="mt-1 font-bold">Linmaks PharmaCare</p>
       </div>
     </div>
   );

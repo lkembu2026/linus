@@ -79,7 +79,7 @@ async function downloadPDF(
   doc.setTextColor(10, 10, 10);
   doc.setFontSize(13);
   doc.setFont("helvetica", "bold");
-  doc.text("LK PharmaCare", 14, 12);
+  doc.text("Linmaks PharmaCare", 14, 12);
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.text("Multi-Branch Pharmacy Operating System", 105, 12, {
@@ -145,7 +145,7 @@ async function downloadPDF(
     doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
     doc.text(
-      `LK PharmaCare — Confidential | Page ${i} of ${pageCount}`,
+      `Linmaks PharmaCare — Confidential | Page ${i} of ${pageCount}`,
       105,
       290,
       { align: "center" },

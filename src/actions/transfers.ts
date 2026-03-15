@@ -132,8 +132,16 @@ export async function createTransfer(formData: {
 
   // Fetch branch names for the email in parallel
   const [{ data: fromBr }, { data: toBr }] = await Promise.all([
-    supabase.from("branches").select("name").eq("id", formData.from_branch_id).single(),
-    supabase.from("branches").select("name").eq("id", formData.to_branch_id).single(),
+    supabase
+      .from("branches")
+      .select("name")
+      .eq("id", formData.from_branch_id)
+      .single(),
+    supabase
+      .from("branches")
+      .select("name")
+      .eq("id", formData.to_branch_id)
+      .single(),
   ]);
 
   sendTransferEmail({
@@ -225,11 +233,24 @@ export async function approveTransfer(transferId: string) {
   });
 
   // Fetch details for email in parallel
-  const [{ data: medName }, { data: fromBrA }, { data: toBrA }] = await Promise.all([
-    supabase.from("medicines").select("name").eq("id", transfer.medicine_id).single(),
-    supabase.from("branches").select("name").eq("id", transfer.from_branch_id).single(),
-    supabase.from("branches").select("name").eq("id", transfer.to_branch_id).single(),
-  ]);
+  const [{ data: medName }, { data: fromBrA }, { data: toBrA }] =
+    await Promise.all([
+      supabase
+        .from("medicines")
+        .select("name")
+        .eq("id", transfer.medicine_id)
+        .single(),
+      supabase
+        .from("branches")
+        .select("name")
+        .eq("id", transfer.from_branch_id)
+        .single(),
+      supabase
+        .from("branches")
+        .select("name")
+        .eq("id", transfer.to_branch_id)
+        .single(),
+    ]);
 
   sendTransferEmail({
     medicineName: (medName as { name: string } | null)?.name ?? "Medicine",
@@ -278,11 +299,24 @@ export async function rejectTransfer(transferId: string) {
   });
 
   if (rejT) {
-    const [{ data: rejMed }, { data: rejFrom }, { data: rejTo }] = await Promise.all([
-      supabase.from("medicines").select("name").eq("id", rejT.medicine_id).single(),
-      supabase.from("branches").select("name").eq("id", rejT.from_branch_id).single(),
-      supabase.from("branches").select("name").eq("id", rejT.to_branch_id).single(),
-    ]);
+    const [{ data: rejMed }, { data: rejFrom }, { data: rejTo }] =
+      await Promise.all([
+        supabase
+          .from("medicines")
+          .select("name")
+          .eq("id", rejT.medicine_id)
+          .single(),
+        supabase
+          .from("branches")
+          .select("name")
+          .eq("id", rejT.from_branch_id)
+          .single(),
+        supabase
+          .from("branches")
+          .select("name")
+          .eq("id", rejT.to_branch_id)
+          .single(),
+      ]);
 
     sendTransferEmail({
       medicineName: (rejMed as { name: string } | null)?.name ?? "Medicine",

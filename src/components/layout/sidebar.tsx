@@ -114,7 +114,7 @@ export function Sidebar({
           <div className="shrink-0 rounded-full ring-2 ring-primary/50 ring-offset-2 ring-offset-[#0A0A0A] shadow-[0_0_12px_rgba(0,255,224,0.25)]">
             <Image
               src="/LKL.webp"
-              alt="LK PharmaCare"
+              alt="Linmaks PharmaCare"
               width={36}
               height={36}
               className="rounded-full"

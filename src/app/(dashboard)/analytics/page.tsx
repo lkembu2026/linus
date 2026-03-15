@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import type { User } from "@/types/database";
 
 export const metadata = {
-  title: "Analytics — LK PharmaCare",
+  title: "Analytics — Linmaks PharmaCare",
 };
 
 export default async function AnalyticsPage() {

@@ -107,7 +107,7 @@ export function ResetPasswordForm({
         <div className="inline-block rounded-full ring-2 ring-primary/50 ring-offset-4 ring-offset-background shadow-[0_0_20px_rgba(0,255,224,0.3)] mb-4">
           <Image
             src="/LKL.webp"
-            alt="LK PharmaCare"
+            alt="Linmaks PharmaCare"
             width={80}
             height={80}
             className="rounded-full block"
@@ -257,7 +257,7 @@ export function ResetPasswordForm({
       </div>
 
       <p className="text-center text-xs text-muted-foreground mt-6">
-        LK PharmaCare v1.0 - Powered by{" "}
+        Linmaks PharmaCare v1.0 - Powered by{" "}
         <span className="text-primary font-medium">STEM ED</span>
       </p>
     </div>

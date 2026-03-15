@@ -1,8 +1,8 @@
 // =============================================
-// LK PHARMACARE — APP CONSTANTS
+// LINMAKS PHARMACARE — APP CONSTANTS
 // =============================================
 
-export const APP_NAME = "LK PharmaCare";
+export const APP_NAME = "Linmaks PharmaCare";
 export const APP_DESCRIPTION =
   "Multi-Branch, Offline-First Pharmacy Operating System";
 export const APP_VERSION = "1.0.0";

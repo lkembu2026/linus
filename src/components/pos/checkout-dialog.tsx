@@ -276,7 +276,7 @@ export function CheckoutDialog({
   <div style="max-width:360px;margin:0 auto;padding:24px 20px;background:#0a0a0f;">
     <div style="text-align:center;padding-bottom:20px;">
       <div style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#00ffe0 0%,#00b8a9 100%);border-radius:8px;margin-bottom:12px;">
-        <div style="font-size:18px;font-weight:800;color:#0a0a0f;letter-spacing:1px;">LK PHARMACARE</div>
+        <div style="font-size:18px;font-weight:800;color:#0a0a0f;letter-spacing:1px;">LINMAKS PHARMACARE</div>
       </div>
       <div style="color:#a0a0b0;font-size:12px;margin-top:8px;">${branchName}</div>
       <div style="color:#666;font-size:11px;margin-top:4px;">${dateStr}</div>
@@ -313,7 +313,7 @@ export function CheckoutDialog({
         <div style="color:#00ffe0;font-size:13px;font-weight:600;">Thank you for your purchase!</div>
         <div style="color:#555;font-size:10px;margin-top:4px;">Get well soon — we care about your health</div>
       </div>
-      <div style="color:#333;font-size:9px;">&copy; ${new Date().getFullYear()} LK PharmaCare</div>
+      <div style="color:#333;font-size:9px;">&copy; ${new Date().getFullYear()} Linmaks PharmaCare</div>
     </div>
   </div>
 </body></html>`);

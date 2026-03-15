@@ -1,5 +1,5 @@
 // =============================================
-// LK PHARMACARE — SHARED APP TYPES
+// LINMAKS PHARMACARE — SHARED APP TYPES
 // =============================================
 
 export type {

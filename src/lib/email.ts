@@ -1,5 +1,5 @@
 // =============================================
-// LK PHARMACARE — EMAIL SERVICE (Resend)
+// LINMAKS PHARMACARE — EMAIL SERVICE (Resend)
 // =============================================
 
 import { Resend } from "resend";
@@ -11,7 +11,7 @@ const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "admin@lkpharmacare.com";
 const FROM_EMAIL =
   process.env.RESEND_FROM_EMAIL ??
   process.env.FROM_EMAIL ??
-  "LK PharmaCare <onboarding@resend.dev>";
+  "Linmaks PharmaCare <onboarding@resend.dev>";
 
 // ---- Helpers ----
 
@@ -96,13 +96,13 @@ function wrapHtml(title: string, body: string): string {
 <body>
   <div class="container">
     <div class="header">
-      <h1>LK PharmaCare</h1>
+      <h1>Linmaks PharmaCare</h1>
       <p>Multi-Branch Pharmacy Operating System</p>
     </div>
     ${body}
     <div class="footer">
-      <p>This is an automated email from LK PharmaCare</p>
-      <p>&copy; ${new Date().getFullYear()} LK PharmaCare. All rights reserved.</p>
+      <p>This is an automated email from Linmaks PharmaCare</p>
+      <p>&copy; ${new Date().getFullYear()} Linmaks PharmaCare. All rights reserved.</p>
     </div>
   </div>
 </body>
@@ -560,7 +560,7 @@ export async function sendReportEmail(data: {
         ${summaryRows}
       </div>
       <div style="text-align:center; padding:16px 0;">
-        <p style="color:#9CA3AF; font-size:12px;">Log in to LK PharmaCare to view the full report and download as PDF.</p>
+        <p style="color:#9CA3AF; font-size:12px;">Log in to Linmaks PharmaCare to view the full report and download as PDF.</p>
       </div>`;
 
     await resend.emails.send({
@@ -829,7 +829,7 @@ export async function sendMonthlySummaryEmail(data: {
           : ""
       }
       <div style="text-align:center; padding:16px 0;">
-        <p style="color:#9CA3AF; font-size:12px;">Log in to LK PharmaCare to download this report as PDF.</p>
+        <p style="color:#9CA3AF; font-size:12px;">Log in to Linmaks PharmaCare to download this report as PDF.</p>
       </div>`;
 
     await resend.emails.send({

@@ -1,5 +1,5 @@
 // =============================================
-// LK PharmaCare — Service Worker v3
+// Linmaks PharmaCare — Service Worker v3
 // Offline-first for static assets / app shell
 // Network-first for all other requests
 // =============================================
@@ -151,7 +151,7 @@ const OFFLINE_PAGE = `<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LK PharmaCare — Offline</title>
+  <title>Linmaks PharmaCare — Offline</title>
   <style>
     body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
     background:#0D0D0D;color:#fff;font-family:system-ui,sans-serif;text-align:center;padding:2rem}
@@ -166,7 +166,7 @@ const OFFLINE_PAGE = `<!DOCTYPE html>
 <body>
   <div class="box">
     <h1>You're Offline</h1>
-    <p>LK PharmaCare needs to load at least once while online. 
+    <p>Linmaks PharmaCare needs to load at least once while online. 
        The POS (sales) page works offline after that first load.</p>
     <p>Check your internet connection and try again.</p>
     <button onclick="location.reload()">Retry</button>

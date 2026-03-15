@@ -229,9 +229,7 @@ async function _getDashboardStats(ctx: DashCtx): Promise<DashboardStats> {
   }
 
   // Build medicines count query
-  let medCountQ = supabase
-    .from("medicines")
-    .select("id", { count: "exact" });
+  let medCountQ = supabase.from("medicines").select("id", { count: "exact" });
   if (branchId) medCountQ = medCountQ.eq("branch_id", branchId);
   if (categories.length > 0) medCountQ = medCountQ.in("category", categories);
 
@@ -666,7 +664,9 @@ async function _getRecentSales(
   return sales.map((sale) => {
     const items = saleItems.filter((si) => si.sale_id === sale.id);
     const summary = items
-      .map((si) => `${medsMap.get(si.medicine_id) ?? "Unknown"} ×${si.quantity}`)
+      .map(
+        (si) => `${medsMap.get(si.medicine_id) ?? "Unknown"} ×${si.quantity}`,
+      )
       .join(", ");
     return { ...sale, items_summary: summary };
   });
@@ -686,7 +686,12 @@ export async function getDashboardStats(
     cats.length > 0
       ? await getSaleIdsByCategories(supabase, cats, branchId)
       : undefined;
-  return _getDashboardStats({ supabase, branchId, validSaleIds, categories: cats });
+  return _getDashboardStats({
+    supabase,
+    branchId,
+    validSaleIds,
+    categories: cats,
+  });
 }
 
 export async function getTopMedicines(
@@ -703,7 +708,10 @@ export async function getTopMedicines(
     cats.length > 0
       ? await getSaleIdsByCategories(supabase, cats, branchId)
       : undefined;
-  return _getTopMedicines({ supabase, branchId, validSaleIds, categories: cats }, limit);
+  return _getTopMedicines(
+    { supabase, branchId, validSaleIds, categories: cats },
+    limit,
+  );
 }
 
 export async function getRevenueChart(
@@ -720,7 +728,10 @@ export async function getRevenueChart(
     cats.length > 0
       ? await getSaleIdsByCategories(supabase, cats, branchId)
       : undefined;
-  return _getRevenueChart({ supabase, branchId, validSaleIds, categories: cats }, days);
+  return _getRevenueChart(
+    { supabase, branchId, validSaleIds, categories: cats },
+    days,
+  );
 }
 
 export async function getBranchComparison(
@@ -801,7 +812,12 @@ export async function getLowStockItems(categories?: string[]) {
     createClient(),
   ]);
   const branchId = await getEffectiveBranchId(user);
-  return _getLowStockItems({ supabase, branchId, validSaleIds: undefined, categories: categories ?? [] });
+  return _getLowStockItems({
+    supabase,
+    branchId,
+    validSaleIds: undefined,
+    categories: categories ?? [],
+  });
 }
 
 export async function getInventoryOverview(
@@ -812,7 +828,12 @@ export async function getInventoryOverview(
     createClient(),
   ]);
   const branchId = await getEffectiveBranchId(user);
-  return _getInventoryOverview({ supabase, branchId, validSaleIds: undefined, categories: categories ?? [] });
+  return _getInventoryOverview({
+    supabase,
+    branchId,
+    validSaleIds: undefined,
+    categories: categories ?? [],
+  });
 }
 
 export async function getMedicineDailySales(
@@ -829,7 +850,10 @@ export async function getMedicineDailySales(
     cats.length > 0
       ? await getSaleIdsByCategories(supabase, cats, branchId)
       : undefined;
-  return _getMedicineDailySales({ supabase, branchId, validSaleIds, categories: cats }, days);
+  return _getMedicineDailySales(
+    { supabase, branchId, validSaleIds, categories: cats },
+    days,
+  );
 }
 
 export async function getMedicineCategoryBreakdown(
@@ -840,5 +864,10 @@ export async function getMedicineCategoryBreakdown(
     createClient(),
   ]);
   const branchId = await getEffectiveBranchId(user);
-  return _getMedicineCategoryBreakdown({ supabase, branchId, validSaleIds: undefined, categories: categories ?? [] });
+  return _getMedicineCategoryBreakdown({
+    supabase,
+    branchId,
+    validSaleIds: undefined,
+    categories: categories ?? [],
+  });
 }

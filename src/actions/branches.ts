@@ -175,10 +175,7 @@ export async function deleteBranch(id: string) {
     adminSupabase.from("medicines").delete().eq("branch_id", id),
     adminSupabase.from("notifications").delete().eq("branch_id", id),
     adminSupabase.from("saved_reports").delete().eq("branch_id", id),
-    adminSupabase
-      .from("users")
-      .update({ branch_id: null })
-      .eq("branch_id", id),
+    adminSupabase.from("users").update({ branch_id: null }).eq("branch_id", id),
   ]);
 
   // 3. Delete the branch itself (must wait for dependents)

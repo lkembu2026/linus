@@ -29,14 +29,14 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "LK PharmaCare — Pharmacy Operating System",
+  title: "Linmaks PharmaCare — Pharmacy Operating System",
   description:
     "Multi-Branch, Offline-First Pharmacy Operating System. Real-time POS, inventory management, and analytics.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "LK PharmaCare",
+    title: "Linmaks PharmaCare",
   },
 };
 
