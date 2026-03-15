@@ -135,16 +135,36 @@ export function InvoicesClient({
                 <Table>
                   <TableHeader>
                     <TableRow className="border-border hover:bg-transparent">
-                      <TableHead className="text-muted-foreground">Date</TableHead>
-                      <TableHead className="text-muted-foreground">Invoice #</TableHead>
-                      <TableHead className="text-muted-foreground">Supplier</TableHead>
-                      <TableHead className="text-muted-foreground">File</TableHead>
-                      <TableHead className="text-muted-foreground">Format</TableHead>
-                      <TableHead className="text-muted-foreground text-right">Items</TableHead>
-                      <TableHead className="text-muted-foreground text-right">New</TableHead>
-                      <TableHead className="text-muted-foreground text-right">Updated</TableHead>
-                      <TableHead className="text-muted-foreground text-right">Value</TableHead>
-                      <TableHead className="text-muted-foreground">By</TableHead>
+                      <TableHead className="text-muted-foreground">
+                        Date
+                      </TableHead>
+                      <TableHead className="text-muted-foreground">
+                        Invoice #
+                      </TableHead>
+                      <TableHead className="text-muted-foreground">
+                        Supplier
+                      </TableHead>
+                      <TableHead className="text-muted-foreground">
+                        File
+                      </TableHead>
+                      <TableHead className="text-muted-foreground">
+                        Format
+                      </TableHead>
+                      <TableHead className="text-muted-foreground text-right">
+                        Items
+                      </TableHead>
+                      <TableHead className="text-muted-foreground text-right">
+                        New
+                      </TableHead>
+                      <TableHead className="text-muted-foreground text-right">
+                        Updated
+                      </TableHead>
+                      <TableHead className="text-muted-foreground text-right">
+                        Value
+                      </TableHead>
+                      <TableHead className="text-muted-foreground">
+                        By
+                      </TableHead>
                       <TableHead className="text-muted-foreground w-[60px]"></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -255,7 +275,10 @@ export function InvoicesClient({
               <Package className="h-5 w-5 text-primary" />
               Invoice Details
               {selectedInvoice?.invoice_number && (
-                <Badge variant="outline" className="border-primary text-primary ml-2">
+                <Badge
+                  variant="outline"
+                  className="border-primary text-primary ml-2"
+                >
                   #{selectedInvoice.invoice_number}
                 </Badge>
               )}
@@ -298,11 +321,21 @@ export function InvoicesClient({
                   <TableHeader>
                     <TableRow className="border-border hover:bg-transparent">
                       <TableHead className="text-muted-foreground">#</TableHead>
-                      <TableHead className="text-muted-foreground">Name</TableHead>
-                      <TableHead className="text-muted-foreground">Category</TableHead>
-                      <TableHead className="text-muted-foreground text-right">Qty</TableHead>
-                      <TableHead className="text-muted-foreground text-right">Price</TableHead>
-                      <TableHead className="text-muted-foreground">Barcode</TableHead>
+                      <TableHead className="text-muted-foreground">
+                        Name
+                      </TableHead>
+                      <TableHead className="text-muted-foreground">
+                        Category
+                      </TableHead>
+                      <TableHead className="text-muted-foreground text-right">
+                        Qty
+                      </TableHead>
+                      <TableHead className="text-muted-foreground text-right">
+                        Price
+                      </TableHead>
+                      <TableHead className="text-muted-foreground">
+                        Barcode
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

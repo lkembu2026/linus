@@ -17,6 +17,7 @@ import { LowStockAlert } from "@/components/dashboard/low-stock-alert";
 import { RecentSales } from "@/components/dashboard/recent-sales";
 import { MedicineInventoryCard } from "@/components/dashboard/medicine-inventory-card";
 import { MedicineCategoryBreakdownCard } from "@/components/dashboard/medicine-category-breakdown";
+import { StockLevelsTable } from "@/components/dashboard/stock-levels-table";
 
 // Components — lazy (recharts is ~300KB)
 const RevenueChart = dynamic(
@@ -166,6 +167,10 @@ export function DashboardClient({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
         <LowStockAlert items={data.lowStock} />
         <MedicineCategoryBreakdownCard data={data.categoryBreakdown} />
+      </div>
+
+      <div className="mt-6">
+        <StockLevelsTable medicines={data.allMedicines} mode={mode} />
       </div>
     </>
   );

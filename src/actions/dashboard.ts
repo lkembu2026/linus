@@ -35,6 +35,7 @@ export type DashboardPageData = {
   topMedicines: TopMedicine[];
   revenueData: RevenueDataPoint[];
   lowStock: Medicine[];
+  allMedicines: Medicine[];
   overview: InventoryOverview;
   dailySales: MedicineDailySales[];
   categoryBreakdown: MedicineCategoryBreakdown[];
@@ -152,7 +153,7 @@ export async function getDashboardPageData(
       stats,
       topMedicines,
       revenueData,
-      lowStock,
+      allMedicines,
       overview,
       dailySales,
       categoryBreakdown,
@@ -161,18 +162,23 @@ export async function getDashboardPageData(
       _getDashboardStats(ctx),
       _getTopMedicines(ctx, 10),
       _getRevenueChart(ctx, 30),
-      _getLowStockItems(ctx),
+      _getAllMedicines(ctx),
       _getInventoryOverview(ctx),
       _getMedicineDailySales(ctx, 14),
       _getMedicineCategoryBreakdown(ctx),
       _getRecentSales(ctx, 10),
     ]);
 
+    const lowStock = allMedicines.filter(
+      (m) => m.quantity_in_stock <= m.reorder_level,
+    );
+
     return {
       stats,
       topMedicines,
       revenueData,
       lowStock,
+      allMedicines,
       overview,
       dailySales,
       categoryBreakdown,
@@ -384,7 +390,7 @@ async function _getRevenueChart(
 }
 
 // ── Low Stock Items ─────────────────────────────────────────────────────────
-async function _getLowStockItems(ctx: DashCtx) {
+async function _getAllMedicines(ctx: DashCtx) {
   const { supabase, branchId, categories } = ctx;
 
   let query = supabase
@@ -396,9 +402,7 @@ async function _getLowStockItems(ctx: DashCtx) {
   if (categories.length > 0) query = query.in("category", categories);
 
   const { data } = await query;
-  const medicines = (data ?? []) as unknown as Medicine[];
-
-  return medicines.filter((m) => m.quantity_in_stock <= m.reorder_level);
+  return (data ?? []) as unknown as Medicine[];
 }
 
 // ── Inventory Overview ──────────────────────────────────────────────────────
@@ -812,12 +816,13 @@ export async function getLowStockItems(categories?: string[]) {
     createClient(),
   ]);
   const branchId = await getEffectiveBranchId(user);
-  return _getLowStockItems({
+  const all = await _getAllMedicines({
     supabase,
     branchId,
     validSaleIds: undefined,
     categories: categories ?? [],
   });
+  return all.filter((m) => m.quantity_in_stock <= m.reorder_level);
 }
 
 export async function getInventoryOverview(

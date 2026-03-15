@@ -534,12 +534,18 @@ function extractInvoiceMeta(sheetRows: unknown[][]): {
   supplier_name?: string;
   invoice_date?: string;
 } {
-  const meta: { invoice_number?: string; supplier_name?: string; invoice_date?: string } = {};
+  const meta: {
+    invoice_number?: string;
+    supplier_name?: string;
+    invoice_date?: string;
+  } = {};
   // Scan first ~10 rows for header metadata (INVOICE NO, CUSTOMER NAME, DATE)
   const scanRows = sheetRows.slice(0, 10);
   for (const row of scanRows) {
     if (!Array.isArray(row) || row.length < 2) continue;
-    const label = String(row[0] ?? "").trim().toUpperCase();
+    const label = String(row[0] ?? "")
+      .trim()
+      .toUpperCase();
     const value = String(row[1] ?? "").trim();
     if (!value) continue;
     if (label.includes("INVOICE") && label.includes("NO")) {
@@ -699,7 +705,10 @@ export function ImportMedicinesDialog({
       setImportFormat(detectedFormat);
 
       // Extract invoice metadata from header rows for invoice formats
-      if (detectedFormat === "lk-invoice" || detectedFormat === "small-invoice") {
+      if (
+        detectedFormat === "lk-invoice" ||
+        detectedFormat === "small-invoice"
+      ) {
         setInvoiceMeta(extractInvoiceMeta(aoa));
       } else {
         setInvoiceMeta({});

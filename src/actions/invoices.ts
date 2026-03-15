@@ -30,7 +30,11 @@ export async function getImportInvoices(page = 1, pageSize = 20) {
     return { invoices: [], total: 0 };
   }
 
-  const invoices = ((data ?? []) as unknown as (ImportInvoice & { users?: { full_name: string } })[]).map((inv) => ({
+  const invoices = (
+    (data ?? []) as unknown as (ImportInvoice & {
+      users?: { full_name: string };
+    })[]
+  ).map((inv) => ({
     ...inv,
     imported_by_name: inv.users?.full_name ?? "Unknown",
   }));

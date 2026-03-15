@@ -2,13 +2,15 @@
 -- LK PharmaCare — Reset Test Data (Fresh Start)
 -- ========================================================
 -- What this clears:
---   - Sample products / inventory
 --   - Sales history + sale items + receipts
 --   - Credit history
 --   - Transfers, notifications, saved reports, audit logs
 --
+-- What this resets:
+--   - Medicine stock levels → 50 units each
+--
 -- What this keeps:
---   - Branches
+--   - Branches, medicines (with reset stock)
 --   - Users/auth accounts
 --   - Schema, RLS policies, functions
 -- ========================================================
@@ -54,8 +56,9 @@ BEGIN
     EXECUTE 'DELETE FROM public.sales';
   END IF;
 
+  -- Reset stock levels instead of deleting medicines
   IF to_regclass('public.medicines') IS NOT NULL THEN
-    EXECUTE 'DELETE FROM public.medicines';
+    EXECUTE 'UPDATE public.medicines SET quantity_in_stock = 50, updated_at = now()';
   END IF;
 END $$;
 
