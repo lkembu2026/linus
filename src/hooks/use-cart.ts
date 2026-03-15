@@ -49,22 +49,29 @@ export function useCart() {
     setItems((prev) =>
       prev.map((i) =>
         i.medicine_id === medicineId
-          ? { ...i, discount_percent: Math.max(0, Math.min(100, percent)), discount_amount: 0 }
+          ? {
+              ...i,
+              discount_percent: Math.max(0, Math.min(100, percent)),
+              discount_amount: 0,
+            }
           : i,
       ),
     );
   }, []);
 
-  const updateDiscountAmount = useCallback((medicineId: string, amount: number) => {
-    setItems((prev) =>
-      prev.map((i) => {
-        if (i.medicine_id !== medicineId) return i;
-        const lineTotal = i.unit_price * i.quantity;
-        const clamped = Math.max(0, Math.min(lineTotal, amount));
-        return { ...i, discount_amount: clamped, discount_percent: 0 };
-      }),
-    );
-  }, []);
+  const updateDiscountAmount = useCallback(
+    (medicineId: string, amount: number) => {
+      setItems((prev) =>
+        prev.map((i) => {
+          if (i.medicine_id !== medicineId) return i;
+          const lineTotal = i.unit_price * i.quantity;
+          const clamped = Math.max(0, Math.min(lineTotal, amount));
+          return { ...i, discount_amount: clamped, discount_percent: 0 };
+        }),
+      );
+    },
+    [],
+  );
 
   const clearCart = useCallback(() => {
     setItems([]);

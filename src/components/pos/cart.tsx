@@ -34,7 +34,9 @@ export function Cart({
   const [editValue, setEditValue] = useState("");
   const [discountEditId, setDiscountEditId] = useState<string | null>(null);
   const [discountValue, setDiscountValue] = useState("");
-  const [discountMode, setDiscountMode] = useState<Record<string, "%" | "KES">>({});
+  const [discountMode, setDiscountMode] = useState<Record<string, "%" | "KES">>(
+    {},
+  );
   return (
     <div className="glass-card flex flex-col h-full">
       {/* Header */}
@@ -64,9 +66,13 @@ export function Cart({
             const disc = item.discount_percent ?? 0;
             const discAmt = item.discount_amount ?? 0;
             const lineTotal = item.unit_price * item.quantity;
-            const effectiveDiscount = discAmt > 0 ? Math.min(discAmt, lineTotal) : lineTotal * (disc / 100);
+            const effectiveDiscount =
+              discAmt > 0
+                ? Math.min(discAmt, lineTotal)
+                : lineTotal * (disc / 100);
             const discountedTotal = lineTotal - effectiveDiscount;
-            const mode = discountMode[item.medicine_id] ?? (discAmt > 0 ? "KES" : "%");
+            const mode =
+              discountMode[item.medicine_id] ?? (discAmt > 0 ? "KES" : "%");
             return (
               <div
                 key={item.medicine_id}
@@ -186,9 +192,13 @@ export function Cart({
                   <button
                     onClick={() => {
                       const newMode = mode === "%" ? "KES" : "%";
-                      setDiscountMode((prev) => ({ ...prev, [item.medicine_id]: newMode }));
+                      setDiscountMode((prev) => ({
+                        ...prev,
+                        [item.medicine_id]: newMode,
+                      }));
                       // Clear current discount when switching modes
-                      if (newMode === "%") onUpdateDiscountAmount(item.medicine_id, 0);
+                      if (newMode === "%")
+                        onUpdateDiscountAmount(item.medicine_id, 0);
                       else onUpdateDiscount(item.medicine_id, 0);
                       setDiscountEditId(null);
                     }}
@@ -209,7 +219,8 @@ export function Cart({
                       onBlur={() => {
                         const n = parseFloat(discountValue);
                         if (!isNaN(n)) {
-                          if (mode === "%") onUpdateDiscount(item.medicine_id, n);
+                          if (mode === "%")
+                            onUpdateDiscount(item.medicine_id, n);
                           else onUpdateDiscountAmount(item.medicine_id, n);
                         }
                         setDiscountEditId(null);
@@ -218,7 +229,8 @@ export function Cart({
                         if (e.key === "Enter") {
                           const n = parseFloat(discountValue);
                           if (!isNaN(n)) {
-                            if (mode === "%") onUpdateDiscount(item.medicine_id, n);
+                            if (mode === "%")
+                              onUpdateDiscount(item.medicine_id, n);
                             else onUpdateDiscountAmount(item.medicine_id, n);
                           }
                           setDiscountEditId(null);
@@ -232,13 +244,15 @@ export function Cart({
                       onClick={() => {
                         setDiscountEditId(item.medicine_id);
                         setDiscountValue(
-                          mode === "%" ? (disc).toString() : (discAmt).toString(),
+                          mode === "%" ? disc.toString() : discAmt.toString(),
                         );
                       }}
                     >
                       {effectiveDiscount > 0 ? (
                         <span className="text-amber-400 font-medium">
-                          {discAmt > 0 ? `KES ${discAmt.toLocaleString()} off` : `${disc}% off`}
+                          {discAmt > 0
+                            ? `KES ${discAmt.toLocaleString()} off`
+                            : `${disc}% off`}
                         </span>
                       ) : (
                         "Add discount"
@@ -246,39 +260,43 @@ export function Cart({
                     </button>
                   )}
                   <div className="flex gap-1 ml-auto">
-                    {mode === "%" ? (
-                      [5, 10, 15, 20].map((p) => (
-                        <button
-                          key={p}
-                          onClick={() =>
-                            onUpdateDiscount(item.medicine_id, disc === p ? 0 : p)
-                          }
-                          className={`text-[10px] px-1.5 py-0.5 rounded border cursor-pointer transition-colors ${
-                            disc === p
-                              ? "border-primary bg-primary/20 text-primary"
-                              : "border-border text-muted-foreground hover:border-primary/50 hover:text-primary/70"
-                          }`}
-                        >
-                          {p}%
-                        </button>
-                      ))
-                    ) : (
-                      [50, 100, 200, 500].map((a) => (
-                        <button
-                          key={a}
-                          onClick={() =>
-                            onUpdateDiscountAmount(item.medicine_id, discAmt === a ? 0 : a)
-                          }
-                          className={`text-[10px] px-1.5 py-0.5 rounded border cursor-pointer transition-colors ${
-                            discAmt === a
-                              ? "border-primary bg-primary/20 text-primary"
-                              : "border-border text-muted-foreground hover:border-primary/50 hover:text-primary/70"
-                          }`}
-                        >
-                          {a}
-                        </button>
-                      ))
-                    )}
+                    {mode === "%"
+                      ? [5, 10, 15, 20].map((p) => (
+                          <button
+                            key={p}
+                            onClick={() =>
+                              onUpdateDiscount(
+                                item.medicine_id,
+                                disc === p ? 0 : p,
+                              )
+                            }
+                            className={`text-[10px] px-1.5 py-0.5 rounded border cursor-pointer transition-colors ${
+                              disc === p
+                                ? "border-primary bg-primary/20 text-primary"
+                                : "border-border text-muted-foreground hover:border-primary/50 hover:text-primary/70"
+                            }`}
+                          >
+                            {p}%
+                          </button>
+                        ))
+                      : [50, 100, 200, 500].map((a) => (
+                          <button
+                            key={a}
+                            onClick={() =>
+                              onUpdateDiscountAmount(
+                                item.medicine_id,
+                                discAmt === a ? 0 : a,
+                              )
+                            }
+                            className={`text-[10px] px-1.5 py-0.5 rounded border cursor-pointer transition-colors ${
+                              discAmt === a
+                                ? "border-primary bg-primary/20 text-primary"
+                                : "border-border text-muted-foreground hover:border-primary/50 hover:text-primary/70"
+                            }`}
+                          >
+                            {a}
+                          </button>
+                        ))}
                   </div>
                 </div>
               </div>

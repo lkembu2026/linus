@@ -60,9 +60,10 @@ export async function createSale(
       const lineTotal = item.unit_price * item.quantity;
       const discAmt = item.discount_amount ?? 0;
       // Convert flat KES discount to equivalent percentage for DB storage
-      const effectivePercent = discAmt > 0 && lineTotal > 0
-        ? Math.round((discAmt / lineTotal) * 10000) / 100
-        : (item.discount_percent ?? 0);
+      const effectivePercent =
+        discAmt > 0 && lineTotal > 0
+          ? Math.round((discAmt / lineTotal) * 10000) / 100
+          : (item.discount_percent ?? 0);
       return {
         sale_id: saleData.id,
         medicine_id: item.medicine_id,
@@ -184,9 +185,10 @@ export async function createSale(
       items: items.map((i) => {
         const lineTotal = i.unit_price * i.quantity;
         const discAmt = i.discount_amount ?? 0;
-        const effectivePercent = discAmt > 0 && lineTotal > 0
-          ? Math.round((discAmt / lineTotal) * 10000) / 100
-          : (i.discount_percent ?? 0);
+        const effectivePercent =
+          discAmt > 0 && lineTotal > 0
+            ? Math.round((discAmt / lineTotal) * 10000) / 100
+            : (i.discount_percent ?? 0);
         return {
           name: i.name,
           quantity: i.quantity,

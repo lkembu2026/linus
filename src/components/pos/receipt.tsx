@@ -49,7 +49,10 @@ export function Receipt({
           const disc = item.discount_percent ?? 0;
           const discAmt = item.discount_amount ?? 0;
           const lineTotal = item.unit_price * item.quantity;
-          const effectiveDiscount = discAmt > 0 ? Math.min(discAmt, lineTotal) : lineTotal * (disc / 100);
+          const effectiveDiscount =
+            discAmt > 0
+              ? Math.min(discAmt, lineTotal)
+              : lineTotal * (disc / 100);
           const discountedTotal = lineTotal - effectiveDiscount;
           const hasDiscount = effectiveDiscount > 0;
           return (
@@ -58,7 +61,12 @@ export function Receipt({
               <div className="flex justify-between pl-4">
                 <span>
                   {item.quantity} \u00d7 {formatCurrency(item.unit_price)}
-                  {hasDiscount && <span className="text-[10px]"> ({discAmt > 0 ? `-KES ${discAmt}` : `-${disc}%`})</span>}
+                  {hasDiscount && (
+                    <span className="text-[10px]">
+                      {" "}
+                      ({discAmt > 0 ? `-KES ${discAmt}` : `-${disc}%`})
+                    </span>
+                  )}
                 </span>
                 {hasDiscount ? (
                   <span>

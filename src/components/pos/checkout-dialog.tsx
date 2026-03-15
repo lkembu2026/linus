@@ -253,10 +253,14 @@ export function CheckoutDialog({
         const disc = item.discount_percent ?? 0;
         const discAmt = item.discount_amount ?? 0;
         const lineTotal = item.unit_price * item.quantity;
-        const effectiveDiscount = discAmt > 0 ? Math.min(discAmt, lineTotal) : lineTotal * (disc / 100);
+        const effectiveDiscount =
+          discAmt > 0 ? Math.min(discAmt, lineTotal) : lineTotal * (disc / 100);
         const discountedTotal = lineTotal - effectiveDiscount;
         const hasDiscount = effectiveDiscount > 0;
-        const discLabel = discAmt > 0 ? `KES ${discAmt.toLocaleString()} off` : `-${disc}% discount`;
+        const discLabel =
+          discAmt > 0
+            ? `KES ${discAmt.toLocaleString()} off`
+            : `-${disc}% discount`;
         return `<tr>
             <td style="padding:8px 0;border-bottom:1px solid #1a1a2e;color:#e0e0e0;font-size:13px;">${item.name}${hasDiscount ? `<br/><span style="color:#f59e0b;font-size:10px;">${discLabel}</span>` : ""}</td>
             <td style="padding:8px 0;border-bottom:1px solid #1a1a2e;text-align:center;color:#a0a0b0;font-size:13px;">${item.quantity}</td>
@@ -373,7 +377,10 @@ export function CheckoutDialog({
                   const disc = item.discount_percent ?? 0;
                   const discAmt = item.discount_amount ?? 0;
                   const lineTotal = item.unit_price * item.quantity;
-                  const effectiveDiscount = discAmt > 0 ? Math.min(discAmt, lineTotal) : lineTotal * (disc / 100);
+                  const effectiveDiscount =
+                    discAmt > 0
+                      ? Math.min(discAmt, lineTotal)
+                      : lineTotal * (disc / 100);
                   const discountedTotal = lineTotal - effectiveDiscount;
                   const hasDiscount = effectiveDiscount > 0;
                   return (
@@ -385,7 +392,11 @@ export function CheckoutDialog({
                         {item.name} × {item.quantity}
                         {hasDiscount && (
                           <span className="text-amber-400 ml-1 text-xs">
-                            ({discAmt > 0 ? `-KES ${discAmt.toLocaleString()}` : `-${disc}%`})
+                            (
+                            {discAmt > 0
+                              ? `-KES ${discAmt.toLocaleString()}`
+                              : `-${disc}%`}
+                            )
                           </span>
                         )}
                       </span>
@@ -407,7 +418,11 @@ export function CheckoutDialog({
               </div>
 
               <div className="border-t border-border pt-3 space-y-1">
-                {items.some((i) => (i.discount_percent ?? 0) > 0 || (i.discount_amount ?? 0) > 0) && (
+                {items.some(
+                  (i) =>
+                    (i.discount_percent ?? 0) > 0 ||
+                    (i.discount_amount ?? 0) > 0,
+                ) && (
                   <>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Subtotal</span>

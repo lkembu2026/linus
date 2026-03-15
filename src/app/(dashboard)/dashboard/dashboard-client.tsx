@@ -38,6 +38,13 @@ const DailySalesChart = dynamic(
   },
 );
 
+// Module-level cache — survives component remounts during navigation
+const dashboardCache: Record<AppMode, { data: DashboardPageData; ts: number } | undefined> = {
+  pharmacy: undefined,
+  beauty: undefined,
+};
+const CACHE_TTL = 2 * 60 * 1000; // 2 minutes
+
 interface DashboardClientProps {
   initialData?: DashboardPageData;
   initialMode?: AppMode;
@@ -48,85 +55,60 @@ export function DashboardClient({
   initialMode = "pharmacy",
 }: DashboardClientProps) {
   const { mode } = useMode();
-  const initialCachedData = initialData ?? null;
-  const cachedByModeRef = useRef<
-    Record<AppMode, DashboardPageData | undefined>
-  >({
-    pharmacy: initialMode === "pharmacy" ? initialData : undefined,
-    beauty: initialMode === "beauty" ? initialData : undefined,
-  });
-  const [data, setData] = useState<DashboardPageData | null>(initialCachedData);
+
+  // Seed module cache from server-prefetched data (only once)
+  if (initialData && !dashboardCache[initialMode]) {
+    dashboardCache[initialMode] = { data: initialData, ts: Date.now() };
+  }
+
+  const cached = dashboardCache[mode];
+  const isFresh = cached && Date.now() - cached.ts < CACHE_TTL;
+  const [data, setData] = useState<DashboardPageData | null>(
+    cached?.data ?? initialData ?? null,
+  );
   const [isRefreshingMode, setIsRefreshingMode] = useState(false);
   const requestIdRef = useRef(0);
   const itemLabel = mode === "beauty" ? "products" : "medicines";
 
   useEffect(() => {
-    const cached = cachedByModeRef.current[mode];
+    const entry = dashboardCache[mode];
     const oppositeMode: AppMode = mode === "pharmacy" ? "beauty" : "pharmacy";
-    if (cached) {
-      setData(cached);
-      setIsRefreshingMode(true);
 
-      requestIdRef.current += 1;
-      const requestId = requestIdRef.current;
-
-      getDashboardPageData(mode)
-        .then((nextData) => {
-          if (requestId !== requestIdRef.current) {
-            return;
-          }
-          cachedByModeRef.current[mode] = nextData;
-          setData(nextData);
-          setIsRefreshingMode(false);
-        })
-        .catch((err) => {
-          if (requestId !== requestIdRef.current) {
-            return;
-          }
-          console.error("Dashboard refresh error:", err);
-          setIsRefreshingMode(false);
-        });
-
-      if (!cachedByModeRef.current[oppositeMode]) {
-        getDashboardPageData(oppositeMode)
-          .then((prefetched) => {
-            cachedByModeRef.current[oppositeMode] = prefetched;
-          })
-          .catch(() => {
-            // ignore prefetch failures; active mode data is already rendered
-          });
-      }
+    // If cache is fresh, show it immediately without refetching
+    if (entry && Date.now() - entry.ts < CACHE_TTL) {
+      setData(entry.data);
       return;
     }
 
-    setIsRefreshingMode(true);
+    // If stale cache exists, show it and refresh in background
+    if (entry) {
+      setData(entry.data);
+      setIsRefreshingMode(true);
+    } else {
+      setIsRefreshingMode(true);
+    }
 
     requestIdRef.current += 1;
     const requestId = requestIdRef.current;
 
     getDashboardPageData(mode)
       .then((nextData) => {
-        if (requestId !== requestIdRef.current) {
-          return;
-        }
-
-        cachedByModeRef.current[mode] = nextData;
+        if (requestId !== requestIdRef.current) return;
+        dashboardCache[mode] = { data: nextData, ts: Date.now() };
         setData(nextData);
         setIsRefreshingMode(false);
-        if (!cachedByModeRef.current[oppositeMode]) {
+
+        // Prefetch opposite mode
+        if (!dashboardCache[oppositeMode]) {
           getDashboardPageData(oppositeMode)
             .then((prefetched) => {
-              cachedByModeRef.current[oppositeMode] = prefetched;
+              dashboardCache[oppositeMode] = { data: prefetched, ts: Date.now() };
             })
-            .catch(() => {
-              // ignore prefetch failures; active mode data is already rendered
-            });
+            .catch(() => {});
         }
       })
       .catch((err) => {
-        if (requestId !== requestIdRef.current) {
-          return;
-        }
+        if (requestId !== requestIdRef.current) return;
         console.error("Dashboard fetch error:", err);
         setIsRefreshingMode(false);
       });
