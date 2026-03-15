@@ -92,7 +92,7 @@ interface ParsedRow {
   _expiryOptions?: string[]; // multiple expiry dates detected
 }
 
-type ImportFormat = "template" | "lk-invoice";
+type ImportFormat = "template" | "lk-invoice" | "small-invoice";
 
 // ── Category auto-detection from medicine name keywords ──────────────────────
 const CATEGORY_KEYWORDS: Record<string, string[]> = {
@@ -432,7 +432,7 @@ function detectImportFormat(rows: unknown[][]): ImportFormat {
     return "template";
   }
 
-  const hasInvoiceHeader = rows.some((row) => {
+  const hasFullInvoiceHeader = rows.some((row) => {
     const headers = row.map(normalizeHeader);
     return (
       headers.includes("description") &&
@@ -442,7 +442,19 @@ function detectImportFormat(rows: unknown[][]): ImportFormat {
     );
   });
 
-  return hasInvoiceHeader ? "lk-invoice" : "template";
+  if (hasFullInvoiceHeader) return "lk-invoice";
+
+  // Small invoice: has DESCRIPTION + QTY + PRICE (or TOTAL) without batch/expiry
+  const hasSmallInvoiceHeader = rows.some((row) => {
+    const headers = row.map(normalizeHeader);
+    return (
+      headers.includes("description") &&
+      headers.includes("qty") &&
+      (headers.includes("price") || headers.includes("total"))
+    );
+  });
+
+  return hasSmallInvoiceHeader ? "small-invoice" : "template";
 }
 
 function parseInvoiceRows(sheetRows: unknown[][]): ParsedRow[] {
@@ -514,6 +526,63 @@ function parseInvoiceRows(sheetRows: unknown[][]): ParsedRow[] {
     .filter(
       (row) =>
         row.name || row.barcode || row.quantity_in_stock || row.cost_price,
+    );
+}
+
+function parseSmallInvoiceRows(sheetRows: unknown[][]): ParsedRow[] {
+  const headerIndex = sheetRows.findIndex((row) => {
+    const headers = row.map(normalizeHeader);
+    return headers.includes("description") && headers.includes("qty");
+  });
+
+  if (headerIndex === -1) return [];
+
+  const headerRow = sheetRows[headerIndex].map(normalizeHeader);
+  const descIdx = headerRow.indexOf("description");
+  const qtyIdx = headerRow.indexOf("qty");
+  const priceIdx = headerRow.indexOf("price");
+  const totalIdx = headerRow.indexOf("total");
+
+  // Footer keywords to stop parsing
+  const footerKeys = ["total excl", "vat", "disc", "gross total", "total", ""];
+
+  return sheetRows
+    .slice(headerIndex + 1)
+    .map((row, offset) => {
+      const description = String(row[descIdx] ?? "").trim();
+      // Stop at footer rows
+      if (!description || footerKeys.includes(description.toLowerCase())) return null;
+
+      const quantity = Math.round(parseNumeric(row[qtyIdx] ?? 0));
+      // Use per-unit price if available, otherwise derive from total/qty
+      let unitPrice = priceIdx >= 0 ? parseNumeric(row[priceIdx] ?? 0) : 0;
+      if (!unitPrice && totalIdx >= 0 && quantity > 0) {
+        unitPrice = parseNumeric(row[totalIdx] ?? 0) / quantity;
+      }
+
+      const category = guessCategory(description);
+
+      return parseRow(
+        {
+          name: description,
+          generic_name: "",
+          category,
+          dispensing_unit: "",
+          unit_price: unitPrice,
+          cost_price: unitPrice,
+          quantity_in_stock: quantity,
+          reorder_level: 10,
+          expiry_date: "",
+          barcode: "",
+          requires_prescription: false,
+        },
+        headerIndex + offset + 2,
+      );
+    })
+    .filter(
+      (row): row is ParsedRow =>
+        row !== null &&
+        (!!row.name || !!row.quantity_in_stock || !!row.cost_price),
     );
 }
 
@@ -601,6 +670,13 @@ export function ImportMedicinesDialog({
 
       if (detectedFormat === "lk-invoice") {
         const parsed = parseInvoiceRows(aoa);
+        setRows(parsed);
+        if (parsed.length > 0) setStep("review");
+        return;
+      }
+
+      if (detectedFormat === "small-invoice") {
+        const parsed = parseSmallInvoiceRows(aoa);
         setRows(parsed);
         if (parsed.length > 0) setStep("review");
         return;
@@ -805,7 +881,9 @@ export function ImportMedicinesDialog({
                 >
                   {importFormat === "lk-invoice"
                     ? "LK supplier invoice"
-                    : "Standard template"}
+                    : importFormat === "small-invoice"
+                      ? "Small invoice"
+                      : "Standard template"}
                 </Badge>
               )}
               <Badge
