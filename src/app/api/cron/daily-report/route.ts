@@ -1,6 +1,6 @@
 /**
  * Vercel Cron Job — Daily Report
- * Schedule: 20 19 * * *  (UTC)  = 10:20 PM EAT (UTC+3)
+ * Schedule: 0 20 * * *  (UTC)  = 11:00 PM EAT (UTC+3)
  *
  * Compiles today's sales across all branches and emails the admin.
  */
