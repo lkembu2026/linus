@@ -20,7 +20,10 @@ export function useCart() {
             i.medicine_id === item.medicine_id ? { ...i, quantity: newQty } : i,
           );
         }
-        return [...prev, { ...item, quantity: item.quantity || 1, discount_percent: 0 }];
+        return [
+          ...prev,
+          { ...item, quantity: item.quantity || 1, discount_percent: 0 },
+        ];
       });
     },
     [],
@@ -42,18 +45,26 @@ export function useCart() {
     );
   }, []);
 
-  const updateDiscount = useCallback(
-    (medicineId: string, percent: number) => {
-      setItems((prev) =>
-        prev.map((i) =>
-          i.medicine_id === medicineId
-            ? { ...i, discount_percent: Math.max(0, Math.min(100, percent)) }
-            : i,
-        ),
-      );
-    },
-    [],
-  );
+  const updateDiscount = useCallback((medicineId: string, percent: number) => {
+    setItems((prev) =>
+      prev.map((i) =>
+        i.medicine_id === medicineId
+          ? { ...i, discount_percent: Math.max(0, Math.min(100, percent)), discount_amount: 0 }
+          : i,
+      ),
+    );
+  }, []);
+
+  const updateDiscountAmount = useCallback((medicineId: string, amount: number) => {
+    setItems((prev) =>
+      prev.map((i) => {
+        if (i.medicine_id !== medicineId) return i;
+        const lineTotal = i.unit_price * i.quantity;
+        const clamped = Math.max(0, Math.min(lineTotal, amount));
+        return { ...i, discount_amount: clamped, discount_percent: 0 };
+      }),
+    );
+  }, []);
 
   const clearCart = useCallback(() => {
     setItems([]);
@@ -65,8 +76,12 @@ export function useCart() {
   );
 
   const totalDiscount = items.reduce((sum, item) => {
+    const lineTotal = item.unit_price * item.quantity;
+    if ((item.discount_amount ?? 0) > 0) {
+      return sum + Math.min(item.discount_amount!, lineTotal);
+    }
     const disc = item.discount_percent ?? 0;
-    return sum + item.unit_price * item.quantity * (disc / 100);
+    return sum + lineTotal * (disc / 100);
   }, 0);
 
   const total = subtotal - totalDiscount;
@@ -78,6 +93,7 @@ export function useCart() {
     removeItem,
     updateQuantity,
     updateDiscount,
+    updateDiscountAmount,
     clearCart,
     subtotal,
     totalDiscount,

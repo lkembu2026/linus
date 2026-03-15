@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Minus, Plus, Trash2, Percent } from "lucide-react";
+import { Minus, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/utils";
@@ -14,6 +14,7 @@ interface CartProps {
   totalDiscount: number;
   onUpdateQuantity: (medicineId: string, quantity: number) => void;
   onUpdateDiscount: (medicineId: string, percent: number) => void;
+  onUpdateDiscountAmount: (medicineId: string, amount: number) => void;
   onRemove: (medicineId: string) => void;
   onCheckout: () => void;
 }
@@ -25,6 +26,7 @@ export function Cart({
   totalDiscount,
   onUpdateQuantity,
   onUpdateDiscount,
+  onUpdateDiscountAmount,
   onRemove,
   onCheckout,
 }: CartProps) {
@@ -32,6 +34,7 @@ export function Cart({
   const [editValue, setEditValue] = useState("");
   const [discountEditId, setDiscountEditId] = useState<string | null>(null);
   const [discountValue, setDiscountValue] = useState("");
+  const [discountMode, setDiscountMode] = useState<Record<string, "%" | "KES">>({});
   return (
     <div className="glass-card flex flex-col h-full">
       {/* Header */}
@@ -59,179 +62,226 @@ export function Cart({
         ) : (
           items.map((item) => {
             const disc = item.discount_percent ?? 0;
+            const discAmt = item.discount_amount ?? 0;
             const lineTotal = item.unit_price * item.quantity;
-            const discountedTotal = lineTotal * (1 - disc / 100);
+            const effectiveDiscount = discAmt > 0 ? Math.min(discAmt, lineTotal) : lineTotal * (disc / 100);
+            const discountedTotal = lineTotal - effectiveDiscount;
+            const mode = discountMode[item.medicine_id] ?? (discAmt > 0 ? "KES" : "%");
             return (
-            <div
-              key={item.medicine_id}
-              className="p-3 rounded-lg bg-background/50 border border-border space-y-2"
-            >
-              <div className="flex items-center gap-3">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white truncate">
-                  {item.name}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {formatCurrency(item.unit_price)} ×{" "}
-                  <span className="text-white font-medium">
-                    {item.quantity}
-                  </span>
-                  {item.dispensing_unit ? (
-                    <span className="text-primary/70">
-                      {" "}
-                      {item.dispensing_unit}
-                      {item.quantity > 1 &&
-                      item.dispensing_unit !== "ml" &&
-                      item.dispensing_unit !== "g"
-                        ? "s"
-                        : ""}
-                    </span>
-                  ) : null}
-                </p>
-              </div>
+              <div
+                key={item.medicine_id}
+                className="p-3 rounded-lg bg-background/50 border border-border space-y-2"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-white truncate">
+                      {item.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatCurrency(item.unit_price)} ×{" "}
+                      <span className="text-white font-medium">
+                        {item.quantity}
+                      </span>
+                      {item.dispensing_unit ? (
+                        <span className="text-primary/70">
+                          {" "}
+                          {item.dispensing_unit}
+                          {item.quantity > 1 &&
+                          item.dispensing_unit !== "ml" &&
+                          item.dispensing_unit !== "g"
+                            ? "s"
+                            : ""}
+                        </span>
+                      ) : null}
+                    </p>
+                  </div>
 
-              {/* Quantity Controls */}
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 text-muted-foreground hover:text-white"
-                  onClick={() =>
-                    onUpdateQuantity(item.medicine_id, item.quantity - 1)
-                  }
-                  disabled={item.quantity <= 1}
-                >
-                  <Minus className="h-3 w-3" />
-                </Button>
-                {editingId === item.medicine_id ? (
-                  <Input
-                    type="number"
-                    value={editValue}
-                    autoFocus
-                    className="w-14 h-7 text-center text-sm bg-background border-primary text-white p-1"
-                    onChange={(e) => setEditValue(e.target.value)}
-                    onBlur={() => {
-                      const n = parseInt(editValue);
-                      if (n > 0) onUpdateQuantity(item.medicine_id, n);
-                      setEditingId(null);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        const n = parseInt(editValue);
-                        if (n > 0) onUpdateQuantity(item.medicine_id, n);
-                        setEditingId(null);
+                  {/* Quantity Controls */}
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-white"
+                      onClick={() =>
+                        onUpdateQuantity(item.medicine_id, item.quantity - 1)
                       }
-                      if (e.key === "Escape") setEditingId(null);
-                    }}
-                  />
-                ) : (
+                      disabled={item.quantity <= 1}
+                    >
+                      <Minus className="h-3 w-3" />
+                    </Button>
+                    {editingId === item.medicine_id ? (
+                      <Input
+                        type="number"
+                        value={editValue}
+                        autoFocus
+                        className="w-14 h-7 text-center text-sm bg-background border-primary text-white p-1"
+                        onChange={(e) => setEditValue(e.target.value)}
+                        onBlur={() => {
+                          const n = parseInt(editValue);
+                          if (n > 0) onUpdateQuantity(item.medicine_id, n);
+                          setEditingId(null);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            const n = parseInt(editValue);
+                            if (n > 0) onUpdateQuantity(item.medicine_id, n);
+                            setEditingId(null);
+                          }
+                          if (e.key === "Escape") setEditingId(null);
+                        }}
+                      />
+                    ) : (
+                      <button
+                        className="w-8 text-center text-sm font-medium text-white hover:text-primary transition-colors cursor-pointer"
+                        title="Click to type quantity"
+                        onClick={() => {
+                          setEditingId(item.medicine_id);
+                          setEditValue(item.quantity.toString());
+                        }}
+                      >
+                        {item.quantity}
+                      </button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-white"
+                      onClick={() =>
+                        onUpdateQuantity(item.medicine_id, item.quantity + 1)
+                      }
+                      disabled={item.quantity >= item.max_quantity}
+                    >
+                      <Plus className="h-3 w-3" />
+                    </Button>
+                  </div>
+
+                  {/* Subtotal + Remove */}
+                  <div className="text-right">
+                    {effectiveDiscount > 0 ? (
+                      <>
+                        <p className="text-xs text-muted-foreground line-through">
+                          {formatCurrency(lineTotal)}
+                        </p>
+                        <p className="text-sm font-semibold text-primary">
+                          {formatCurrency(discountedTotal)}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-sm font-semibold text-primary">
+                        {formatCurrency(lineTotal)}
+                      </p>
+                    )}
+                    <button
+                      onClick={() => onRemove(item.medicine_id)}
+                      className="text-xs text-destructive hover:underline mt-0.5"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+
+                {/* Discount row */}
+                <div className="flex items-center gap-2">
+                  {/* Mode toggle */}
                   <button
-                    className="w-8 text-center text-sm font-medium text-white hover:text-primary transition-colors cursor-pointer"
-                    title="Click to type quantity"
                     onClick={() => {
-                      setEditingId(item.medicine_id);
-                      setEditValue(item.quantity.toString());
-                    }}
-                  >
-                    {item.quantity}
-                  </button>
-                )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 text-muted-foreground hover:text-white"
-                  onClick={() =>
-                    onUpdateQuantity(item.medicine_id, item.quantity + 1)
-                  }
-                  disabled={item.quantity >= item.max_quantity}
-                >
-                  <Plus className="h-3 w-3" />
-                </Button>
-              </div>
-
-              {/* Subtotal + Remove */}
-              <div className="text-right">
-                {disc > 0 ? (
-                  <>
-                    <p className="text-xs text-muted-foreground line-through">
-                      {formatCurrency(lineTotal)}
-                    </p>
-                    <p className="text-sm font-semibold text-primary">
-                      {formatCurrency(discountedTotal)}
-                    </p>
-                  </>
-                ) : (
-                  <p className="text-sm font-semibold text-primary">
-                    {formatCurrency(lineTotal)}
-                  </p>
-                )}
-                <button
-                  onClick={() => onRemove(item.medicine_id)}
-                  className="text-xs text-destructive hover:underline mt-0.5"
-                >
-                  Remove
-                </button>
-              </div>
-              </div>
-
-              {/* Discount row */}
-              <div className="flex items-center gap-2">
-                <Percent className="h-3 w-3 text-muted-foreground shrink-0" />
-                {discountEditId === item.medicine_id ? (
-                  <Input
-                    type="number"
-                    value={discountValue}
-                    autoFocus
-                    min={0}
-                    max={100}
-                    className="w-16 h-6 text-center text-xs bg-background border-primary text-white p-1"
-                    onChange={(e) => setDiscountValue(e.target.value)}
-                    onBlur={() => {
-                      const n = parseFloat(discountValue);
-                      if (!isNaN(n)) onUpdateDiscount(item.medicine_id, n);
+                      const newMode = mode === "%" ? "KES" : "%";
+                      setDiscountMode((prev) => ({ ...prev, [item.medicine_id]: newMode }));
+                      // Clear current discount when switching modes
+                      if (newMode === "%") onUpdateDiscountAmount(item.medicine_id, 0);
+                      else onUpdateDiscount(item.medicine_id, 0);
                       setDiscountEditId(null);
                     }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        const n = parseFloat(discountValue);
-                        if (!isNaN(n)) onUpdateDiscount(item.medicine_id, n);
-                        setDiscountEditId(null);
-                      }
-                      if (e.key === "Escape") setDiscountEditId(null);
-                    }}
-                  />
-                ) : (
-                  <button
-                    className="text-xs text-muted-foreground hover:text-primary cursor-pointer"
-                    onClick={() => {
-                      setDiscountEditId(item.medicine_id);
-                      setDiscountValue((item.discount_percent ?? 0).toString());
-                    }}
+                    className="text-[10px] px-1.5 py-0.5 rounded border border-border text-muted-foreground hover:border-primary/50 hover:text-primary cursor-pointer transition-colors shrink-0"
+                    title={`Switch to ${mode === "%" ? "KES amount" : "percentage"} discount`}
                   >
-                    {disc > 0 ? (
-                      <span className="text-amber-400 font-medium">{disc}% off</span>
-                    ) : (
-                      "Add discount"
-                    )}
+                    {mode === "%" ? "%" : "KES"}
                   </button>
-                )}
-                <div className="flex gap-1 ml-auto">
-                  {[5, 10, 15, 20].map((p) => (
+                  {discountEditId === item.medicine_id ? (
+                    <Input
+                      type="number"
+                      value={discountValue}
+                      autoFocus
+                      min={0}
+                      max={mode === "%" ? 100 : lineTotal}
+                      className="w-20 h-6 text-center text-xs bg-background border-primary text-white p-1"
+                      onChange={(e) => setDiscountValue(e.target.value)}
+                      onBlur={() => {
+                        const n = parseFloat(discountValue);
+                        if (!isNaN(n)) {
+                          if (mode === "%") onUpdateDiscount(item.medicine_id, n);
+                          else onUpdateDiscountAmount(item.medicine_id, n);
+                        }
+                        setDiscountEditId(null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          const n = parseFloat(discountValue);
+                          if (!isNaN(n)) {
+                            if (mode === "%") onUpdateDiscount(item.medicine_id, n);
+                            else onUpdateDiscountAmount(item.medicine_id, n);
+                          }
+                          setDiscountEditId(null);
+                        }
+                        if (e.key === "Escape") setDiscountEditId(null);
+                      }}
+                    />
+                  ) : (
                     <button
-                      key={p}
-                      onClick={() => onUpdateDiscount(item.medicine_id, disc === p ? 0 : p)}
-                      className={`text-[10px] px-1.5 py-0.5 rounded border cursor-pointer transition-colors ${
-                        disc === p
-                          ? "border-primary bg-primary/20 text-primary"
-                          : "border-border text-muted-foreground hover:border-primary/50 hover:text-primary/70"
-                      }`}
+                      className="text-xs text-muted-foreground hover:text-primary cursor-pointer"
+                      onClick={() => {
+                        setDiscountEditId(item.medicine_id);
+                        setDiscountValue(
+                          mode === "%" ? (disc).toString() : (discAmt).toString(),
+                        );
+                      }}
                     >
-                      {p}%
+                      {effectiveDiscount > 0 ? (
+                        <span className="text-amber-400 font-medium">
+                          {discAmt > 0 ? `KES ${discAmt.toLocaleString()} off` : `${disc}% off`}
+                        </span>
+                      ) : (
+                        "Add discount"
+                      )}
                     </button>
-                  ))}
+                  )}
+                  <div className="flex gap-1 ml-auto">
+                    {mode === "%" ? (
+                      [5, 10, 15, 20].map((p) => (
+                        <button
+                          key={p}
+                          onClick={() =>
+                            onUpdateDiscount(item.medicine_id, disc === p ? 0 : p)
+                          }
+                          className={`text-[10px] px-1.5 py-0.5 rounded border cursor-pointer transition-colors ${
+                            disc === p
+                              ? "border-primary bg-primary/20 text-primary"
+                              : "border-border text-muted-foreground hover:border-primary/50 hover:text-primary/70"
+                          }`}
+                        >
+                          {p}%
+                        </button>
+                      ))
+                    ) : (
+                      [50, 100, 200, 500].map((a) => (
+                        <button
+                          key={a}
+                          onClick={() =>
+                            onUpdateDiscountAmount(item.medicine_id, discAmt === a ? 0 : a)
+                          }
+                          className={`text-[10px] px-1.5 py-0.5 rounded border cursor-pointer transition-colors ${
+                            discAmt === a
+                              ? "border-primary bg-primary/20 text-primary"
+                              : "border-border text-muted-foreground hover:border-primary/50 hover:text-primary/70"
+                          }`}
+                        >
+                          {a}
+                        </button>
+                      ))
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
             );
           })
         )}

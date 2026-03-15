@@ -56,13 +56,21 @@ export async function createSale(
     const saleData = sale as unknown as Sale;
 
     // 2. Create sale items
-    const saleItems = items.map((item) => ({
-      sale_id: saleData.id,
-      medicine_id: item.medicine_id,
-      quantity: item.quantity,
-      unit_price: item.unit_price,
-      discount_percent: item.discount_percent ?? 0,
-    }));
+    const saleItems = items.map((item) => {
+      const lineTotal = item.unit_price * item.quantity;
+      const discAmt = item.discount_amount ?? 0;
+      // Convert flat KES discount to equivalent percentage for DB storage
+      const effectivePercent = discAmt > 0 && lineTotal > 0
+        ? Math.round((discAmt / lineTotal) * 10000) / 100
+        : (item.discount_percent ?? 0);
+      return {
+        sale_id: saleData.id,
+        medicine_id: item.medicine_id,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        discount_percent: effectivePercent,
+      };
+    });
 
     const { error: itemsError } = await supabase
       .from("sale_items")
@@ -173,12 +181,19 @@ export async function createSale(
     // Generate premium receipt HTML
     const receiptHtml = generateReceiptHtml({
       receiptNo: saleData.receipt_number,
-      items: items.map((i) => ({
-        name: i.name,
-        quantity: i.quantity,
-        unit_price: i.unit_price,
-        discount_percent: i.discount_percent ?? 0,
-      })),
+      items: items.map((i) => {
+        const lineTotal = i.unit_price * i.quantity;
+        const discAmt = i.discount_amount ?? 0;
+        const effectivePercent = discAmt > 0 && lineTotal > 0
+          ? Math.round((discAmt / lineTotal) * 10000) / 100
+          : (i.discount_percent ?? 0);
+        return {
+          name: i.name,
+          quantity: i.quantity,
+          unit_price: i.unit_price,
+          discount_percent: effectivePercent,
+        };
+      }),
       total: totalAmount,
       paymentMethod,
       paidAmount,

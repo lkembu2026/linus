@@ -233,6 +233,7 @@ export function POSClient({ user }: POSClientProps) {
             onRemove={cart.removeItem}
             onUpdateQuantity={cart.updateQuantity}
             onUpdateDiscount={cart.updateDiscount}
+            onUpdateDiscountAmount={cart.updateDiscountAmount}
             onCheckout={() => setCheckoutOpen(true)}
           />
         </div>

@@ -47,26 +47,31 @@ export function Receipt({
       <div className="space-y-1">
         {items.map((item) => {
           const disc = item.discount_percent ?? 0;
+          const discAmt = item.discount_amount ?? 0;
           const lineTotal = item.unit_price * item.quantity;
-          const discountedTotal = lineTotal * (1 - disc / 100);
+          const effectiveDiscount = discAmt > 0 ? Math.min(discAmt, lineTotal) : lineTotal * (disc / 100);
+          const discountedTotal = lineTotal - effectiveDiscount;
+          const hasDiscount = effectiveDiscount > 0;
           return (
-          <div key={item.medicine_id}>
-            <p>{item.name}</p>
-            <div className="flex justify-between pl-4">
-              <span>
-                {item.quantity} × {formatCurrency(item.unit_price)}
-                {disc > 0 && <span className="text-[10px]"> (-{disc}%)</span>}
-              </span>
-              {disc > 0 ? (
+            <div key={item.medicine_id}>
+              <p>{item.name}</p>
+              <div className="flex justify-between pl-4">
                 <span>
-                  <span className="line-through text-gray-400 text-[10px] mr-1">{formatCurrency(lineTotal)}</span>
-                  {formatCurrency(discountedTotal)}
+                  {item.quantity} \u00d7 {formatCurrency(item.unit_price)}
+                  {hasDiscount && <span className="text-[10px]"> ({discAmt > 0 ? `-KES ${discAmt}` : `-${disc}%`})</span>}
                 </span>
-              ) : (
-                <span>{formatCurrency(lineTotal)}</span>
-              )}
+                {hasDiscount ? (
+                  <span>
+                    <span className="line-through text-gray-400 text-[10px] mr-1">
+                      {formatCurrency(lineTotal)}
+                    </span>
+                    {formatCurrency(discountedTotal)}
+                  </span>
+                ) : (
+                  <span>{formatCurrency(lineTotal)}</span>
+                )}
+              </div>
             </div>
-          </div>
           );
         })}
       </div>

@@ -35,6 +35,7 @@ export interface CartItem {
   max_quantity: number; // available stock
   dispensing_unit?: string | null;
   discount_percent?: number; // 0–100
+  discount_amount?: number; // flat KES off line total
 }
 
 // ---- Dashboard Stats ----
