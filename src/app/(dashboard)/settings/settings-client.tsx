@@ -31,6 +31,7 @@ import {
   updateReportAutomationSettings,
 } from "@/actions/reports";
 import { clearAllSalesHistory } from "@/actions/sales";
+import { resetAllStock } from "@/actions/inventory";
 import type { User as UserType } from "@/types/database";
 
 interface SettingsClientProps {
@@ -51,6 +52,8 @@ export function SettingsClient({
   const [isReportsPending, startReportsTransition] = useTransition();
   const [clearingSales, setClearingSales] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [resettingStock, setResettingStock] = useState(false);
+  const [confirmResetStock, setConfirmResetStock] = useState(false);
   const [isTestPending, startTestTransition] = useTransition();
   const [fullName, setFullName] = useState(user.full_name ?? "");
   const [nameChanged, setNameChanged] = useState(false);
@@ -498,6 +501,59 @@ export function SettingsClient({
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     ) : null}
                     Yes, Delete Everything
+                  </Button>
+                </div>
+              )}
+            </div>
+            <Separator />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <p className="text-sm text-white font-medium">
+                  Reset All Stock to Zero
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Sets quantity to 0 for every medicine across all branches.
+                </p>
+              </div>
+              {!confirmResetStock ? (
+                <Button
+                  variant="outline"
+                  className="border-destructive text-destructive hover:bg-destructive hover:text-white shrink-0"
+                  onClick={() => setConfirmResetStock(true)}
+                >
+                  Reset Stock
+                </Button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    className="text-muted-foreground"
+                    onClick={() => setConfirmResetStock(false)}
+                    disabled={resettingStock}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    disabled={resettingStock}
+                    onClick={async () => {
+                      setResettingStock(true);
+                      const result = await resetAllStock();
+                      setResettingStock(false);
+                      setConfirmResetStock(false);
+                      if (result.error) {
+                        toast.error(result.error);
+                      } else {
+                        toast.success(
+                          "All stock quantities have been reset to zero.",
+                        );
+                      }
+                    }}
+                  >
+                    {resettingStock ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : null}
+                    Yes, Reset All Stock
                   </Button>
                 </div>
               )}

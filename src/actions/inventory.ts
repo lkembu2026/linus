@@ -1042,3 +1042,29 @@ export async function getCatalogSyncStatus() {
     synced: missingBranchCopies === 0,
   };
 }
+
+export async function resetAllStock() {
+  const user = await getCurrentUser();
+  if (!user || user.role !== "super_admin") {
+    return { error: "Only super admins can reset stock" };
+  }
+
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("medicines")
+    .update({ quantity_in_stock: 0 })
+    .gte("quantity_in_stock", 0);
+
+  if (error) return { error: error.message };
+
+  await supabase.from("audit_logs").insert({
+    user_id: user.id,
+    action: "reset_all_stock",
+    details: { reset_to: 0 },
+  });
+
+  revalidatePath("/inventory");
+  revalidatePath("/dashboard");
+  return { success: true };
+}
