@@ -122,7 +122,7 @@ export function Sidebar({
           </div>
           {!collapsed && (
             <span className="text-sm font-bold font-[family-name:var(--font-sans)] text-white truncate">
-              LK <span className="text-primary">PharmaCare</span>
+              Linmaks <span className="text-primary">PharmaCare</span>
             </span>
           )}
         </Link>
