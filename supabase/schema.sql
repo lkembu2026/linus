@@ -339,6 +339,36 @@ CREATE POLICY "report_settings_update" ON report_settings
   WITH CHECK (get_user_role() IN ('admin','super_admin'));
 
 -- --------------------------------------------------------
+-- IMPORT INVOICES (CSV / invoice import tracking)
+-- --------------------------------------------------------
+CREATE TABLE import_invoices (
+  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  invoice_number  TEXT,
+  supplier_name   TEXT,
+  invoice_date    TEXT,
+  file_name       TEXT NOT NULL,
+  import_format   TEXT NOT NULL DEFAULT 'template',
+  items_count     INTEGER NOT NULL DEFAULT 0,
+  inserted        INTEGER NOT NULL DEFAULT 0,
+  updated         INTEGER NOT NULL DEFAULT 0,
+  total_value     NUMERIC(12,2) NOT NULL DEFAULT 0,
+  items           JSONB NOT NULL DEFAULT '[]',
+  imported_by     UUID NOT NULL REFERENCES users(id),
+  branch_id       UUID NOT NULL REFERENCES branches(id),
+  created_at      TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE import_invoices ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "import_invoices_select" ON import_invoices
+  FOR SELECT TO authenticated
+  USING (get_user_role() IN ('admin','super_admin','supervisor'));
+
+CREATE POLICY "import_invoices_insert" ON import_invoices
+  FOR INSERT TO authenticated
+  WITH CHECK (get_user_role() IN ('admin','super_admin','supervisor'));
+
+-- --------------------------------------------------------
 -- CREDITS (credit sales / buy-now-pay-later)
 -- --------------------------------------------------------
 CREATE TABLE credits (

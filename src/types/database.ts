@@ -158,6 +158,24 @@ export type ReportSettings = {
   updated_at: string;
 };
 
+// ---- IMPORT INVOICES ----
+export type ImportInvoice = {
+  id: string;
+  invoice_number: string | null;
+  supplier_name: string | null;
+  invoice_date: string | null;
+  file_name: string;
+  import_format: string;
+  items_count: number;
+  inserted: number;
+  updated: number;
+  total_value: number;
+  items: Record<string, unknown>[];
+  imported_by: string;
+  branch_id: string;
+  created_at: string;
+};
+
 // =============================================
 // JOIN / VIEW TYPES (for queries with relations)
 // =============================================
@@ -347,6 +365,27 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<ReportSettings>;
+        Relationships: [];
+      };
+      import_invoices: {
+        Row: ImportInvoice;
+        Insert: {
+          id?: string;
+          invoice_number?: string | null;
+          supplier_name?: string | null;
+          invoice_date?: string | null;
+          file_name: string;
+          import_format: string;
+          items_count: number;
+          inserted: number;
+          updated: number;
+          total_value: number;
+          items: Record<string, unknown>[];
+          imported_by: string;
+          branch_id: string;
+          created_at?: string;
+        };
+        Update: Partial<ImportInvoice>;
         Relationships: [];
       };
     };

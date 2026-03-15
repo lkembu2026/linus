@@ -615,6 +615,13 @@ export async function bulkCreateMedicines(
     dispensing_unit?: string;
     requires_prescription: boolean;
   }[],
+  invoiceMeta?: {
+    invoice_number?: string;
+    supplier_name?: string;
+    invoice_date?: string;
+    file_name?: string;
+    import_format?: string;
+  },
 ) {
   const supabase = await createClient();
   const user = await getCurrentUser();
@@ -794,7 +801,36 @@ export async function bulkCreateMedicines(
     details: { count: rows.length, inserted, updated },
   });
 
+  // Save import invoice record for tracking
+  const totalValue = rows.reduce(
+    (sum, r) => sum + r.cost_price * r.quantity_in_stock,
+    0,
+  );
+  const itemsSummary = rows.map((r) => ({
+    name: r.name,
+    qty: r.quantity_in_stock,
+    price: r.cost_price,
+    category: r.category,
+    barcode: r.barcode || null,
+  }));
+
+  await supabase.from("import_invoices").insert({
+    invoice_number: invoiceMeta?.invoice_number || null,
+    supplier_name: invoiceMeta?.supplier_name || null,
+    invoice_date: invoiceMeta?.invoice_date || null,
+    file_name: invoiceMeta?.file_name || "Unknown",
+    import_format: invoiceMeta?.import_format || "template",
+    items_count: rows.length,
+    inserted,
+    updated,
+    total_value: totalValue,
+    items: itemsSummary,
+    imported_by: user.id,
+    branch_id: resolvedBranchId!,
+  });
+
   revalidatePath("/inventory");
+  revalidatePath("/invoices");
   return { success: true, count: rows.length, inserted, updated };
 }
 

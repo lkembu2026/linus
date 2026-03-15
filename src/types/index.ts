@@ -18,6 +18,7 @@ export type {
   SaleWithItems,
   AuditLogWithUser,
   ReportSettings,
+  ImportInvoice,
   Database,
 } from "./database";
 

@@ -81,6 +81,12 @@ export const NAV_ITEMS = [
     roles: ["super_admin", "admin"],
   },
   {
+    title: "Invoices",
+    href: "/invoices",
+    icon: "FileSpreadsheet",
+    roles: ["super_admin", "admin", "supervisor"],
+  },
+  {
     title: "Receipts",
     href: "/receipts",
     icon: "Receipt",

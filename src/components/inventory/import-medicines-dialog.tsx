@@ -529,6 +529,30 @@ function parseInvoiceRows(sheetRows: unknown[][]): ParsedRow[] {
     );
 }
 
+function extractInvoiceMeta(sheetRows: unknown[][]): {
+  invoice_number?: string;
+  supplier_name?: string;
+  invoice_date?: string;
+} {
+  const meta: { invoice_number?: string; supplier_name?: string; invoice_date?: string } = {};
+  // Scan first ~10 rows for header metadata (INVOICE NO, CUSTOMER NAME, DATE)
+  const scanRows = sheetRows.slice(0, 10);
+  for (const row of scanRows) {
+    if (!Array.isArray(row) || row.length < 2) continue;
+    const label = String(row[0] ?? "").trim().toUpperCase();
+    const value = String(row[1] ?? "").trim();
+    if (!value) continue;
+    if (label.includes("INVOICE") && label.includes("NO")) {
+      meta.invoice_number = value;
+    } else if (label.includes("CUSTOMER") || label.includes("SUPPLIER")) {
+      meta.supplier_name = value;
+    } else if (label === "DATE" || label === "INVOICE DATE") {
+      meta.invoice_date = value;
+    }
+  }
+  return meta;
+}
+
 function parseSmallInvoiceRows(sheetRows: unknown[][]): ParsedRow[] {
   const headerIndex = sheetRows.findIndex((row) => {
     const headers = row.map(normalizeHeader);
@@ -605,6 +629,11 @@ export function ImportMedicinesDialog({
   const [importFormat, setImportFormat] = useState<ImportFormat | null>(null);
   const [step, setStep] = useState<"upload" | "review">("upload");
   const [customCategories, setCustomCategories] = useState<string[]>([]);
+  const [invoiceMeta, setInvoiceMeta] = useState<{
+    invoice_number?: string;
+    supplier_name?: string;
+    invoice_date?: string;
+  }>({});
   const [editingCategoryIdx, setEditingCategoryIdx] = useState<number | null>(
     null,
   );
@@ -668,6 +697,13 @@ export function ImportMedicinesDialog({
 
       const detectedFormat = detectImportFormat(aoa);
       setImportFormat(detectedFormat);
+
+      // Extract invoice metadata from header rows for invoice formats
+      if (detectedFormat === "lk-invoice" || detectedFormat === "small-invoice") {
+        setInvoiceMeta(extractInvoiceMeta(aoa));
+      } else {
+        setInvoiceMeta({});
+      }
 
       if (detectedFormat === "lk-invoice") {
         const parsed = parseInvoiceRows(aoa);
@@ -737,7 +773,11 @@ export function ImportMedicinesDialog({
     const payload = validRows.map(
       ({ _rowNum, _errors, _autoBarcode, _expiryOptions, ...rest }) => rest,
     );
-    const result = await bulkCreateMedicines(payload);
+    const result = await bulkCreateMedicines(payload, {
+      ...invoiceMeta,
+      file_name: fileName,
+      import_format: importFormat || "template",
+    });
 
     setImporting(false);
     if (result.error) {
@@ -767,6 +807,7 @@ export function ImportMedicinesDialog({
     setCustomCategories([]);
     setEditingCategoryIdx(null);
     setNewCategoryName("");
+    setInvoiceMeta({});
     onClose();
   }
 
