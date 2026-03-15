@@ -16,6 +16,7 @@ CREATE TABLE branches (
   phone      TEXT,
   enable_pharmacy BOOLEAN NOT NULL DEFAULT true,
   enable_beauty   BOOLEAN NOT NULL DEFAULT true,
+  is_main    BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 

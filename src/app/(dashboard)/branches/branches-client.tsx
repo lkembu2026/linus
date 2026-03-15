@@ -25,6 +25,7 @@ import {
   updateBranch,
   deleteBranch,
   getBranches,
+  setMainBranch,
 } from "@/actions/branches";
 import { formatDate } from "@/lib/utils";
 import {
@@ -36,6 +37,7 @@ import {
   MapPin,
   Phone,
   Loader2,
+  Star,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { Branch } from "@/types/database";
@@ -147,6 +149,19 @@ export function BranchesClient({
     setBranches((prev) => prev.filter((b) => b.id !== id));
   }
 
+  async function handleSetMain(id: string, name: string) {
+    startTransition(async () => {
+      const result = await setMainBranch(id);
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(`"${name}" is now the main branch`);
+      const updated = await getBranches();
+      setBranches(updated);
+    });
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -178,6 +193,12 @@ export function BranchesClient({
                   <CardTitle className="text-base text-white">
                     {branch.name}
                   </CardTitle>
+                  {branch.is_main && (
+                    <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px] px-1.5 py-0">
+                      <Star className="h-3 w-3 mr-0.5 fill-current" />
+                      Main
+                    </Badge>
+                  )}
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -200,6 +221,15 @@ export function BranchesClient({
                       <Edit className="h-4 w-4 mr-2" />
                       Edit
                     </DropdownMenuItem>
+                    {!branch.is_main && (
+                      <DropdownMenuItem
+                        className="text-primary focus:bg-primary/10 cursor-pointer"
+                        onClick={() => handleSetMain(branch.id, branch.name)}
+                      >
+                        <Star className="h-4 w-4 mr-2" />
+                        Set as Main
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem
                       className="text-destructive focus:bg-destructive/10 cursor-pointer"
                       onClick={() => handleDelete(branch.id, branch.name)}

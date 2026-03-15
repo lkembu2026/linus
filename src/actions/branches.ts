@@ -193,3 +193,29 @@ export async function deleteBranch(id: string) {
   revalidatePath("/branches");
   return { success: true };
 }
+
+export async function setMainBranch(id: string) {
+  const supabase = await createClient();
+  const user = await getCurrentUser();
+  if (!user || !hasPermission(user.role, "manage_branches")) {
+    return { error: "Admin access required" };
+  }
+
+  // Clear is_main on all branches first, then set the chosen one
+  await supabase.from("branches").update({ is_main: false }).neq("id", "");
+  const { error } = await supabase
+    .from("branches")
+    .update({ is_main: true })
+    .eq("id", id);
+
+  if (error) return { error: error.message };
+
+  await supabase.from("audit_logs").insert({
+    user_id: user.id,
+    action: "set_main_branch",
+    details: { branch_id: id },
+  });
+
+  revalidatePath("/branches");
+  return { success: true };
+}

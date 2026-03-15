@@ -627,27 +627,34 @@ export async function bulkCreateMedicines(
   let resolvedBranchId = branchId;
   if (!resolvedBranchId) {
     if (isAdminRole(user.role)) {
-      const { data: branchesData, error: branchesError } = await supabase
-        .from("branches")
-        .select("id")
-        .order("created_at", { ascending: true })
-        .limit(2);
-
-      if (branchesError) {
-        return { error: branchesError.message };
-      }
-
-      const branchIds = ((branchesData ?? []) as { id: string }[]).map(
-        (branch) => branch.id,
-      );
-
-      if (branchIds.length === 1) {
-        resolvedBranchId = branchIds[0];
+      // Try main branch first
+      const { getMainBranchId } = await import("@/lib/branch-server");
+      const mainId = await getMainBranchId();
+      if (mainId) {
+        resolvedBranchId = mainId;
       } else {
-        return {
-          error:
-            "No active branch selected. Use the Branch selector and choose one branch (not All Branches).",
-        };
+        const { data: branchesData, error: branchesError } = await supabase
+          .from("branches")
+          .select("id")
+          .order("created_at", { ascending: true })
+          .limit(2);
+
+        if (branchesError) {
+          return { error: branchesError.message };
+        }
+
+        const branchIds = ((branchesData ?? []) as { id: string }[]).map(
+          (branch) => branch.id,
+        );
+
+        if (branchIds.length === 1) {
+          resolvedBranchId = branchIds[0];
+        } else {
+          return {
+            error:
+              "No active branch selected. Use the Branch selector and choose one branch (not All Branches).",
+          };
+        }
       }
     } else {
       return { error: "No active branch selected" };

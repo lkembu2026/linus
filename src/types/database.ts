@@ -5,7 +5,12 @@
 // Record<string, unknown> required by Supabase SDK.
 // =============================================
 
-export type UserRole = "super_admin" | "admin" | "supervisor" | "pharmacist" | "cashier";
+export type UserRole =
+  | "super_admin"
+  | "admin"
+  | "supervisor"
+  | "pharmacist"
+  | "cashier";
 export type PaymentMethod = "cash" | "mpesa" | "credit";
 export type TransferStatus = "pending" | "approved" | "rejected";
 export type AppMode = "pharmacy" | "beauty";
@@ -18,6 +23,7 @@ export type Branch = {
   phone: string | null;
   enable_pharmacy: boolean;
   enable_beauty: boolean;
+  is_main: boolean;
   created_at: string;
 };
 
@@ -176,6 +182,7 @@ export interface Database {
           phone?: string | null;
           enable_pharmacy?: boolean;
           enable_beauty?: boolean;
+          is_main?: boolean;
           created_at?: string;
         };
         Update: Partial<Branch>;
