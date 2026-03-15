@@ -83,6 +83,7 @@ export async function createBranch(formData: {
   });
 
   revalidatePath("/branches");
+  revalidatePath("/", "layout");
   return { success: true };
 }
 
@@ -138,6 +139,7 @@ export async function updateBranch(
   });
 
   revalidatePath("/branches");
+  revalidatePath("/", "layout");
   return { success: true };
 }
 
@@ -191,6 +193,7 @@ export async function deleteBranch(id: string) {
   });
 
   revalidatePath("/branches");
+  revalidatePath("/", "layout");
   return { success: true };
 }
 

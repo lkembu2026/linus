@@ -39,7 +39,10 @@ const DailySalesChart = dynamic(
 );
 
 // Module-level cache — survives component remounts during navigation
-const dashboardCache: Record<AppMode, { data: DashboardPageData; ts: number } | undefined> = {
+const dashboardCache: Record<
+  AppMode,
+  { data: DashboardPageData; ts: number } | undefined
+> = {
   pharmacy: undefined,
   beauty: undefined,
 };
@@ -102,7 +105,10 @@ export function DashboardClient({
         if (!dashboardCache[oppositeMode]) {
           getDashboardPageData(oppositeMode)
             .then((prefetched) => {
-              dashboardCache[oppositeMode] = { data: prefetched, ts: Date.now() };
+              dashboardCache[oppositeMode] = {
+                data: prefetched,
+                ts: Date.now(),
+              };
             })
             .catch(() => {});
         }

@@ -57,6 +57,7 @@ export async function updateUserRole(userId: string, role: string) {
   });
 
   revalidatePath("/users");
+  revalidatePath("/", "layout");
   return { success: true };
 }
 
@@ -81,6 +82,7 @@ export async function updateUserBranch(userId: string, branchId: string) {
   });
 
   revalidatePath("/users");
+  revalidatePath("/", "layout");
   return { success: true };
 }
 
@@ -105,5 +107,6 @@ export async function toggleUserActive(userId: string, isActive: boolean) {
   });
 
   revalidatePath("/users");
+  revalidatePath("/", "layout");
   return { success: true };
 }
