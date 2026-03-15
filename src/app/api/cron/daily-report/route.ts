@@ -1,8 +1,9 @@
 /**
  * Vercel Cron Job — Daily Report
- * Schedule: 0 * * * *  (UTC)  = every hour
- * The cron reads the admin-configured hour from the DB and only sends
- * when the current EAT hour matches. Default: 23 (11 PM EAT).
+ * Schedule: 0 20 * * *  (UTC)  = 11:00 PM EAT (UTC+3)
+ *
+ * Compiles today's sales across all branches and emails the admin.
+ * Checks the daily_enabled flag from report_settings before sending.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -20,16 +21,6 @@ function todayEAT(): string {
   }).format(new Date());
 }
 
-function currentEATHour(): number {
-  return Number(
-    new Intl.DateTimeFormat("en-GB", {
-      timeZone: "Africa/Nairobi",
-      hour: "numeric",
-      hour12: false,
-    }).format(new Date()),
-  );
-}
-
 export async function GET(req: NextRequest) {
   // ── Security: verify Vercel cron secret ──────────────────────────────────
   const auth = req.headers.get("authorization");
@@ -42,32 +33,18 @@ export async function GET(req: NextRequest) {
 
   const supabase = createAdminClient();
 
-  // ── Check configured hour ────────────────────────────────────────────────
+  // ── Check if daily reports are enabled ───────────────────────────────────
   const { data: settings } = await supabase
     .from("report_settings")
-    .select("daily_report_hour, daily_enabled")
+    .select("daily_enabled")
     .eq("key", "default")
     .maybeSingle();
 
-  const configuredHour = settings?.daily_report_hour ?? 23;
-  const dailyEnabled = settings?.daily_enabled ?? true;
-  const nowHour = currentEATHour();
-
-  if (!dailyEnabled) {
+  if (settings && settings.daily_enabled === false) {
     return NextResponse.json({
       ok: true,
       skipped: true,
       reason: "daily_disabled",
-    });
-  }
-
-  if (nowHour !== configuredHour) {
-    return NextResponse.json({
-      ok: true,
-      skipped: true,
-      reason: "not_scheduled_hour",
-      nowHour,
-      configuredHour,
     });
   }
 

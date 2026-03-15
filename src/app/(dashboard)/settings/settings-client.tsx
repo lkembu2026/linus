@@ -22,7 +22,6 @@ import {
   Mail,
   Send,
   Save,
-  Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useOnlineStatus } from "@/hooks/use-online-status";
@@ -67,9 +66,6 @@ export function SettingsClient({
   );
   const [reportSettingsMeta, setReportSettingsMeta] = useState(
     initialReportSettings,
-  );
-  const [dailyReportHour, setDailyReportHour] = useState(
-    initialReportSettings.daily_report_hour,
   );
   const [dailyEnabled, setDailyEnabled] = useState(
     initialReportSettings.daily_enabled,
@@ -140,7 +136,6 @@ export function SettingsClient({
   function handleSaveReportRecipients() {
     startReportsTransition(async () => {
       const result = await updateReportAutomationSettings(reportRecipients, {
-        daily_report_hour: dailyReportHour,
         daily_enabled: dailyEnabled,
         weekly_enabled: weeklyEnabled,
         monthly_enabled: monthlyEnabled,
@@ -153,7 +148,6 @@ export function SettingsClient({
       if (result.settings) {
         setReportSettingsMeta(result.settings);
         setReportRecipients(result.settings.recipients.join(", "));
-        setDailyReportHour(result.settings.daily_report_hour);
         setDailyEnabled(result.settings.daily_enabled);
         setWeeklyEnabled(result.settings.weekly_enabled);
         setMonthlyEnabled(result.settings.monthly_enabled);
@@ -340,34 +334,6 @@ export function SettingsClient({
 
           <Separator className="bg-border" />
 
-          {/* Daily Report Time */}
-          <div className="space-y-2">
-            <Label className="text-muted-foreground flex items-center gap-1.5">
-              <Clock className="h-3.5 w-3.5" />
-              Daily Report Schedule (EAT)
-            </Label>
-            <select
-              value={dailyReportHour}
-              onChange={(e) => setDailyReportHour(Number(e.target.value))}
-              className="w-full sm:w-48 h-9 rounded-md border border-border bg-background px-3 text-sm text-white outline-none cursor-pointer"
-            >
-              {Array.from({ length: 24 }, (_, h) => {
-                const ampm = h >= 12 ? "PM" : "AM";
-                const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-                return (
-                  <option key={h} value={h}>
-                    {hour12}:00 {ampm} EAT
-                  </option>
-                );
-              })}
-            </select>
-            <p className="text-xs text-muted-foreground">
-              The daily summary email will be sent at this time every day.
-            </p>
-          </div>
-
-          <Separator className="bg-border" />
-
           {/* Report Toggles */}
           <div className="space-y-3">
             <Label className="text-muted-foreground">Enabled Reports</Label>
@@ -377,19 +343,19 @@ export function SettingsClient({
                   label: "Daily Report",
                   value: dailyEnabled,
                   setter: setDailyEnabled,
-                  desc: "End-of-day sales summary",
+                  desc: "Sent at 11:00 PM EAT every day",
                 },
                 {
                   label: "Weekly Report",
                   value: weeklyEnabled,
                   setter: setWeeklyEnabled,
-                  desc: "Monday–Sunday weekly summary",
+                  desc: "Sent Sunday 11:59 PM EAT",
                 },
                 {
                   label: "Monthly Report",
                   value: monthlyEnabled,
                   setter: setMonthlyEnabled,
-                  desc: "Full month summary on the 1st",
+                  desc: "Sent on the 1st at 8:00 AM EAT",
                 },
               ].map(({ label, value, setter, desc }) => (
                 <div
