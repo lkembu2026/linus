@@ -27,6 +27,7 @@ import {
   Eye,
   Download,
   FileText,
+  MessageCircle,
 } from "lucide-react";
 import { useMode } from "@/contexts/mode-context";
 import { MEDICINE_CATEGORIES, BEAUTY_CATEGORIES } from "@/lib/constants";
@@ -131,6 +132,33 @@ export function ReceiptsClient({ receipts }: ReceiptsClientProps) {
     a.download = `${receipt.receipt_number}.html`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  function handleWhatsAppShare(receipt: SavedReceipt) {
+    const date = new Date(receipt.created_at).toLocaleString("en-KE", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    let text = `*LINMAKS PHARMACARE*\n`;
+    if (receipt.branch_name) text += `${receipt.branch_name}\n`;
+    text += `${date}\n\n`;
+    text += `Receipt: *${receipt.receipt_number}*\n`;
+    text += `━━━━━━━━━━━━━━━━━━\n`;
+    if (receipt.items_summary) {
+      text += `${receipt.items_summary}\n`;
+    }
+    text += `━━━━━━━━━━━━━━━━━━\n`;
+    text += `*Total: KES ${receipt.total_amount.toLocaleString()}*\n`;
+    text += `Payment: ${receipt.payment_method.toUpperCase()}\n`;
+    if (receipt.cashier_name) text += `Served by: ${receipt.cashier_name}\n`;
+    text += `\nThank you for your purchase! 🙏`;
+
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, "_blank");
   }
 
   return (
@@ -241,6 +269,16 @@ export function ReceiptsClient({ receipts }: ReceiptsClientProps) {
                         <Printer className="h-3.5 w-3.5 mr-1" />
                         Print
                       </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-green-400 hover:text-green-300 h-8 px-2"
+                        onClick={() => handleWhatsAppShare(receipt)}
+                        title="Share via WhatsApp"
+                      >
+                        <MessageCircle className="h-3.5 w-3.5 mr-1" />
+                        WhatsApp
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -334,6 +372,15 @@ export function ReceiptsClient({ receipts }: ReceiptsClientProps) {
                               title="Download HTML"
                             >
                               <Download className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-green-400 hover:text-green-300 h-8 w-8 p-0"
+                              onClick={() => handleWhatsAppShare(receipt)}
+                              title="Share via WhatsApp"
+                            >
+                              <MessageCircle className="h-3.5 w-3.5" />
                             </Button>
                           </div>
                         </TableCell>

@@ -25,6 +25,7 @@ import {
   Smartphone,
   WifiOff,
   CreditCard,
+  MessageCircle,
 } from "lucide-react";
 import type { CartItem } from "@/types";
 import { toast } from "sonner";
@@ -331,6 +332,56 @@ export function CheckoutDialog({
     setTimeout(() => {
       printWindow.print();
     }, 300);
+  }
+
+  function handleWhatsAppShare() {
+    const now = new Date();
+    const dateStr = now.toLocaleString("en-KE", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    const itemLines = items
+      .map((item) => {
+        const disc = item.discount_percent ?? 0;
+        const discAmt = item.discount_amount ?? 0;
+        const lineTotal = item.unit_price * item.quantity;
+        const effectiveDiscount =
+          discAmt > 0
+            ? Math.min(discAmt, lineTotal)
+            : lineTotal * (disc / 100);
+        const finalTotal = lineTotal - effectiveDiscount;
+        const discLabel =
+          effectiveDiscount > 0
+            ? ` (-${discAmt > 0 ? `KES ${discAmt}` : `${disc}%`})`
+            : "";
+        return `  ${item.name} x${item.quantity} = KES ${finalTotal.toLocaleString()}${discLabel}`;
+      })
+      .join("\n");
+
+    let text = `*LINMAKS PHARMACARE*\n`;
+    text += `${branchName}\n`;
+    text += `${dateStr}\n\n`;
+    text += `Receipt: *${receiptNo}*\n`;
+    text += `━━━━━━━━━━━━━━━━━━\n`;
+    text += `${itemLines}\n`;
+    text += `━━━━━━━━━━━━━━━━━━\n`;
+    text += `*Total: KES ${total.toLocaleString()}*\n`;
+    text += `Payment: ${paymentMethod.toUpperCase()}\n`;
+    if (paymentMethod === "cash" && cashAmount > 0 && change > 0) {
+      text += `Change: KES ${change.toLocaleString()}\n`;
+    }
+    if (paymentMethod === "credit" || balanceCreated > 0) {
+      text += `Balance Owed: KES ${(balanceCreated || total).toLocaleString()}\n`;
+    }
+    text += `\nServed by: ${cashierName}\n`;
+    text += `Thank you for your purchase! 🙏`;
+
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, "_blank");
   }
 
   function handleClose() {
@@ -717,6 +768,14 @@ export function CheckoutDialog({
               >
                 <Printer className="h-4 w-4 mr-2" />
                 Print Receipt
+              </Button>
+              <Button
+                variant="ghost"
+                className="text-green-400 hover:text-green-300 w-full sm:w-auto"
+                onClick={handleWhatsAppShare}
+              >
+                <MessageCircle className="h-4 w-4 mr-2" />
+                WhatsApp
               </Button>
             </div>
           </div>

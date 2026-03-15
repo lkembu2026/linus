@@ -3,11 +3,23 @@ import { isAdminRole } from "@/types";
 export { isAdminRole };
 
 export const PERMISSION_MAP = {
-  view_dashboard: ["super_admin", "admin", "supervisor", "pharmacist", "cashier"],
+  view_dashboard: [
+    "super_admin",
+    "admin",
+    "supervisor",
+    "pharmacist",
+    "cashier",
+  ],
   view_all_branches: ["super_admin", "admin"],
   create_sale: ["super_admin", "admin", "supervisor", "pharmacist", "cashier"],
   void_sale: ["super_admin", "admin"],
-  view_inventory: ["super_admin", "admin", "supervisor", "pharmacist", "cashier"],
+  view_inventory: [
+    "super_admin",
+    "admin",
+    "supervisor",
+    "pharmacist",
+    "cashier",
+  ],
   add_medicine: ["super_admin", "admin"],
   edit_medicine: ["super_admin", "admin"],
   adjust_stock: ["super_admin", "admin"],
