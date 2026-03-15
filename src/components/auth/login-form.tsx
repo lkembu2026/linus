@@ -75,7 +75,7 @@ export function LoginForm({
           />
         </div>
         <h1 className="text-2xl font-bold font-[family-name:var(--font-sans)] text-white">
-          LK <span className="text-primary">PharmaCare</span>
+          Linmaks <span className="text-primary">PharmaCare</span>
         </h1>
         <p className="text-muted-foreground text-sm mt-2">
           Pharmacy Operating System
