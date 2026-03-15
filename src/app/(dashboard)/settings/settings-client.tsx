@@ -333,7 +333,7 @@ export function SettingsClient({
               <span className="text-sm text-muted-foreground">
                 Daily Schedule
               </span>
-              <span className="text-sm text-white">10:20 PM EAT</span>
+              <span className="text-sm text-white">11:00 PM EAT</span>
             </div>
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <span className="text-sm text-muted-foreground">
