@@ -56,14 +56,20 @@ export function LoginForm({
     // code_verifier cookie is stored in the browser and available
     // when exchangeCodeForSession is called after the user clicks
     // the email link.
-    const supabase = createClient();
-    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
 
-    setLoading(false);
-    if (error) {
-      setError(error.message);
+      setLoading(false);
+      if (error) {
+        setError(error.message);
+        return;
+      }
+    } catch {
+      setLoading(false);
+      setError("Network error. Please check your internet connection and try again.");
       return;
     }
     toast.success("Password reset email sent! Check your inbox.");
