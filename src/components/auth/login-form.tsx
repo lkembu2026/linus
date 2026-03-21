@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { login, resetPassword } from "@/actions/auth";
+import { login } from "@/actions/auth";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -50,10 +51,19 @@ export function LoginForm({
     if (!resetEmail) return;
     setLoading(true);
     setError(null);
-    const result = await resetPassword(resetEmail);
+
+    // Call resetPasswordForEmail from the CLIENT side so the PKCE
+    // code_verifier cookie is stored in the browser and available
+    // when exchangeCodeForSession is called after the user clicks
+    // the email link.
+    const supabase = createClient();
+    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+
     setLoading(false);
-    if (result.error) {
-      setError(result.error);
+    if (error) {
+      setError(error.message);
       return;
     }
     toast.success("Password reset email sent! Check your inbox.");
