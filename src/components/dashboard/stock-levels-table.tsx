@@ -35,6 +35,7 @@ export function StockLevelsTable({
   mode = "pharmacy",
 }: StockLevelsTableProps) {
   const [search, setSearch] = useState("");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [filter, setFilter] = useState<
     "all" | "in_stock" | "low_stock" | "out_of_stock"
   >("all");
@@ -55,6 +56,13 @@ export function StockLevelsTable({
       );
     if (filter === "in_stock") return med.quantity_in_stock > med.reorder_level;
     return true;
+  });
+
+  const sortedFiltered = [...filtered].sort((a, b) => {
+    const comparison = a.name.localeCompare(b.name, undefined, {
+      sensitivity: "base",
+    });
+    return sortOrder === "asc" ? comparison : -comparison;
   });
 
   const filterButtons = [
@@ -101,7 +109,13 @@ export function StockLevelsTable({
             className="w-full pl-9 pr-3 py-2 text-sm bg-background/50 border border-border rounded-lg text-white placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
           />
         </div>
-        <div className="flex gap-1">
+        <div className="flex gap-1 flex-wrap">
+          <button
+            onClick={() => setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))}
+            className="px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors bg-background/50 border-border text-muted-foreground hover:text-white"
+          >
+            {sortOrder === "asc" ? "A→Z" : "Z→A"}
+          </button>
           {filterButtons.map(({ key, label, count }) => (
             <button
               key={key}
@@ -119,7 +133,7 @@ export function StockLevelsTable({
       </div>
 
       {/* Table */}
-      {filtered.length === 0 ? (
+      {sortedFiltered.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-8">
           No {titleLabel.toLowerCase()}s found
         </p>
@@ -146,7 +160,7 @@ export function StockLevelsTable({
               </tr>
             </thead>
             <tbody className="divide-y divide-border/50">
-              {filtered.map((med) => {
+              {sortedFiltered.map((med) => {
                 const status = getStockStatus(med);
                 return (
                   <tr
