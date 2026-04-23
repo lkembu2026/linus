@@ -20,6 +20,10 @@ interface SearchResult {
   barcode: string | null;
   unit_price: number;
   max_quantity: number;
+  dispensing_unit?: string | null;
+  brand?: string | null;
+  size?: string | null;
+  colour?: string | null;
 }
 
 interface MedicineSearchProps {
@@ -28,6 +32,7 @@ interface MedicineSearchProps {
     name: string;
     unit_price: number;
     max_quantity: number;
+    dispensing_unit?: string | null;
   }) => void;
   mode?: AppMode;
 }
@@ -46,15 +51,6 @@ export function MedicineSearch({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const requestIdRef = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  // Clear stale results whenever mode switches
-  useEffect(() => {
-    setQuery("");
-    setResults([]);
-    setShowResults(false);
-    setIsOfflineResults(false);
-    setHasOutOfStockMatches(false);
-  }, [mode]);
 
   const doSearch = useCallback(
     (value: string) => {
@@ -126,7 +122,7 @@ export function MedicineSearch({
   function handleSearch(value: string) {
     setQuery(value);
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => doSearch(value), 300);
+    debounceRef.current = setTimeout(() => doSearch(value), 500);
   }
 
   function handleSelect(item: SearchResult) {
@@ -215,22 +211,22 @@ export function MedicineSearch({
                 <div className="flex items-center gap-2 mt-0.5">
                   {mode === "beauty" ? (
                     <>
-                      {(item as any).brand && (
+                      {item.brand && (
                         <span className="text-xs text-muted-foreground">
-                          {(item as any).brand}
+                          {item.brand}
                         </span>
                       )}
-                      {(item as any).size && (
+                      {item.size && (
                         <Badge
                           variant="secondary"
                           className="text-[10px] px-1.5 py-0"
                         >
-                          {(item as any).size}
+                          {item.size}
                         </Badge>
                       )}
-                      {(item as any).colour && (
+                      {item.colour && (
                         <span className="text-[10px] text-primary/70">
-                          {(item as any).colour}
+                          {item.colour}
                         </span>
                       )}
                     </>
