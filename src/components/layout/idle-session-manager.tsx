@@ -6,9 +6,10 @@ import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 
 const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
-const ACTIVITY_EVENTS: Array<keyof WindowEventMap> = [
+const MOUSEMOVE_THROTTLE_MS = 500;
+
+const IMMEDIATE_EVENTS: Array<keyof WindowEventMap> = [
   "mousedown",
-  "mousemove",
   "keydown",
   "scroll",
   "touchstart",
@@ -20,6 +21,7 @@ export function IdleSessionManager() {
   const router = useRouter();
   const timeoutRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const signingOutRef = useRef(false);
+  const lastMouseMoveRef = useRef(0);
 
   useEffect(() => {
     if (pathname === "/login") {
@@ -50,6 +52,13 @@ export function IdleSessionManager() {
       }, IDLE_TIMEOUT_MS);
     }
 
+    function handleMouseMove() {
+      const now = Date.now();
+      if (now - lastMouseMoveRef.current < MOUSEMOVE_THROTTLE_MS) return;
+      lastMouseMoveRef.current = now;
+      resetTimer();
+    }
+
     function handleVisibilityChange() {
       if (document.visibilityState === "visible") {
         resetTimer();
@@ -57,18 +66,20 @@ export function IdleSessionManager() {
     }
 
     resetTimer();
-    ACTIVITY_EVENTS.forEach((eventName) => {
+    IMMEDIATE_EVENTS.forEach((eventName) => {
       window.addEventListener(eventName, resetTimer, { passive: true });
     });
+    window.addEventListener("mousemove", handleMouseMove, { passive: true });
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       if (timeoutRef.current) {
         window.clearTimeout(timeoutRef.current);
       }
-      ACTIVITY_EVENTS.forEach((eventName) => {
+      IMMEDIATE_EVENTS.forEach((eventName) => {
         window.removeEventListener(eventName, resetTimer);
       });
+      window.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [pathname, router]);

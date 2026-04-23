@@ -150,9 +150,10 @@ export function startAutoSync(
 ) {
   let syncTimer: ReturnType<typeof setInterval> | null = null;
 
-  const trySync = async () => {
-    // Wait a moment for the connection to stabilise, then verify it's real
-    await new Promise((r) => setTimeout(r, 1500));
+  const trySync = async (delayMs = 0) => {
+    if (delayMs > 0) {
+      await new Promise((r) => setTimeout(r, delayMs));
+    }
     invalidateConnectivityCache();
     const online = await isActuallyOnline();
     if (!online) return;
@@ -160,13 +161,13 @@ export function startAutoSync(
     if (onSync && (result.synced > 0 || result.failed > 0)) onSync(result);
   };
 
-  const handleOnline = () => trySync();
+  const handleOnline = () => trySync(1500);
 
   window.addEventListener("online", handleOnline);
 
-  // Also poll every 60 s — catches the case where internet comes back
+  // Poll every 5 min — catches the case where internet comes back
   // without the browser firing the "online" event
-  syncTimer = setInterval(trySync, 60_000);
+  syncTimer = setInterval(() => trySync(0), 300_000);
 
   return () => {
     window.removeEventListener("online", handleOnline);

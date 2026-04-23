@@ -17,6 +17,11 @@ import type {
 import type { AppMode } from "@/types";
 import type { Medicine } from "@/types/database";
 
+export type DashboardMedicineStock = Pick<
+  Medicine,
+  "id" | "name" | "category" | "quantity_in_stock" | "reorder_level"
+>;
+
 export type DashboardRecentSale = {
   id: string;
   receipt_number: string;
@@ -34,13 +39,16 @@ export type DashboardPageData = {
   stats: DashboardStats;
   topMedicines: TopMedicine[];
   revenueData: RevenueDataPoint[];
-  lowStock: Medicine[];
-  allMedicines: Medicine[];
   overview: InventoryOverview;
   dailySales: MedicineDailySales[];
-  categoryBreakdown: MedicineCategoryBreakdown[];
   recentSales: DashboardRecentSale[];
   role: string;
+};
+
+export type DashboardSupplementalData = {
+  lowStock: DashboardMedicineStock[];
+  allMedicines: DashboardMedicineStock[];
+  categoryBreakdown: MedicineCategoryBreakdown[];
 };
 
 type SaleAmount = {
@@ -153,35 +161,24 @@ export async function getDashboardPageData(
       stats,
       topMedicines,
       revenueData,
-      allMedicines,
       overview,
       dailySales,
-      categoryBreakdown,
       recentSales,
     ] = await Promise.all([
       _getDashboardStats(ctx),
       _getTopMedicines(ctx, 10),
       _getRevenueChart(ctx, 30),
-      _getAllMedicines(ctx),
       _getInventoryOverview(ctx),
       _getMedicineDailySales(ctx, 14),
-      _getMedicineCategoryBreakdown(ctx),
       _getRecentSales(ctx, 10),
     ]);
-
-    const lowStock = allMedicines.filter(
-      (m) => m.quantity_in_stock <= m.reorder_level,
-    );
 
     return {
       stats,
       topMedicines,
       revenueData,
-      lowStock,
-      allMedicines,
       overview,
       dailySales,
-      categoryBreakdown,
       recentSales,
       role: user?.role ?? "cashier",
     };
@@ -190,6 +187,52 @@ export async function getDashboardPageData(
   let data = await buildData(categories);
 
   if (mode === "beauty" && (data.stats?.totalMedicines ?? 0) === 0) {
+    const fallbackCategories = await getLegacyBeautyCategories(branchId);
+    if (fallbackCategories.length > 0) {
+      categories = fallbackCategories;
+      data = await buildData(categories);
+    }
+  }
+
+  return data;
+}
+
+export async function getDashboardSupplementalData(
+  mode: AppMode,
+): Promise<DashboardSupplementalData> {
+  const [user, supabase] = await Promise.all([
+    getCurrentUser(),
+    createClient(),
+  ]);
+  const branchId = await getEffectiveBranchId(user);
+
+  let categories = getCategoriesForMode(mode);
+
+  const buildData = async (targetCategories: string[]) => {
+    const ctx: DashCtx = {
+      supabase,
+      branchId,
+      validSaleIds: undefined,
+      categories: targetCategories,
+    };
+
+    const [allMedicines, categoryBreakdown] = await Promise.all([
+      _getAllMedicines(ctx),
+      _getMedicineCategoryBreakdown(ctx),
+    ]);
+
+    return {
+      lowStock: allMedicines.filter(
+        (medicine) => medicine.quantity_in_stock <= medicine.reorder_level,
+      ),
+      allMedicines,
+      categoryBreakdown,
+    };
+  };
+
+  let data = await buildData(categories);
+
+  if (mode === "beauty" && data.allMedicines.length === 0) {
     const fallbackCategories = await getLegacyBeautyCategories(branchId);
     if (fallbackCategories.length > 0) {
       categories = fallbackCategories;
@@ -292,8 +335,15 @@ async function _getTopMedicines(
 
   if (validSaleIds !== undefined && validSaleIds.length === 0) return [];
 
-  // Get completed sale IDs
-  let salesQ = supabase.from("sales").select("id").eq("is_voided", false);
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 30);
+
+  // Get completed sale IDs (last 30 days to avoid unbounded growth)
+  let salesQ = supabase
+    .from("sales")
+    .select("id")
+    .gte("created_at", startDate.toISOString())
+    .eq("is_voided", false);
   if (branchId) salesQ = salesQ.eq("branch_id", branchId);
   if (validSaleIds !== undefined) salesQ = salesQ.in("id", validSaleIds);
 
@@ -390,19 +440,19 @@ async function _getRevenueChart(
 }
 
 // ── Low Stock Items ─────────────────────────────────────────────────────────
-async function _getAllMedicines(ctx: DashCtx) {
+async function _getAllMedicines(ctx: DashCtx): Promise<DashboardMedicineStock[]> {
   const { supabase, branchId, categories } = ctx;
 
   let query = supabase
     .from("medicines")
-    .select("*")
+    .select("id, name, category, quantity_in_stock, reorder_level")
     .order("quantity_in_stock", { ascending: true });
 
   if (branchId) query = query.eq("branch_id", branchId);
   if (categories.length > 0) query = query.in("category", categories);
 
   const { data } = await query;
-  return (data ?? []) as unknown as Medicine[];
+  return (data ?? []) as DashboardMedicineStock[];
 }
 
 // ── Inventory Overview ──────────────────────────────────────────────────────
@@ -522,13 +572,20 @@ async function _getMedicineCategoryBreakdown(
 ): Promise<MedicineCategoryBreakdown[]> {
   const { supabase, branchId, categories } = ctx;
 
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 30);
+
   let medQ = supabase
     .from("medicines")
     .select("id, category, quantity_in_stock");
   if (branchId) medQ = medQ.eq("branch_id", branchId);
   if (categories.length > 0) medQ = medQ.in("category", categories);
 
-  let salesQ = supabase.from("sales").select("id").eq("is_voided", false);
+  let salesQ = supabase
+    .from("sales")
+    .select("id")
+    .gte("created_at", startDate.toISOString())
+    .eq("is_voided", false);
   if (branchId) salesQ = salesQ.eq("branch_id", branchId);
 
   // Fetch meds + sales in parallel
@@ -665,9 +722,15 @@ async function _getRecentSales(
     ]),
   );
 
+  const itemsBySaleId = new Map<string, SaleItemRow[]>();
+  for (const item of saleItems) {
+    const groupedItems = itemsBySaleId.get(item.sale_id) ?? [];
+    groupedItems.push(item);
+    itemsBySaleId.set(item.sale_id, groupedItems);
+  }
+
   return sales.map((sale) => {
-    const items = saleItems.filter((si) => si.sale_id === sale.id);
-    const summary = items
+    const summary = (itemsBySaleId.get(sale.id) ?? [])
       .map(
         (si) => `${medsMap.get(si.medicine_id) ?? "Unknown"} ×${si.quantity}`,
       )

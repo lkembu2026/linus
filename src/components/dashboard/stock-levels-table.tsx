@@ -1,16 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Package, Search } from "lucide-react";
-import type { Medicine } from "@/types/database";
+import type { DashboardMedicineStock } from "@/actions/dashboard";
 import type { AppMode } from "@/types";
 
 interface StockLevelsTableProps {
-  medicines: Medicine[];
+  medicines: DashboardMedicineStock[];
   mode?: AppMode;
 }
 
-function getStockStatus(med: Medicine) {
+function getStockStatus(med: DashboardMedicineStock) {
   if (med.quantity_in_stock === 0)
     return {
       label: "Out of Stock",
@@ -41,52 +41,59 @@ export function StockLevelsTable({
   >("all");
   const titleLabel = mode === "beauty" ? "Product" : "Medicine";
 
-  const filtered = medicines.filter((med) => {
-    const matchesSearch =
-      !search ||
-      med.name.toLowerCase().includes(search.toLowerCase()) ||
-      med.category.toLowerCase().includes(search.toLowerCase());
+  const searchLower = search.toLowerCase().trim();
 
-    if (!matchesSearch) return false;
+  const filtered = useMemo(() => {
+    return medicines.filter((med) => {
+      const matchesSearch =
+        !searchLower ||
+        med.name.toLowerCase().includes(searchLower) ||
+        med.category.toLowerCase().includes(searchLower);
 
-    if (filter === "out_of_stock") return med.quantity_in_stock === 0;
-    if (filter === "low_stock")
-      return (
-        med.quantity_in_stock > 0 && med.quantity_in_stock <= med.reorder_level
-      );
-    if (filter === "in_stock") return med.quantity_in_stock > med.reorder_level;
-    return true;
-  });
+      if (!matchesSearch) return false;
 
-  const sortedFiltered = [...filtered].sort((a, b) => {
-    const comparison = a.name.localeCompare(b.name, undefined, {
-      sensitivity: "base",
+      if (filter === "out_of_stock") return med.quantity_in_stock === 0;
+      if (filter === "low_stock")
+        return (
+          med.quantity_in_stock > 0 && med.quantity_in_stock <= med.reorder_level
+        );
+      if (filter === "in_stock") return med.quantity_in_stock > med.reorder_level;
+      return true;
     });
-    return sortOrder === "asc" ? comparison : -comparison;
-  });
+  }, [medicines, searchLower, filter]);
 
-  const filterButtons = [
-    { key: "all" as const, label: "All", count: medicines.length },
-    {
-      key: "in_stock" as const,
-      label: "In Stock",
-      count: medicines.filter((m) => m.quantity_in_stock > m.reorder_level)
-        .length,
-    },
-    {
-      key: "low_stock" as const,
-      label: "Low",
-      count: medicines.filter(
-        (m) =>
-          m.quantity_in_stock > 0 && m.quantity_in_stock <= m.reorder_level,
-      ).length,
-    },
-    {
-      key: "out_of_stock" as const,
-      label: "Out",
-      count: medicines.filter((m) => m.quantity_in_stock === 0).length,
-    },
-  ];
+  const sortedFiltered = useMemo(() => {
+    const sorted = [...filtered].sort((a, b) => {
+      const comparison = a.name.localeCompare(b.name, undefined, {
+        sensitivity: "base",
+      });
+      return sortOrder === "asc" ? comparison : -comparison;
+    });
+    return sorted;
+  }, [filtered, sortOrder]);
+
+  // Cap rendered rows to prevent DOM jank with huge inventories
+  const visibleRows = sortedFiltered.slice(0, 200);
+
+  const filterButtons = useMemo(() => {
+    const inStockCount = medicines.filter(
+      (m) => m.quantity_in_stock > m.reorder_level,
+    ).length;
+    const lowStockCount = medicines.filter(
+      (m) =>
+        m.quantity_in_stock > 0 && m.quantity_in_stock <= m.reorder_level,
+    ).length;
+    const outOfStockCount = medicines.filter(
+      (m) => m.quantity_in_stock === 0,
+    ).length;
+
+    return [
+      { key: "all" as const, label: "All", count: medicines.length },
+      { key: "in_stock" as const, label: "In Stock", count: inStockCount },
+      { key: "low_stock" as const, label: "Low", count: lowStockCount },
+      { key: "out_of_stock" as const, label: "Out", count: outOfStockCount },
+    ];
+  }, [medicines]);
 
   return (
     <div className="glass-card p-6">
@@ -139,6 +146,11 @@ export function StockLevelsTable({
         </p>
       ) : (
         <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
+          {sortedFiltered.length > 200 && (
+            <p className="text-xs text-muted-foreground px-3 py-2">
+              Showing first 200 of {sortedFiltered.length} results — refine search to narrow down.
+            </p>
+          )}
           <table className="w-full text-sm">
             <thead className="sticky top-0 z-10">
               <tr className="bg-background/80 backdrop-blur-sm border-b border-border">
@@ -160,7 +172,7 @@ export function StockLevelsTable({
               </tr>
             </thead>
             <tbody className="divide-y divide-border/50">
-              {sortedFiltered.map((med) => {
+              {visibleRows.map((med) => {
                 const status = getStockStatus(med);
                 return (
                   <tr

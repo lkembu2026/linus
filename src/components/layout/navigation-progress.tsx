@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
 /**
@@ -12,32 +12,45 @@ export function NavigationProgress() {
   const searchParams = useSearchParams();
   const [progress, setProgress] = useState(0);
   const [visible, setVisible] = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearTimers = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  }, []);
 
   const start = useCallback(() => {
+    clearTimers();
     setProgress(0);
     setVisible(true);
 
-    // Animate to ~70% quickly, then slow down
     let value = 0;
-    const id = setInterval(() => {
+    intervalRef.current = setInterval(() => {
       value += Math.random() * 15;
       if (value >= 90) {
-        clearInterval(id);
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        intervalRef.current = null;
         value = 90;
       }
       setProgress(value);
     }, 150);
-
-    return () => clearInterval(id);
-  }, []);
+  }, [clearTimers]);
 
   const finish = useCallback(() => {
+    clearTimers();
     setProgress(100);
-    setTimeout(() => {
+    timeoutRef.current = setTimeout(() => {
       setVisible(false);
       setProgress(0);
     }, 300);
-  }, []);
+  }, [clearTimers]);
 
   // Detect navigation by watching pathname + searchParams changes
   useEffect(() => {
@@ -46,7 +59,7 @@ export function NavigationProgress() {
 
   // Listen for click on internal links to start the bar
   useEffect(() => {
-    let cleanup: (() => void) | undefined;
+    let linkCleanup: (() => void) | undefined;
 
     function handleClick(e: MouseEvent) {
       const anchor = (e.target as HTMLElement).closest("a");
@@ -57,17 +70,18 @@ export function NavigationProgress() {
       // Starting a navigation to a different page
       const current = window.location.pathname + window.location.search;
       if (href !== current && !href.startsWith("mailto:")) {
-        cleanup?.();
-        cleanup = start();
+        linkCleanup?.();
+        start();
+        linkCleanup = clearTimers;
       }
     }
 
     document.addEventListener("click", handleClick, { capture: true });
     return () => {
       document.removeEventListener("click", handleClick, { capture: true });
-      cleanup?.();
+      linkCleanup?.();
     };
-  }, [start]);
+  }, [start, clearTimers]);
 
   if (!visible) return null;
 
