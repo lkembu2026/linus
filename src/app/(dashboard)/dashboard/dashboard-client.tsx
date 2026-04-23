@@ -97,7 +97,8 @@ export function DashboardClient({
   const data =
     dataByMode[mode] ??
     dashboardCache[mode]?.data ??
-    (mode === initialMode ? initialData ?? null : null);
+    initialData ??
+    null;
   const supplementalData =
     supplementalByMode[mode] ?? dashboardSupplementalCache[mode]?.data ?? null;
 
