@@ -67,8 +67,16 @@ export function DashboardClient({
   initialData,
   initialMode = "pharmacy",
 }: DashboardClientProps) {
-  const { mode } = useMode();
+  const { mode, setMode } = useMode();
   const [seedTimestamp] = useState(() => Date.now());
+
+  // Sync client mode with server-resolved initialMode on first mount
+  useEffect(() => {
+    if (mode !== initialMode) {
+      setMode(initialMode);
+    }
+  }, [mode, initialMode, setMode]);
+
   const [dataByMode, setDataByMode] = useState<
     Partial<Record<AppMode, DashboardPageData>>
   >(() =>
