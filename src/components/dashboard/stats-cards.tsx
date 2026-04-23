@@ -61,6 +61,16 @@ const cards = [
   },
 ];
 
+function formatCompactNumber(value: number, isCurrency: boolean): string {
+  if (value >= 1_000_000) {
+    return `${(value / 1_000_000).toFixed(1)}M${isCurrency ? "" : ""}`;
+  }
+  if (value >= 1_000) {
+    return `${(value / 1_000).toFixed(1)}K${isCurrency ? "" : ""}`;
+  }
+  return isCurrency ? formatCurrency(value) : value.toLocaleString();
+}
+
 export function StatsCards({ stats, mode = "pharmacy" }: StatsCardsProps) {
   const cardsWithMode = cards.map((card) =>
     card.key === "totalMedicines"
@@ -76,10 +86,7 @@ export function StatsCards({ stats, mode = "pharmacy" }: StatsCardsProps) {
       {cardsWithMode.map((card) => {
         const Icon = card.icon;
         const value = stats[card.key];
-        const displayValue =
-          card.format === "currency"
-            ? formatCurrency(value)
-            : value.toLocaleString();
+        const displayValue = formatCompactNumber(value, card.format === "currency");
 
         return (
           <div
@@ -102,9 +109,10 @@ export function StatsCards({ stats, mode = "pharmacy" }: StatsCardsProps) {
               </div>
             </div>
             <p
-              className={`text-2xl font-bold font-[family-name:var(--font-sans)] ${
+              className={`text-2xl font-bold font-[family-name:var(--font-sans)] truncate ${
                 card.warn && value > 0 ? "text-yellow-400" : "text-white"
               }`}
+              title={card.format === "currency" ? formatCurrency(value) : value.toLocaleString()}
             >
               {displayValue}
             </p>
