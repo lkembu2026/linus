@@ -77,7 +77,7 @@ export function DailySalesChart({ data }: DailySalesChartProps) {
         </div>
       ) : (
         <div className="h-[220px]">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
             <BarChart data={formatted} barCategoryGap="30%">
               <CartesianGrid
                 strokeDasharray="3 3"

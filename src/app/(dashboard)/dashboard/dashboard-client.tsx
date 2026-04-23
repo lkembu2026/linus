@@ -7,7 +7,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { AppMode } from "@/types";
 import {
   getDashboardPageData,
+  getDashboardSupplementalData,
   type DashboardPageData,
+  type DashboardSupplementalData,
 } from "@/actions/dashboard";
 
 // Components — static (lightweight, no heavy deps)
@@ -47,6 +49,13 @@ const dashboardCache: Record<
   pharmacy: undefined,
   beauty: undefined,
 };
+const dashboardSupplementalCache: Record<
+  AppMode,
+  { data: DashboardSupplementalData; ts: number } | undefined
+> = {
+  pharmacy: undefined,
+  beauty: undefined,
+};
 const CACHE_TTL = 2 * 60 * 1000; // 2 minutes
 
 interface DashboardClientProps {
@@ -59,67 +68,130 @@ export function DashboardClient({
   initialMode = "pharmacy",
 }: DashboardClientProps) {
   const { mode } = useMode();
-
-  // Seed module cache from server-prefetched data (only once)
-  if (initialData && !dashboardCache[initialMode]) {
-    dashboardCache[initialMode] = { data: initialData, ts: Date.now() };
-  }
-
-  const cached = dashboardCache[mode];
-  const isFresh = cached && Date.now() - cached.ts < CACHE_TTL;
-  const [data, setData] = useState<DashboardPageData | null>(
-    cached?.data ?? initialData ?? null,
+  const [seedTimestamp] = useState(() => Date.now());
+  const [dataByMode, setDataByMode] = useState<
+    Partial<Record<AppMode, DashboardPageData>>
+  >(() =>
+    initialData
+      ? {
+          [initialMode]: initialData,
+        }
+      : {},
   );
+  const [supplementalByMode, setSupplementalByMode] = useState<
+    Partial<Record<AppMode, DashboardSupplementalData>>
+  >({});
   const [isRefreshingMode, setIsRefreshingMode] = useState(false);
+  const [isLoadingSupplemental, setIsLoadingSupplemental] = useState(false);
   const requestIdRef = useRef(0);
+  const supplementalRequestIdRef = useRef(0);
   const itemLabel = mode === "beauty" ? "products" : "medicines";
+  const data =
+    dataByMode[mode] ??
+    dashboardCache[mode]?.data ??
+    (mode === initialMode ? initialData ?? null : null);
+  const supplementalData =
+    supplementalByMode[mode] ?? dashboardSupplementalCache[mode]?.data ?? null;
 
   useEffect(() => {
     const entry = dashboardCache[mode];
-    const oppositeMode: AppMode = mode === "pharmacy" ? "beauty" : "pharmacy";
 
     // If cache is fresh, show it immediately without refetching
     if (entry && Date.now() - entry.ts < CACHE_TTL) {
-      setData(entry.data);
       return;
     }
 
-    // If stale cache exists, show it and refresh in background
-    if (entry) {
-      setData(entry.data);
+    const refreshIndicatorTimeout = window.setTimeout(() => {
       setIsRefreshingMode(true);
-    } else {
-      setIsRefreshingMode(true);
-    }
+    }, 0);
 
     requestIdRef.current += 1;
     const requestId = requestIdRef.current;
 
     getDashboardPageData(mode)
       .then((nextData) => {
+        window.clearTimeout(refreshIndicatorTimeout);
         if (requestId !== requestIdRef.current) return;
         dashboardCache[mode] = { data: nextData, ts: Date.now() };
-        setData(nextData);
+        setDataByMode((current) => ({
+          ...current,
+          [mode]: nextData,
+        }));
         setIsRefreshingMode(false);
-
-        // Prefetch opposite mode
-        if (!dashboardCache[oppositeMode]) {
-          getDashboardPageData(oppositeMode)
-            .then((prefetched) => {
-              dashboardCache[oppositeMode] = {
-                data: prefetched,
-                ts: Date.now(),
-              };
-            })
-            .catch(() => {});
-        }
       })
       .catch((err) => {
+        window.clearTimeout(refreshIndicatorTimeout);
         if (requestId !== requestIdRef.current) return;
         console.error("Dashboard fetch error:", err);
         setIsRefreshingMode(false);
       });
+
+    return () => {
+      window.clearTimeout(refreshIndicatorTimeout);
+    };
   }, [mode]);
+
+  useEffect(() => {
+    if (initialData && !dashboardCache[initialMode]) {
+      dashboardCache[initialMode] = { data: initialData, ts: seedTimestamp };
+    }
+  }, [initialData, initialMode, seedTimestamp]);
+
+  useEffect(() => {
+    if (!data) return;
+
+    const entry = dashboardSupplementalCache[mode];
+    if (entry && Date.now() - entry.ts < CACHE_TTL) {
+      return;
+    }
+
+    supplementalRequestIdRef.current += 1;
+    const requestId = supplementalRequestIdRef.current;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let idleId: number | null = null;
+
+    const loadSupplemental = () => {
+      setIsLoadingSupplemental(true);
+
+      getDashboardSupplementalData(mode)
+        .then((nextData) => {
+          if (requestId !== supplementalRequestIdRef.current) return;
+          dashboardSupplementalCache[mode] = {
+            data: nextData,
+            ts: Date.now(),
+          };
+          setSupplementalByMode((current) => ({
+            ...current,
+            [mode]: nextData,
+          }));
+          setIsLoadingSupplemental(false);
+        })
+        .catch((err) => {
+          if (requestId !== supplementalRequestIdRef.current) return;
+          console.error("Dashboard supplemental fetch error:", err);
+          setIsLoadingSupplemental(false);
+        });
+    };
+
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      idleId = window.requestIdleCallback(loadSupplemental, { timeout: 1000 });
+    } else {
+      timeoutId = setTimeout(loadSupplemental, 250);
+    }
+
+    return () => {
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
+      if (
+        idleId !== null &&
+        typeof window !== "undefined" &&
+        "cancelIdleCallback" in window
+      ) {
+        window.cancelIdleCallback(idleId);
+      }
+    };
+  }, [data, mode]);
 
   if (!data) {
     return <DashboardSkeleton />;
@@ -151,12 +223,12 @@ export function DashboardClient({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
         <MedicineInventoryCard data={data.overview} mode={mode} />
         <div className="lg:col-span-2">
-          <DailySalesChart data={data.dailySales} />
+          <DailySalesChart data={data.dailySales ?? []} />
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-        <RevenueChart data={data.revenueData} />
+        <RevenueChart data={data.revenueData ?? []} />
         <TopMedicines medicines={data.topMedicines} mode={mode} />
       </div>
 
@@ -164,13 +236,57 @@ export function DashboardClient({
         <RecentSales sales={data.recentSales} userRole={data.role} />
       </div>
 
+      {supplementalData ? (
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+            <LowStockAlert items={supplementalData.lowStock} />
+            <MedicineCategoryBreakdownCard
+              data={supplementalData.categoryBreakdown}
+            />
+          </div>
+
+          <div className="mt-6">
+            <StockLevelsTable
+              medicines={supplementalData.allMedicines}
+              mode={mode}
+            />
+          </div>
+        </>
+      ) : (
+        <DashboardSupplementalSkeleton loading={isLoadingSupplemental} />
+      )}
+    </>
+  );
+}
+
+function DashboardSupplementalSkeleton({
+  loading,
+}: {
+  loading: boolean;
+}) {
+  return (
+    <>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-        <LowStockAlert items={data.lowStock} />
-        <MedicineCategoryBreakdownCard data={data.categoryBreakdown} />
+        {[1, 2].map((index) => (
+          <div
+            key={index}
+            className="rounded-xl border border-border bg-card p-4 space-y-4"
+          >
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-5 w-40 rounded" />
+              {loading && <Skeleton className="h-4 w-20 rounded" />}
+            </div>
+            <Skeleton className="h-[180px] w-full rounded-lg" />
+          </div>
+        ))}
       </div>
 
-      <div className="mt-6">
-        <StockLevelsTable medicines={data.allMedicines} mode={mode} />
+      <div className="mt-6 rounded-xl border border-border bg-card p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-5 w-48 rounded" />
+          {loading && <Skeleton className="h-4 w-24 rounded" />}
+        </div>
+        <Skeleton className="h-[260px] w-full rounded-lg" />
       </div>
     </>
   );
