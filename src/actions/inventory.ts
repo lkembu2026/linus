@@ -10,6 +10,9 @@ import type { Database, Medicine } from "@/types/database";
 
 type MedicineInsert = Database["public"]["Tables"]["medicines"]["Insert"];
 
+const MEDICINE_LIST_SELECT =
+  "id, name, generic_name, category, unit_price, cost_price, quantity_in_stock, reorder_level, expiry_date, barcode, dispensing_unit, requires_prescription, branch_id, created_at, updated_at, brand, size, colour";
+
 function normalizeText(value?: string) {
   const trimmed = value?.trim();
   return trimmed && trimmed.length > 0 ? trimmed : null;
@@ -111,7 +114,7 @@ export async function getMedicines(
 
   let query = supabase
     .from("medicines")
-    .select("*")
+    .select(MEDICINE_LIST_SELECT)
     .order("name", { ascending: true });
 
   if (branchId) {
@@ -129,6 +132,11 @@ export async function getMedicines(
     query = query.eq("category", category);
   } else if (categories && categories.length > 0) {
     query = query.in("category", categories);
+  }
+
+  // Prevent unbounded payloads when no search is given
+  if (!search) {
+    query = query.limit(5000);
   }
 
   const { data, error } = await query;

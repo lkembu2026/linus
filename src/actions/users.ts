@@ -14,7 +14,8 @@ export async function getUsers() {
   let query = supabase
     .from("users")
     .select("*")
-    .order("full_name", { ascending: true });
+    .order("full_name", { ascending: true })
+    .limit(500);
 
   // Hide super_admin users from non-super_admin callers
   if (user.role !== "super_admin") {

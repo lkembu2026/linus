@@ -25,7 +25,8 @@ export async function getBranches() {
   const { data, error } = await supabase
     .from("branches")
     .select("*")
-    .order("name", { ascending: true });
+    .order("name", { ascending: true })
+    .limit(200);
 
   if (error) {
     console.error("getBranches error:", error);

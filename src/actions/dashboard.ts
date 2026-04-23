@@ -446,7 +446,8 @@ async function _getAllMedicines(ctx: DashCtx): Promise<DashboardMedicineStock[]>
   let query = supabase
     .from("medicines")
     .select("id, name, category, quantity_in_stock, reorder_level")
-    .order("quantity_in_stock", { ascending: true });
+    .order("quantity_in_stock", { ascending: true })
+    .limit(500);
 
   if (branchId) query = query.eq("branch_id", branchId);
   if (categories.length > 0) query = query.in("category", categories);

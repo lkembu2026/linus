@@ -50,7 +50,8 @@ export async function getTransfers(
       requested_by_user:users!stock_transfers_requested_by_fkey(id, full_name)
     `,
     )
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(500);
 
   if (branchId) {
     query = query.or(
